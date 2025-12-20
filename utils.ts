@@ -2,8 +2,8 @@
 import { User, Teacher, IndividualClass } from './types';
 import { ContentState, convertFromRaw } from 'draft-js';
 
-// IMPORTANT: Replace this with your actual deployed Cloud Function URL
-const NOTIFICATION_FUNCTION_URL = 'https://us-central1-gen-lang-client-0695487820.cloudfunctions.net/notification-function';
+// Notification URL is now passed dynamically
+// const NOTIFICATION_FUNCTION_URL = ...;
 
 
 /**
@@ -11,12 +11,13 @@ const NOTIFICATION_FUNCTION_URL = 'https://us-central1-gen-lang-client-069548782
  * This can be used for both email and SMS.
  */
 export const sendNotification = async (
+    notificationUrl: string,
     recipient: { email?: string | null; contactNumber?: string | null },
     subject: string,
     htmlBody: string,
     smsMessage?: string,
 ) => {
-    
+
     try {
         const payload: any = {};
         if (recipient.email) {
@@ -37,14 +38,13 @@ export const sendNotification = async (
             console.warn("No contact info provided for notification.");
             return;
         }
-        
-        // In a real project, you would not have a placeholder URL here.
-        if (NOTIFICATION_FUNCTION_URL.includes('YOUR_PROJECT_ID')) {
-             console.log("Simulating sending notification (Please update the Cloud Function URL in utils.ts):", payload);
-             return; 
+
+        if (notificationUrl.includes('YOUR_PROJECT_ID')) {
+            console.log("Simulating sending notification (Please update the Cloud Function URL in utils.ts):", payload);
+            return;
         }
 
-        const response = await fetch(NOTIFICATION_FUNCTION_URL, {
+        const response = await fetch(notificationUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),
@@ -95,18 +95,18 @@ export const createSrcSet = (baseUrl: string, sizes: number[]): string => {
                     if (parts.length >= 6 && !isNaN(parseInt(parts[parts.length - 2], 10))) {
                         const originalWidth = parseInt(parts[parts.length - 2], 10);
                         const originalHeight = parseInt(parts[parts.length - 1], 10);
-                        
+
                         parts[parts.length - 2] = size.toString();
-                        
+
                         if (!isNaN(originalHeight) && originalWidth > 0) {
-                           parts[parts.length - 1] = Math.round((originalHeight / originalWidth) * size).toString();
+                            parts[parts.length - 1] = Math.round((originalHeight / originalWidth) * size).toString();
                         }
                         url = parts.join('/');
                     }
                 }
             } catch (e) {
                 // Fallback if URL parsing fails
-                return `${baseUrl} ${size}w`; 
+                return `${baseUrl} ${size}w`;
             }
             return `${url} ${size}w`;
         })
@@ -121,12 +121,12 @@ export const createSrcSet = (baseUrl: string, sizes: number[]): string => {
  */
 export const getOptimizedImageUrl = (url: string, width: number, height?: number): string => {
     if (!url) return '';
-    
+
     // Google User Content (Drive, Auth Profiles)
     // Supports patterns like lh3.googleusercontent.com/...
     if (url.includes('googleusercontent.com') || url.includes('drive-storage')) {
         // Remove existing size params if present (e.g., =s1600)
-        const baseUrl = url.split('=')[0]; 
+        const baseUrl = url.split('=')[0];
         // =s{size}-c forces a crop to exact dimensions if height implies aspect ratio, 
         // but usually =s{size} scales to width.
         // If we want a square thumbnail (e.g. profile), we assume width=height
@@ -155,10 +155,10 @@ export const getOptimizedImageUrl = (url: string, width: number, height?: number
         // or https://picsum.photos/{width}/{height}
         // This is a naive replacement for mock data
         if (parts.length >= 5) {
-             // Assuming standard picsum structure, the last two are w/h
-             // We'll just return a new random url if parsing fails, or try to replace end segments
-             // For safety in this app context, mostly returning original or appending query if supported
-             return url; 
+            // Assuming standard picsum structure, the last two are w/h
+            // We'll just return a new random url if parsing fails, or try to replace end segments
+            // For safety in this app context, mostly returning original or appending query if supported
+            return url;
         }
     }
 
@@ -195,7 +195,7 @@ export const getDynamicClassStatus = (classInfo: any, now: Date = new Date()): '
 
     if (classInfo.recurrence === 'flexible') {
         if (!classInfo.flexibleDates) return 'finished';
-        
+
         const hasFutureSession = classInfo.flexibleDates.some((d: { date: string, startTime: string }) => {
             const sessionStart = new Date(`${d.date}T${d.startTime}`);
             return sessionStart > now;
@@ -211,7 +211,7 @@ export const getDynamicClassStatus = (classInfo: any, now: Date = new Date()): '
         if (hasFutureSession) return 'scheduled';
         return 'finished';
     }
-    
+
     // Logic for one-time and weekly
     const startDateTime = new Date(`${classInfo.date}T${classInfo.startTime}`);
     const endDateTime = new Date(`${classInfo.date}T${classInfo.endTime}`);
@@ -219,7 +219,7 @@ export const getDynamicClassStatus = (classInfo: any, now: Date = new Date()): '
     if (classInfo.recurrence === 'weekly') {
         const classDay = startDateTime.getDay();
         const todayDay = now.getDay();
-        
+
         if (classDay === todayDay) {
             const nowTime = now.getHours() * 60 + now.getMinutes();
             const startTime = startDateTime.getHours() * 60 + startDateTime.getMinutes();
@@ -239,7 +239,7 @@ export const getDynamicClassStatus = (classInfo: any, now: Date = new Date()): '
         }
         return 'scheduled';
     }
-    
+
     // One-time
     if (now >= startDateTime && now <= endDateTime) {
         return 'live';
@@ -311,10 +311,10 @@ export const getNextSessionDateTime = (classInfo: IndividualClass, now: Date = n
         const futureDates = classInfo.flexibleDates
             .map(d => new Date(`${d.date}T${d.startTime}`))
             .filter(d => d > now);
-        
+
         if (futureDates.length === 0) return null;
 
-        futureDates.sort((a,b) => a.getTime() - b.getTime());
+        futureDates.sort((a, b) => a.getTime() - b.getTime());
         return futureDates[0];
     }
 
@@ -337,12 +337,12 @@ export const getNextSessionDateTime = (classInfo: IndividualClass, now: Date = n
     if (classSeriesEndDate && now > classSeriesEndDate) {
         return null; // Series has ended
     }
-    
+
     const classDayOfWeek = classSeriesStartDate.getDay();
     const todayDayOfWeek = now.getDay();
-    
+
     let daysUntilNextClass = classDayOfWeek - todayDayOfWeek;
-    
+
     if (daysUntilNextClass < 0) {
         daysUntilNextClass += 7;
     } else if (daysUntilNextClass === 0) {
@@ -352,7 +352,7 @@ export const getNextSessionDateTime = (classInfo: IndividualClass, now: Date = n
             daysUntilNextClass = 7;
         }
     }
-    
+
     const nextSessionDate = new Date(now);
     nextSessionDate.setDate(now.getDate() + daysUntilNextClass);
     nextSessionDate.setHours(startHours, startMinutes, 0, 0);
@@ -390,9 +390,9 @@ export const generateStandardId = (prefix: string): string => {
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const day = String(now.getDate()).padStart(2, '0');
-    
+
     const randomPart = Math.random().toString(36).substring(2, 8).toUpperCase();
-    
+
     return `${prefix}-${year}${month}${day}-${randomPart}`;
 };
 
@@ -400,9 +400,10 @@ export const generateStandardId = (prefix: string): string => {
  * Sends a payment confirmation notification.
  */
 export const sendPaymentConfirmation = async (
-    user: { email?: string | null; contactNumber?: string | null }, 
-    amount: number, 
-    itemName: string, 
+    notificationUrl: string,
+    user: { email?: string | null; contactNumber?: string | null },
+    amount: number,
+    itemName: string,
     transactionId: string
 ) => {
     const currencyFormatter = new Intl.NumberFormat('en-LK', { style: 'currency', currency: 'LKR' });
@@ -431,7 +432,7 @@ export const sendPaymentConfirmation = async (
         </div>
     `;
     const smsMessage = `Thank you for your payment of ${currencyFormatter.format(amount)} for "${itemName}" on clazz.lk. Ref: ${transactionId}`;
-    await sendNotification(user, subject, htmlBody, smsMessage);
+    await sendNotification(notificationUrl, user, subject, htmlBody, smsMessage);
 };
 
 
@@ -441,10 +442,10 @@ export const sendPaymentConfirmation = async (
 export const calculateTeacherProfileCompletion = (teacher: Teacher | undefined): { percentage: number, missing: string[] } => {
     if (!teacher) return { percentage: 0, missing: [] };
     const checks = [
-        { 
-            key: 'Teaching Subjects & Grades', 
-            weight: 15, 
-            isComplete: (teacher.teachingItems && teacher.teachingItems.length > 0) || (teacher.subjects && teacher.subjects.length > 0) 
+        {
+            key: 'Teaching Subjects & Grades',
+            weight: 15,
+            isComplete: (teacher.teachingItems && teacher.teachingItems.length > 0) || (teacher.subjects && teacher.subjects.length > 0)
         },
         { key: 'Exams Prepared For', weight: 5, isComplete: (teacher.exams?.length || 0) > 0 },
         { key: 'Qualifications', weight: 5, isComplete: (teacher.qualifications?.length || 0) > 0 },
@@ -452,10 +453,10 @@ export const calculateTeacherProfileCompletion = (teacher: Teacher | undefined):
         { key: 'Profile Picture', weight: 10, isComplete: !!teacher.profileImage && !teacher.profileImage.includes('picsum.photos') },
         { key: 'Bio', weight: 10, isComplete: (teacher.bio?.length || 0) > 20 },
         { key: 'Contact Details', weight: 5, isComplete: !!teacher.contact?.phone && !!teacher.contact?.email },
-        { 
-            key: 'Teaching Locations', 
-            weight: 5, 
-            isComplete: (teacher.teachingLocations && teacher.teachingLocations.length > 0) || !!teacher.contact?.location 
+        {
+            key: 'Teaching Locations',
+            weight: 5,
+            isComplete: (teacher.teachingLocations && teacher.teachingLocations.length > 0) || !!teacher.contact?.location
         },
         { key: 'Cover Image', weight: 5, isComplete: (teacher.coverImages?.length || 0) > 0 },
         { key: 'Tagline', weight: 5, isComplete: !!teacher.tagline },
@@ -551,14 +552,14 @@ export const extractAndTruncate = (content: any, length: number = 80): string =>
     } catch (e) {
         plainText = String(content);
     }
-    
+
     // Remove markdown characters and multiple newlines for a cleaner snippet
     plainText = plainText.replace(/(\*|_|`|#|~|>|\\n|\n)/g, ' ').replace(/\s\s+/g, ' ').trim();
-    
+
     if (plainText.length <= length) {
         return plainText;
     }
-    
+
     // Truncate and add ellipsis
     return plainText.substring(0, length).trim() + '...';
 };

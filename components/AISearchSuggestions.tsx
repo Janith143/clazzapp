@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { GoogleGenAI } from "@google/genai";
 import MarkdownDisplay from './MarkdownDisplay';
 import { SpinnerIcon } from './Icons';
+import { useNavigation } from '../contexts/NavigationContext';
 
 interface AISearchSuggestionsProps {
     searchQuery: string;
@@ -11,6 +12,7 @@ const AISearchSuggestions: React.FC<AISearchSuggestionsProps> = ({ searchQuery }
     const [suggestions, setSuggestions] = useState<string>('');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const { genAiKey } = useNavigation();
 
     useEffect(() => {
         if (!searchQuery.trim()) {
@@ -25,7 +27,7 @@ const AISearchSuggestions: React.FC<AISearchSuggestionsProps> = ({ searchQuery }
 
             try {
                 // As per guidelines, the API_KEY is available in process.env
-                const ai = new GoogleGenAI({apiKey: 'AIzaSyB7BZfezyOj30ga7-dqKPQSVW6EbTMZiiQ'});
+                const ai = new GoogleGenAI({ apiKey: genAiKey });
 
                 const prompt = `You are a helpful assistant for an online learning platform in Sri Lanka called clazz.lk. A user searched for "${searchQuery}" but found no direct results on our platform. 
                 
@@ -70,13 +72,13 @@ const AISearchSuggestions: React.FC<AISearchSuggestionsProps> = ({ searchQuery }
                         <p className="ml-4 text-light-subtle dark:text-dark-subtle">Thinking of some ideas for you...</p>
                     </div>
                 )}
-                
+
                 {error && (
                     <p className="text-red-500">{error}</p>
                 )}
-                
+
                 {!loading && !error && suggestions && (
-                     <MarkdownDisplay content={suggestions} />
+                    <MarkdownDisplay content={suggestions} />
                 )}
             </div>
         </section>

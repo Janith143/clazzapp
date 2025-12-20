@@ -22,18 +22,19 @@ interface PaymentResponseHandlerDeps {
 
 export const usePaymentResponseHandler = (deps: PaymentResponseHandlerDeps) => {
     const { currentUser, ui, nav, users, teachers, tuitionInstitutes, currencyFormatter } = deps;
-    
+    const { functionUrls } = nav;
+
     const handlePaymentResponse = useCallback(async (params: URLSearchParams): Promise<PageState | null> => {
         const statusCode = params.get('status_code');
         const customFieldsEncoded = params.get('custom_fields');
         if (!statusCode || !customFieldsEncoded) return null;
-        
+
         window.history.replaceState({}, document.title, window.location.pathname);
         let pageToNavigateTo: PageState | null = { name: 'student_dashboard' };
-        
+
         const customFields = JSON.parse(decodeURIComponent(atob(customFieldsEncoded)));
         const orderId = params.get('order_id') || `sale_${Date.now()}`;
-        
+
         try {
             const numericStatusCode = statusCode.replace(/[^0-9]/g, '');
             if (numericStatusCode === '0' || numericStatusCode === '00') {
@@ -70,12 +71,12 @@ export const usePaymentResponseHandler = (deps: PaymentResponseHandlerDeps) => {
 
                         batch.update(doc(db, "sales", sale.id), saleUpdate);
                         if (sale.amountPaidFromBalance > 0 && currentUser) batch.update(doc(db, "users", currentUser.id), { accountBalance: increment(-sale.amountPaidFromBalance) });
-                        
+
                         const student = currentUser || users.find(u => u.id === sale.studentId);
-                        if(student) sendPaymentConfirmation(student, sale.totalAmount, sale.itemName, sale.id);
-                        
+                        if (student) sendPaymentConfirmation(student, sale.totalAmount, sale.itemName, sale.id);
+
                         ui.addToast(`Successfully enrolled in ${sale.itemName}!`, 'success');
-                        
+
                         pageToNavigateTo = { name: `${customFields.itemType}_detail` as any, [`${customFields.itemType}Id`]: sale.itemId } as PageState;
                         break;
                     }
@@ -84,7 +85,7 @@ export const usePaymentResponseHandler = (deps: PaymentResponseHandlerDeps) => {
                             const topUpRequest: TopUpRequest = { id: orderId, studentId: currentUser.id, method: 'gateway', amount: customFields.amount, status: 'approved', requestedAt: new Date().toISOString(), processedAt: new Date().toISOString() };
                             batch.update(doc(db, "users", currentUser.id), { accountBalance: increment(customFields.amount), topUpHistory: arrayUnion(topUpRequest) });
                             ui.addToast(`${currencyFormatter.format(customFields.amount)} added to your balance!`, 'success');
-                            sendPaymentConfirmation(currentUser, customFields.amount, 'Account Top-Up', orderId);
+                            sendPaymentConfirmation(functionUrls.notification, currentUser, customFields.amount, 'Account Top-Up', orderId);
                         }
                         break;
                     case 'voucher': {
@@ -134,39 +135,39 @@ export const usePaymentResponseHandler = (deps: PaymentResponseHandlerDeps) => {
                             }
                             return null;
                         }).filter(Boolean);
-                        
+
                         if (reconstructedCart.length === 0) throw new Error("Failed to process order: cart items not found.");
 
                         const newSale = await createSaleFromCart(reconstructedCart, totalAmount, billingDetails, shippingAddress, customFields.type, currentUser);
                         batch.set(doc(db, "sales", newSale.id), newSale);
-                        
-                        if(newSale.teacherCommission && newSale.teacherId) batch.update(doc(db, "teachers", newSale.teacherId), { 'earnings.total': increment(newSale.teacherCommission) });
-                        if(newSale.instituteCommission && newSale.instituteId) batch.update(doc(db, "tuitionInstitutes", newSale.instituteId), { 'earnings.total': increment(newSale.instituteCommission) });
-                        
+
+                        if (newSale.teacherCommission && newSale.teacherId) batch.update(doc(db, "teachers", newSale.teacherId), { 'earnings.total': increment(newSale.teacherCommission) });
+                        if (newSale.instituteCommission && newSale.instituteId) batch.update(doc(db, "tuitionInstitutes", newSale.instituteId), { 'earnings.total': increment(newSale.instituteCommission) });
+
                         if (customFields.type === 'photo_purchase') (reconstructedCart as PhotoCartItem[]).forEach(item => { if (item.type.includes('download')) downloadImage(item.type === 'photo_download_highres' ? item.photo.url_highres : item.photo.url_thumb.replace(/=s\d+$/, '=s1600'), `clazz_lk_${item.photo.id}.png`); });
-                        
+
                         sendPaymentConfirmation(billingDetails, totalAmount, `${reconstructedCart.length} items`, newSale.id);
                         ui.addToast('Purchase complete!', 'success'); ui.clearCart();
                         pageToNavigateTo = { name: 'student_dashboard', initialTab: 'my_orders' };
                         break;
                     }
                     case 'teacher_subscription': {
-                         const { planLevel, amount, refCode, billingDetails } = customFields;
-                         
-                         // Here we could store a record of this subscription payment in a 'subscriptions' collection if needed.
-                         // For now, we will rely on the email notification sent to admin via sendPaymentConfirmation to manually verify/upgrade.
-                         // But the user flow immediately prompts account creation.
+                        const { planLevel, amount, refCode, billingDetails } = customFields;
 
-                         sendPaymentConfirmation(
-                             { email: billingDetails.billingEmail, contactNumber: billingDetails.billingContactNumber }, 
-                             amount, 
-                             `Teacher Subscription (Level ${planLevel})`, 
-                             orderId
-                         );
+                        // Here we could store a record of this subscription payment in a 'subscriptions' collection if needed.
+                        // For now, we will rely on the email notification sent to admin via sendPaymentConfirmation to manually verify/upgrade.
+                        // But the user flow immediately prompts account creation.
 
-                         // Notify Admin
-                         const subject = `New Teacher Subscription Payment: Level ${planLevel}`;
-                         const htmlBody = `
+                        sendPaymentConfirmation(
+                            { email: billingDetails.billingEmail, contactNumber: billingDetails.billingContactNumber },
+                            amount,
+                            `Teacher Subscription (Level ${planLevel})`,
+                            orderId
+                        );
+
+                        // Notify Admin
+                        const subject = `New Teacher Subscription Payment: Level ${planLevel}`;
+                        const htmlBody = `
                             <div style="font-family: Arial, sans-serif;">
                                 <h2>New Subscription Payment</h2>
                                 <p><strong>Amount:</strong> ${currencyFormatter.format(amount)}</p>
@@ -178,18 +179,18 @@ export const usePaymentResponseHandler = (deps: PaymentResponseHandlerDeps) => {
                                 <p><strong>Transaction ID:</strong> ${orderId}</p>
                             </div>
                          `;
-                         await sendNotification({ email: ADMIN_EMAIL }, subject, htmlBody);
+                        await sendNotification({ email: ADMIN_EMAIL }, subject, htmlBody);
 
-                         ui.addToast('Subscription payment successful!', 'success');
-                         pageToNavigateTo = { 
-                             name: 'subscription_success', 
-                             planLevel, 
-                             amount, 
-                             transactionId: orderId,
-                             billingDetails,
-                             refCode
-                         };
-                         break;
+                        ui.addToast('Subscription payment successful!', 'success');
+                        pageToNavigateTo = {
+                            name: 'subscription_success',
+                            planLevel,
+                            amount,
+                            transactionId: orderId,
+                            billingDetails,
+                            refCode
+                        };
+                        break;
                     }
                 }
                 await batch.commit();
@@ -216,7 +217,7 @@ export const usePaymentResponseHandler = (deps: PaymentResponseHandlerDeps) => {
 
         if (firstItem.type === 'product') sellerId = (firstItem as ProductCartItem).product.teacherId;
         else if (firstItem.type.startsWith('photo')) sellerId = (firstItem as PhotoCartItem).instituteId;
-        
+
         if (!sellerId) throw new Error('Seller could not be determined.');
         const seller = isPhoto ? tuitionInstitutes.find(ti => ti.id === sellerId) : teachers.find(t => t.id === sellerId);
         if (!seller) throw new Error(`Seller with ID ${sellerId} not found.`);

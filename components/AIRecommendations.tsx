@@ -11,9 +11,9 @@ interface AIRecommendationsProps {
 }
 
 // FIX: Redefined RecommendedItem as a discriminated union for better type safety and inference.
-type RecommendedItem = 
-    (Teacher & { itemType: 'teacher' }) | 
-    (Course & { itemType: 'course'; teacher: Teacher }) | 
+type RecommendedItem =
+    (Teacher & { itemType: 'teacher' }) |
+    (Course & { itemType: 'course'; teacher: Teacher }) |
     (IndividualClass & { itemType: 'class'; teacher: Teacher });
 
 
@@ -31,7 +31,7 @@ const RecommendationCard: React.FC<{ item: RecommendedItem }> = ({ item }) => {
     if (item.itemType === 'teacher') {
         const teacher = item;
         return (
-            <button 
+            <button
                 onClick={() => handleNavigate({ name: 'teacher_profile', teacherId: teacher.id })}
                 className="w-full h-full text-left bg-light-surface dark:bg-dark-surface rounded-lg shadow-md overflow-hidden group transform hover:-translate-y-1 transition-transform duration-300 flex flex-col p-4 justify-center"
             >
@@ -49,10 +49,10 @@ const RecommendationCard: React.FC<{ item: RecommendedItem }> = ({ item }) => {
             </button>
         );
     }
-    
+
     // Logic for Course and Class
     let title = '', subtitle = '', image = '', icon = null;
-    let clickHandler = () => {};
+    let clickHandler = () => { };
 
     if (item.itemType === 'course') {
         const course = item;
@@ -94,6 +94,7 @@ const AIRecommendations: React.FC<AIRecommendationsProps> = ({ currentUser }) =>
     const [error, setError] = useState<string | null>(null);
 
     const { teachers, sales, submissions } = useData();
+    const { genAiKey } = useNavigation();
 
     useEffect(() => {
         const getRecommendations = async () => {
@@ -113,7 +114,7 @@ const AIRecommendations: React.FC<AIRecommendationsProps> = ({ currentUser }) =>
             try {
                 const allCourses = teachers.flatMap(t => t.courses.map(c => ({ ...c, teacher: t })));
                 const allLiveClasses = teachers.flatMap(t => t.individualClasses.filter(c => getDynamicClassStatus(c) !== 'finished' && getDynamicClassStatus(c) !== 'canceled').map(c => ({ ...c, teacher: t })));
-                
+
                 const studentProfileForAI = {
                     gender: currentUser.gender,
                     preferredLanguage: currentUser.preferredLanguage,
@@ -154,13 +155,13 @@ const AIRecommendations: React.FC<AIRecommendationsProps> = ({ currentUser }) =>
                     ...allCourses.filter(c => c.isPublished && c.adminApproval === 'approved').map(c => ({ id: c.id, type: 'course', title: c.title, subject: c.subject, description: c.description.substring(0, 100) })),
                     ...allLiveClasses.filter(c => c.isPublished).map(c => ({ id: c.id, type: 'class', title: c.title, subject: c.subject, description: c.description.substring(0, 100) })),
                 ].filter(item => !enrolledItemIds.has(item.id));
-                
+
                 if (availableItemsForAI.length === 0) {
                     setLoading(false);
                     return;
                 }
 
-                const ai = new GoogleGenAI({apiKey: 'AIzaSyB7BZfezyOj30ga7-dqKPQSVW6EbTMZiiQ'});
+                const ai = new GoogleGenAI({ apiKey: genAiKey });
 
                 const prompt = `You are a recommendation engine for an online learning platform called clazz.lk. Your goal is to suggest relevant items to a student based on their profile and activity.
 
@@ -175,7 +176,7 @@ const AIRecommendations: React.FC<AIRecommendationsProps> = ({ currentUser }) =>
                 [
                   { "id": "item_id_1", "type": "teacher" | "course" | "class" }
                 ]`;
-                
+
                 const response = await ai.models.generateContent({
                     model: 'gemini-2.5-flash',
                     contents: prompt,
@@ -225,7 +226,7 @@ const AIRecommendations: React.FC<AIRecommendationsProps> = ({ currentUser }) =>
             </section>
         );
     }
-    
+
     if (error || recommendations.length === 0) {
         return null;
     }

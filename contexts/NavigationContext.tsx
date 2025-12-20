@@ -4,7 +4,32 @@ import { PageState, StaticPageKey, HomeSlide, SocialMediaLink, FinancialSettings
 import { homeSlides as mockHomeSlides, mockSocialMediaLinks, defaultSubjectsByAudience, mockPhotoPrintOptions } from '../data/mockData';
 import { staticPageContent as mockStaticPageContent } from '../data/staticContent';
 import { db } from '../firebase';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, updateDoc } from 'firebase/firestore';
+
+const defaultAppConfig = {
+    genAiKey: 'AIzaSyB7BZfezyOj30ga7-dqKPQSVW6EbTMZiiQ',
+    gDriveFetcherApiKey: 'AIzaSyAOXMXnOsBKgj2c0HmA3mIZndz9eXXOkL0',
+    functionUrls: {
+        notification: 'https://us-central1-gen-lang-client-0695487820.cloudfunctions.net/notification-function',
+        payment: 'https://us-central1-gen-lang-client-0695487820.cloudfunctions.net/payment-handler',
+        marxPayment: 'https://marxpaymenthandler-gtlcyfs7jq-uc.a.run.app',
+        gDriveFetcher: 'https://gdriveimagefetcher-gtlcyfs7jq-uc.a.run.app',
+        fcmNotification: 'https://fcm-notifications-980531128265.us-central1.run.app/send-fcm-push'
+    },
+    paymentGatewaySettings: {
+        gateways: {
+            webxpay: {
+                secretKey: 'c5bd50e8-b56b-4b25-a828-73348a4da427',
+                publicKey: `-----BEGIN PUBLIC KEY-----
+MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCz6RFF+L4rWbdnk7Ita+u/0C0+
+y3syMIYd1KI/dVJ5PIxQNxcxQ+fZSDjvX6DU8906mQOurS0yQO0RUiraSUVj92HZ
+rebhOWCy+AdPJc6wPgiWvgXmGd4SFSFFEEqWIx8uY1BaK7qxphy0ci4wFIlg7YcX
+JwI425SRIyXz9YYsJwIDAQAB
+-----END PUBLIC KEY-----`
+            }
+        }
+    }
+};
 
 const defaultFinancialSettings: FinancialSettings = {
     referralGatewayFeeRate: 0.04,
@@ -74,6 +99,17 @@ export interface NavigationContextType {
     ogImageUrl: string;
     teacherDashboardMessage: string;
 
+    // Secure Config Fields
+    genAiKey: string;
+    gDriveFetcherApiKey: string;
+    functionUrls: {
+        notification: string;
+        payment: string;
+        marxPayment: string;
+        gDriveFetcher: string;
+        fcmNotification: string;
+    };
+
     handleNavigate: (page: PageState, options?: { quizFinish?: boolean }) => void;
     handleBack: () => void;
     setSearchQuery: React.Dispatch<React.SetStateAction<string>>;
@@ -83,7 +119,7 @@ const NavigationContext = createContext<NavigationContextType | undefined>(undef
 
 const getPageStateFromURL = (): PageState => {
     const hash = window.location.hash.substring(1); // e.g., "/?teacherId=123" or "/teachers"
-    
+
     const [pathPart, queryPart] = hash.split('?');
     const params = new URLSearchParams(queryPart || '');
     const path = pathPart || '/';
@@ -126,7 +162,7 @@ const getPageStateFromURL = (): PageState => {
     if (path === '/dashboard') return { name: 'student_dashboard' };
     if (path === '/admin') return { name: 'admin_dashboard' };
     if (path === '/institute/dashboard') return { name: 'ti_dashboard' };
-    
+
     return { name: 'home' };
 };
 
@@ -150,11 +186,11 @@ const getURLHashFromPageState = (page: PageState): string => {
         case 'quiz_taking': path = `/?takeQuiz=${page.quizId}`; break;
         case 'attendance_scanner': path = `/?scanAttendance=${page.classId}`; break;
         case 'static': path = `/?page=${page.pageKey}`; break;
-        case 'teacher_referral_landing': 
-             path = `/?teacherRef=${page.refCode}`;
-             if(page.level) path += `&level=${page.level}`;
-             break;
-        
+        case 'teacher_referral_landing':
+            path = `/?teacherRef=${page.refCode}`;
+            if (page.level) path += `&level=${page.level}`;
+            break;
+
         case 'all_teachers': path = '/teachers'; break;
         case 'all_courses': path = '/courses'; break;
         case 'all_classes': path = '/classes'; break;
@@ -169,7 +205,7 @@ const getURLHashFromPageState = (page: PageState): string => {
         case 'admin_ti_dashboard': path = `/admin/institute/${page.instituteId}`; break;
         case 'referral_dashboard': path = '/referrals'; break;
         case 'gift_voucher': path = '/gift-voucher'; break;
-        
+
         case 'edit_teacher_profile':
         case 'course_editor':
         case 'quiz_editor':
@@ -177,7 +213,7 @@ const getURLHashFromPageState = (page: PageState): string => {
         case 'voucher_success':
         case 'topup_success':
         case 'subscription_success':
-             return window.location.hash || '#/';
+            return window.location.hash || '#/';
 
         default: path = '/'; break;
     }
@@ -203,6 +239,11 @@ export const NavigationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     const [ogImageUrl, setOgImageUrl] = useState<string>('');
     const [teacherDashboardMessage, setTeacherDashboardMessage] = useState<string>('');
 
+    // Secure Config State
+    const [genAiKey, setGenAiKey] = useState<string>(defaultAppConfig.genAiKey);
+    const [gDriveFetcherApiKey, setGDriveFetcherApiKey] = useState<string>(defaultAppConfig.gDriveFetcherApiKey);
+    const [functionUrls, setFunctionUrls] = useState(defaultAppConfig.functionUrls);
+
 
     useEffect(() => {
         const handleHashChange = () => {
@@ -211,7 +252,7 @@ export const NavigationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
         window.addEventListener('hashchange', handleHashChange);
 
-        const unsubConfig = onSnapshot(doc(db, 'settings', 'appConfig'), (docSnap) => {
+        const unsubConfig = onSnapshot(doc(db, 'settings', 'clientAppConfig'), (docSnap) => {
             if (docSnap.exists()) {
                 const data = docSnap.data() as any; // Cast to any to access properties
                 setHomeSlides(data.homeSlides || mockHomeSlides);
@@ -224,7 +265,7 @@ export const NavigationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
                 setHomePageCardCounts(data.homePageCardCounts || { teachers: 3, courses: 3, classes: 3, quizzes: 3, events: 3 });
                 setUpcomingExams(data.upcomingExams || []);
                 setPhotoPrintOptions(data.photoPrintOptions || mockPhotoPrintOptions);
-                setPaymentGatewaySettings({
+                const mergedPaymentSettings = {
                     ...defaultPaymentGatewaySettings,
                     ...(data.paymentGatewaySettings || {}),
                     methodMapping: {
@@ -234,14 +275,66 @@ export const NavigationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
                     methodLogos: {
                         ...defaultPaymentGatewaySettings.methodLogos,
                         ...(data.paymentGatewaySettings?.methodLogos || {})
+                    },
+                    gateways: {
+                        ...defaultPaymentGatewaySettings.gateways,
+                        ...(data.paymentGatewaySettings?.gateways || {}),
+                        webxpay: {
+                            ...defaultPaymentGatewaySettings.gateways.webxpay,
+                            ...(data.paymentGatewaySettings?.gateways?.webxpay || {})
+                        }
                     }
-                });
+                };
+                setPaymentGatewaySettings(mergedPaymentSettings);
                 setSupportSettings(data.supportSettings || defaultSupportSettings);
                 setOgImageUrl(data.ogImageUrl || '');
                 setTeacherDashboardMessage(data.teacherDashboardMessage || '');
+
+                // Secure Config Loading
+                setGenAiKey(data.genAiKey || defaultAppConfig.genAiKey);
+                setGDriveFetcherApiKey(data.gDriveFetcherApiKey || defaultAppConfig.gDriveFetcherApiKey);
+                setFunctionUrls({ ...defaultAppConfig.functionUrls, ...(data.functionUrls || {}) });
+
+                // Auto-Seed: Check if critical new keys are missing in the EXISTING doc, and update if so.
+                const needsUpdate = !data.genAiKey || !data.functionUrls || !data.paymentGatewaySettings?.gateways?.webxpay?.secretKey;
+                if (needsUpdate) {
+                    // Update only missing fields to avoid overwriting existing data
+                    const updateData: any = {};
+                    if (!data.genAiKey) updateData.genAiKey = defaultAppConfig.genAiKey;
+                    if (!data.gDriveFetcherApiKey) updateData.gDriveFetcherApiKey = defaultAppConfig.gDriveFetcherApiKey;
+                    if (!data.functionUrls) updateData.functionUrls = defaultAppConfig.functionUrls;
+
+                    // Specific check for WebXPay secret to inject it if missing
+                    if (!data.paymentGatewaySettings?.gateways?.webxpay?.secretKey) {
+                        updateData['paymentGatewaySettings.gateways.webxpay.secretKey'] = defaultAppConfig.paymentGatewaySettings.gateways.webxpay.secretKey;
+                    }
+                    if (!data.paymentGatewaySettings?.gateways?.webxpay?.publicKey) {
+                        updateData['paymentGatewaySettings.gateways.webxpay.publicKey'] = defaultAppConfig.paymentGatewaySettings.gateways.webxpay.publicKey;
+                    }
+
+                    updateDoc(doc(db, 'settings', 'clientAppConfig'), updateData).catch(err => console.error("Failed to auto-seed config:", err));
+                }
+
+            } else {
+                // Document does not exist - Seed it completely
+                setDoc(doc(db, 'settings', 'clientAppConfig'), {
+                    ...defaultAppConfig,
+                    // Include structural defaults if needed, or rely on them being optional/merged
+                    financialSettings: defaultFinancialSettings,
+                    paymentGatewaySettings: {
+                        ...defaultPaymentGatewaySettings,
+                        gateways: {
+                            ...defaultPaymentGatewaySettings.gateways,
+                            webxpay: {
+                                ...defaultPaymentGatewaySettings.gateways.webxpay,
+                                ...defaultAppConfig.paymentGatewaySettings.gateways.webxpay
+                            }
+                        }
+                    }
+                }).catch(err => console.error("Failed to create initial config:", err));
             }
         });
-        
+
         return () => {
             window.removeEventListener('hashchange', handleHashChange);
             unsubConfig();
@@ -260,9 +353,9 @@ export const NavigationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
     const handleNavigate = useCallback((page: PageState, options?: { quizFinish?: boolean }) => {
         window.scrollTo(0, 0);
-    
+
         const newHash = getURLHashFromPageState(page);
-    
+
         if (options?.quizFinish) {
             window.history.replaceState(null, '', newHash);
             setPageState(page);
@@ -271,15 +364,15 @@ export const NavigationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             if (newHash !== currentHash) {
                 window.location.hash = newHash.substring(1);
             } else {
-                 setPageState(page);
+                setPageState(page);
             }
         }
-    
+
         if (page.name !== 'home') {
             setSearchQuery('');
         }
     }, [setSearchQuery]);
-    
+
     const handleBack = () => {
         window.history.back();
     };
@@ -302,6 +395,9 @@ export const NavigationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         supportSettings,
         ogImageUrl,
         teacherDashboardMessage,
+        genAiKey,
+        gDriveFetcherApiKey,
+        functionUrls,
         handleNavigate,
         handleBack,
         setSearchQuery,

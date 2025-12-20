@@ -18,7 +18,7 @@ interface InstituteActionDeps {
 export const useInstituteActions = (deps: InstituteActionDeps) => {
     const { ui, currentUser, teachers, tuitionInstitutes, sales } = deps;
     const { addToast } = ui;
-    
+
     const addTuitionInstitute = useCallback(async (institute: TuitionInstitute) => {
         try {
             await setDoc(doc(db, "tuitionInstitutes", institute.id), institute);
@@ -63,14 +63,14 @@ export const useInstituteActions = (deps: InstituteActionDeps) => {
             addToast("Failed to save event.", "error");
         }
     }, [tuitionInstitutes, updateTuitionInstitute, addToast]);
-    
+
     const handleCancelEvent = useCallback(async (instituteId: string, eventId: string) => {
         const institute = tuitionInstitutes.find(ti => ti.id === instituteId);
         if (!institute) return;
 
         const batch = writeBatch(db);
         const instituteRef = doc(db, 'tuitionInstitutes', instituteId);
-        
+
         const existingEvents = institute.events || [];
         const eventIndex = existingEvents.findIndex(e => e.id === eventId);
         if (eventIndex > -1) {
@@ -78,7 +78,7 @@ export const useInstituteActions = (deps: InstituteActionDeps) => {
             updatedEvents[eventIndex] = { ...updatedEvents[eventIndex], status: 'canceled', isDeleted: true };
             batch.update(instituteRef, { events: updatedEvents });
         }
-        
+
         const salesToRefund = sales.filter(s => s.itemId === eventId && s.itemType === 'event' && s.status === 'completed');
         for (const sale of salesToRefund) {
             batch.update(doc(db, "sales", sale.id), { status: 'refunded' });
@@ -86,12 +86,12 @@ export const useInstituteActions = (deps: InstituteActionDeps) => {
             batch.update(doc(db, "users", sale.studentId), { accountBalance: increment(refundAmount) });
         }
 
-        try { 
-            await batch.commit(); 
-            addToast(`Event canceled and ${salesToRefund.length} student(s) refunded.`, 'success'); 
-        } catch (e) { 
-            console.error(e); 
-            addToast("Failed to cancel event.", "error"); 
+        try {
+            await batch.commit();
+            addToast(`Event canceled and ${salesToRefund.length} student(s) refunded.`, 'success');
+        } catch (e) {
+            console.error(e);
+            addToast("Failed to cancel event.", "error");
         }
     }, [sales, tuitionInstitutes, addToast]);
 
@@ -131,14 +131,14 @@ export const useInstituteActions = (deps: InstituteActionDeps) => {
                 const teacherRef = doc(db, 'teachers', teacher.id);
                 const teacherDoc = await transaction.get(teacherRef);
                 if (!teacherDoc.exists()) throw new Error("Teacher not found");
-                
+
                 const updatedTeacherData = teacherDoc.data() as Teacher;
                 const classIndex = updatedTeacherData.individualClasses.findIndex(c => c.id === classId);
                 if (classIndex === -1) throw new Error("Class not found on teacher profile");
-                
+
                 const classToUpdate = updatedTeacherData.individualClasses[classIndex];
                 const existingAttendance = classToUpdate.attendance || [];
-                
+
                 // Prevent duplicate attendance
                 if (existingAttendance.some(a => a.studentId === student.id)) {
                     addToast(`${student.firstName} is already marked as attended.`, "info");
@@ -146,7 +146,7 @@ export const useInstituteActions = (deps: InstituteActionDeps) => {
                 }
 
                 const newRecord: AttendanceRecord = { studentId: student.id, studentName: `${student.firstName} ${student.lastName}`, studentAvatar: student.avatar, attendedAt: new Date().toISOString(), paymentStatus, paymentRef };
-                
+
                 classToUpdate.attendance = [...existingAttendance, newRecord];
                 updatedTeacherData.individualClasses[classIndex] = classToUpdate;
 
@@ -160,17 +160,17 @@ export const useInstituteActions = (deps: InstituteActionDeps) => {
             return false;
         }
     }, [teachers, addToast]);
-    
+
     const recordManualPayment = useCallback(async (classInfo: IndividualClass, student: User): Promise<Sale | null> => {
         if (!currentUser || !classInfo.instituteId) { addToast("Operation failed: missing user or institute context.", "error"); return null; }
-        
+
         const newSaleId = generateStandardId('INV');
         const saleRef = doc(db, "sales", newSaleId);
 
         // Retrieve dynamic platform fee
         let platformFee = 50; // Default fallback
         try {
-            const configDoc = await getDoc(doc(db, 'settings', 'appConfig'));
+            const configDoc = await getDoc(doc(db, 'settings', 'clientAppConfig'));
             if (configDoc.exists()) {
                 const configData = configDoc.data() as any; // Cast to any
                 if (configData.financialSettings?.manualPaymentPlatformFee !== undefined) {
@@ -185,7 +185,7 @@ export const useInstituteActions = (deps: InstituteActionDeps) => {
         if (!institute) { addToast("Institute not found.", "error"); return null; }
 
         const instituteCommissionRate = institute.commissionRate;
-        
+
         const instituteCommission = classInfo.fee * (instituteCommissionRate / 100) - platformFee;
         const teacherCommission = classInfo.fee - (classInfo.fee * (instituteCommissionRate / 100));
 
@@ -203,7 +203,7 @@ export const useInstituteActions = (deps: InstituteActionDeps) => {
             batch.set(saleRef, sale);
             const instituteRef = doc(db, "tuitionInstitutes", classInfo.instituteId);
             const teacherRef = doc(db, "teachers", classInfo.teacherId);
-            
+
             batch.update(instituteRef, {
                 'earnings.total': increment(instituteCommission),
                 'earnings.available': increment(instituteCommission),
@@ -221,7 +221,7 @@ export const useInstituteActions = (deps: InstituteActionDeps) => {
             return null;
         }
     }, [currentUser, addToast, teachers, tuitionInstitutes]);
-    
+
     const handleResetTeacherBalance = useCallback(async (instituteId: string, teacherId: string) => {
         try {
             const instituteRef = doc(db, "tuitionInstitutes", instituteId);
@@ -235,7 +235,7 @@ export const useInstituteActions = (deps: InstituteActionDeps) => {
             batch.update(teacherRef, {
                 [`manualEarningsByInstitute.${instituteId}`]: 0
             });
-            
+
             await batch.commit();
             addToast("Teacher's manual collection balance has been reset.", "success");
         } catch (e) {

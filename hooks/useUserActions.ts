@@ -3,6 +3,7 @@ import { User, Teacher, TuitionInstitute } from '../types';
 import { UIContextType } from '../contexts/UIContext';
 import { db } from '../firebase';
 import { doc, setDoc, updateDoc, writeBatch, arrayUnion, arrayRemove, runTransaction, increment } from 'firebase/firestore';
+import { NavigationContextType } from '../contexts/NavigationContext';
 import { sendNotification } from '../utils';
 
 const ADMIN_EMAIL = 'admin@clazz.lk'; // TODO: Move to a secure configuration
@@ -11,12 +12,14 @@ interface UserActionDeps {
     currentUser: User | null;
     ui: UIContextType;
     users: User[];
+    nav: NavigationContextType;
 }
 
 export const useUserActions = (deps: UserActionDeps) => {
-    const { currentUser, ui, users } = deps;
+    const { currentUser, ui, users, nav } = deps;
     const { addToast, setModalState } = ui;
-    
+    const { functionUrls } = nav;
+
     const addUser = useCallback(async (user: User) => {
         try {
             const userWithBalance = {
@@ -24,10 +27,10 @@ export const useUserActions = (deps: UserActionDeps) => {
                 referralBalance: { total: 0, withdrawn: 0, available: 0 }
             };
             await setDoc(doc(db, "users", user.id), userWithBalance);
-            
+
             // Admin Notification
             const subject = `New ${user.role} Registration: ${user.firstName} ${user.lastName}`;
-            const approvalMessage = (user.role === 'teacher' || user.role === 'tuition_institute') 
+            const approvalMessage = (user.role === 'teacher' || user.role === 'tuition_institute')
                 ? "<p>This account is now pending your approval in the admin dashboard.</p>"
                 : "";
             const htmlBody = `
@@ -42,18 +45,18 @@ export const useUserActions = (deps: UserActionDeps) => {
                     ${approvalMessage}
                 </div>
             `;
-            await sendNotification({ email: ADMIN_EMAIL }, subject, htmlBody);
+            await sendNotification(functionUrls.notification, { email: ADMIN_EMAIL }, subject, htmlBody);
 
         } catch (e) {
             console.error(e);
             addToast("Failed to save user profile.", "error");
-            throw e; 
+            throw e;
         }
     }, [addToast]);
-    
+
     const addTeacher = useCallback(async (teacher: Teacher) => {
         await setDoc(doc(db, "teachers", teacher.id), teacher);
-        
+
         // Affiliate Referrer Notification
         const teacherUser = users.find(u => u.id === teacher.userId);
         if (teacherUser?.referrerId) {
@@ -66,11 +69,11 @@ export const useUserActions = (deps: UserActionDeps) => {
                         <p>Great news! A new teacher, <strong>${teacher.name}</strong>, has registered on Clazz.lk using your referral code.</p>
                         <p>Once their account is approved and they start generating platform income, you will begin earning commissions.</p>
                     </div>`;
-                await sendNotification({ email: referrer.email }, subject, htmlBody);
+                await sendNotification(functionUrls.notification, { email: referrer.email }, subject, htmlBody);
             }
         }
     }, [users]);
-    
+
     const addTuitionInstitute = useCallback(async (institute: TuitionInstitute) => {
         await setDoc(doc(db, "tuitionInstitutes", institute.id), institute);
     }, []);
@@ -78,13 +81,13 @@ export const useUserActions = (deps: UserActionDeps) => {
     const handleUpdateUser = useCallback(async (updatedUser: Partial<User> & { id: string }) => {
         try {
             await updateDoc(doc(db, "users", updatedUser.id), updatedUser);
-        } catch(e) {
-             console.error("Error updating user profile:", e);
-             addToast("Error updating profile.", "error");
-             throw e;
+        } catch (e) {
+            console.error("Error updating user profile:", e);
+            addToast("Error updating profile.", "error");
+            throw e;
         }
     }, [addToast]);
-    
+
     const handleUserVerification = useCallback(async (updates: Partial<User>) => {
         if (!currentUser) return;
         try {
@@ -103,7 +106,7 @@ export const useUserActions = (deps: UserActionDeps) => {
         const userRef = doc(db, "users", currentUser.id);
         const teacherRef = doc(db, "teachers", teacherId);
         const isFollowing = currentUser.followingTeacherIds?.includes(teacherId);
-        
+
         const batch = writeBatch(db);
         if (isFollowing) {
             batch.update(userRef, { followingTeacherIds: arrayRemove(teacherId) });
@@ -115,7 +118,7 @@ export const useUserActions = (deps: UserActionDeps) => {
         await batch.commit();
         addToast(isFollowing ? 'Unfollowed teacher.' : 'Now following teacher!', 'success');
     }, [currentUser, addToast, setModalState]);
-    
+
     const handleMarkAllAsRead = useCallback(async () => {
         if (!currentUser?.notifications?.length) return;
         const newNotifications = currentUser.notifications.map(n => ({ ...n, isRead: true }));

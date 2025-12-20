@@ -10,7 +10,7 @@ import { db } from '../firebase';
 import { doc, updateDoc, writeBatch, arrayRemove, arrayUnion, increment, setDoc, getDoc, runTransaction, collection, addDoc, deleteDoc } from 'firebase/firestore';
 import { sendPaymentConfirmation, sendNotification } from '../utils';
 
-const ADMIN_EMAIL = 'admin@clazz.lk'; 
+const ADMIN_EMAIL = 'admin@clazz.lk';
 
 interface AdminActionDeps {
     ui: UIContextType;
@@ -26,13 +26,14 @@ interface AdminActionDeps {
 export const useAdminActions = (deps: any) => {
     const { ui, nav, users, teachers, tuitionInstitutes, knownInstitutes, sales, topUpRequests, handleImageSave } = deps;
     const { addToast } = ui;
+    const { functionUrls } = nav;
     const currencyFormatter = useMemo(() => new Intl.NumberFormat('en-LK', { style: 'currency', currency: 'LKR' }), []);
 
 
     const handleUpdateTeacher = useCallback(async (teacherId: string, updates: Partial<Teacher>) => {
         try {
             const teacherRef = doc(db, "teachers", teacherId);
-            
+
             // Add username uniqueness check
             if (updates.username) {
                 const currentTeacher = teachers.find((t: Teacher) => t.id === teacherId);
@@ -55,7 +56,7 @@ export const useAdminActions = (deps: any) => {
                 for (const loc of updates.teachingLocations) {
                     // Check if this location already exists in our global list
                     // We check name + district + town. Case-insensitive check for robustness.
-                    const exists = knownInstitutes.some(ki => 
+                    const exists = knownInstitutes.some(ki =>
                         ki.name.toLowerCase() === loc.instituteName.toLowerCase() &&
                         ki.district === loc.district &&
                         ki.town === loc.town
@@ -97,19 +98,19 @@ export const useAdminActions = (deps: any) => {
                                 <p>The Clazz.lk Team</p>
                             </div>
                         `;
-                        await sendNotification({ email: teacherData.email }, subject, htmlBody);
+                        await sendNotification(functionUrls.notification, { email: teacherData.email }, subject, htmlBody);
                     }
                 }
             }
 
             await updateDoc(teacherRef, updates);
-        } catch(e) {
+        } catch (e) {
             console.error("Error updating teacher:", e);
             addToast((e as Error).message || "Error updating teacher.", "error");
             throw e;
         }
     }, [addToast, teachers, knownInstitutes]);
-    
+
     const addTeacher = useCallback(async (teacher: Teacher) => {
         await setDoc(doc(db, "teachers", teacher.id), teacher);
     }, []);
@@ -133,7 +134,7 @@ export const useAdminActions = (deps: any) => {
                 const withdrawalHistory = [...(profileData.withdrawalHistory || [])];
                 const withdrawalIndex = withdrawalHistory.findIndex(w => w.id === withdrawalId);
                 if (withdrawalIndex === -1) throw new Error("Withdrawal record not found.");
-                
+
                 const withdrawal = { ...withdrawalHistory[withdrawalIndex] };
 
                 if (withdrawal.status !== 'pending') {
@@ -165,7 +166,7 @@ export const useAdminActions = (deps: any) => {
                         updates.accountBalance = (userProfile.accountBalance || 0) + withdrawal.amount;
                     }
                 }
-                
+
                 transaction.update(profileRef, updates);
             });
 
@@ -182,7 +183,7 @@ export const useAdminActions = (deps: any) => {
                         <p>The Clazz.lk Team</p>
                     </div>
                 `;
-                await sendNotification({ email: user.email }, subject, htmlBody);
+                await sendNotification(functionUrls.notification, { email: user.email }, subject, htmlBody);
             }
 
         } catch (e) {
@@ -190,10 +191,10 @@ export const useAdminActions = (deps: any) => {
             ui.addToast((e as Error).message || "Failed to update withdrawal.", "error");
         }
     }, [users, ui, currencyFormatter]);
-    
+
     const handleRemoveDefaultCoverImage = useCallback(async (imageUrl: string) => {
         try {
-            const settingsRef = doc(db, "settings", "appConfig");
+            const settingsRef = doc(db, "settings", "clientAppConfig");
             await updateDoc(settingsRef, { defaultCoverImages: arrayRemove(imageUrl) });
             addToast("Default cover image removed.", "success");
         } catch (e) {
@@ -253,7 +254,7 @@ export const useAdminActions = (deps: any) => {
             });
             const student = users.find(u => u.id === request.studentId);
             if (student) {
-                sendPaymentConfirmation(student, finalAmount, 'Bank Deposit Top-Up', request.id);
+                sendPaymentConfirmation(functionUrls.notification, student, finalAmount, 'Bank Deposit Top-Up', request.id);
             }
         }
         await batch.commit();
@@ -291,7 +292,7 @@ export const useAdminActions = (deps: any) => {
             addToast('Failed to update order status.', 'error');
         }
     }, [addToast]);
-    
+
     const handleSaveBankDetails = useCallback(async (teacherId: string, details: PayoutDetails) => {
         await handleUpdateTeacher(teacherId, { payoutDetails: details });
     }, [handleUpdateTeacher]);
@@ -358,60 +359,60 @@ export const useAdminActions = (deps: any) => {
                     <p>The Clazz.lk Team</p>
                 </div>
             `;
-            await sendNotification({ email: teacher.email }, subject, htmlBody);
+            await sendNotification(functionUrls.notification, { email: teacher.email }, subject, htmlBody);
         }
     }, [teachers, handleUpdateTeacher, addToast]);
-    
+
     const handleUpdateStaticContent = useCallback(async (key: StaticPageKey, data: { title: string; content: string; }) => {
-        await updateDoc(doc(db, 'settings', 'appConfig'), { [`staticContent.${key}`]: data });
+        await updateDoc(doc(db, 'settings', 'clientAppConfig'), { [`staticContent.${key}`]: data });
     }, []);
-    
+
     const handleUpdateHomeSlides = useCallback(async (slides: HomeSlide[]) => {
-        await updateDoc(doc(db, 'settings', 'appConfig'), { homeSlides: slides });
+        await updateDoc(doc(db, 'settings', 'clientAppConfig'), { homeSlides: slides });
     }, []);
-    
+
     const handleUpdateSocialMediaLinks = useCallback(async (links: SocialMediaLink[]) => {
-        await updateDoc(doc(db, 'settings', 'appConfig'), { socialMediaLinks: links });
+        await updateDoc(doc(db, 'settings', 'clientAppConfig'), { socialMediaLinks: links });
     }, []);
-    
+
     const handleUpdateSubjects = useCallback(async (subjects: Record<string, { value: string, label: string }[]>) => {
-        await updateDoc(doc(db, 'settings', 'appConfig'), { subjects });
+        await updateDoc(doc(db, 'settings', 'clientAppConfig'), { subjects });
     }, []);
 
     const handleUpdateStudentCardTaglines = useCallback(async (taglines: string[]) => {
-        await updateDoc(doc(db, 'settings', 'appConfig'), { studentCardTaglines: taglines });
+        await updateDoc(doc(db, 'settings', 'clientAppConfig'), { studentCardTaglines: taglines });
     }, []);
 
     const handleUpdateTeacherCardTaglines = useCallback(async (taglines: string[]) => {
-        await updateDoc(doc(db, 'settings', 'appConfig'), { teacherCardTaglines: taglines });
+        await updateDoc(doc(db, 'settings', 'clientAppConfig'), { teacherCardTaglines: taglines });
     }, []);
 
     const handleUpdateHomePageCardCounts = useCallback(async (counts: { teachers: number, courses: number, classes: number, quizzes: number, events: number }) => {
-        await updateDoc(doc(db, 'settings', 'appConfig'), { homePageCardCounts: counts });
+        await updateDoc(doc(db, 'settings', 'clientAppConfig'), { homePageCardCounts: counts });
     }, []);
 
     const handleUpdateUpcomingExams = useCallback(async (exams: UpcomingExam[]) => {
-        await updateDoc(doc(db, 'settings', 'appConfig'), { upcomingExams: exams });
+        await updateDoc(doc(db, 'settings', 'clientAppConfig'), { upcomingExams: exams });
     }, []);
-    
+
     const handleUpdatePhotoPrintOptions = useCallback(async (options: PhotoPrintOption[]) => {
-        await updateDoc(doc(db, 'settings', 'appConfig'), { photoPrintOptions: options });
+        await updateDoc(doc(db, 'settings', 'clientAppConfig'), { photoPrintOptions: options });
     }, []);
 
     const handleUpdatePaymentGatewaySettings = useCallback(async (settings: PaymentGatewaySettings) => {
-        await updateDoc(doc(db, 'settings', 'appConfig'), { paymentGatewaySettings: settings });
+        await updateDoc(doc(db, 'settings', 'clientAppConfig'), { paymentGatewaySettings: settings });
     }, []);
 
     const handleUpdateTeacherDashboardMessage = useCallback(async (message: string) => {
-        await updateDoc(doc(db, 'settings', 'appConfig'), { teacherDashboardMessage: message });
+        await updateDoc(doc(db, 'settings', 'clientAppConfig'), { teacherDashboardMessage: message });
     }, []);
 
     const handleUpdateFinancialSettings = useCallback(async (settings: FinancialSettings) => {
-        await updateDoc(doc(db, 'settings', 'appConfig'), { financialSettings: settings });
+        await updateDoc(doc(db, 'settings', 'clientAppConfig'), { financialSettings: settings });
     }, []);
 
     const handleUpdateSupportSettings = useCallback(async (settings: SupportSettings) => {
-        await updateDoc(doc(db, 'settings', 'appConfig'), { supportSettings: settings });
+        await updateDoc(doc(db, 'settings', 'clientAppConfig'), { supportSettings: settings });
     }, []);
 
     const processMonthlyPayouts = useCallback(async (userType: 'teacher' | 'institute' | 'student', userId: string) => {
@@ -452,14 +453,14 @@ export const useAdminActions = (deps: any) => {
             await runTransaction(db, async (transaction) => {
                 const freshUserDoc = await transaction.get(docRef);
                 if (!freshUserDoc.exists()) throw new Error(`${userType} not found in transaction.`);
-                
+
                 const freshUserData = freshUserDoc.data() as Teacher | TuitionInstitute;
                 const freshProcessedPayouts = freshUserData.earnings?.processedPayouts || [];
 
                 if (freshProcessedPayouts.includes(payoutIdentifier)) {
                     return; // Another process might have just completed it.
                 }
-                
+
                 const firstDayOfPayoutMonth = new Date(payoutYear, payoutMonth, 1);
                 const lastDayOfPayoutMonth = new Date(payoutYear, payoutMonth + 1, 0, 23, 59, 59);
 
@@ -468,7 +469,7 @@ export const useAdminActions = (deps: any) => {
                     const isCorrectSeller = (userType === 'teacher' && sale.teacherId === userId) || (userType === 'institute' && sale.instituteId === userId);
                     return isCorrectSeller && sale.status === 'completed' && saleDate >= firstDayOfPayoutMonth && saleDate <= lastDayOfPayoutMonth;
                 });
-                
+
                 const netEarnings = relevantSales.reduce((acc: number, sale: Sale) => {
                     if (userType === 'teacher') return acc + (sale.teacherCommission || 0);
                     if (userType === 'institute') return acc + (sale.instituteCommission || 0);
@@ -476,12 +477,12 @@ export const useAdminActions = (deps: any) => {
                 }, 0);
 
                 if (netEarnings <= 0) {
-                     transaction.update(docRef, {
+                    transaction.update(docRef, {
                         'earnings.processedPayouts': arrayUnion(payoutIdentifier)
                     });
                     return;
                 }
-                
+
                 transaction.update(docRef, {
                     'earnings.available': increment(netEarnings),
                     'earnings.processedPayouts': arrayUnion(payoutIdentifier)
@@ -494,9 +495,10 @@ export const useAdminActions = (deps: any) => {
             console.error(`Error processing monthly payouts for ${userType} ${userId}:`, error);
         }
     }, [deps.sales, addToast]);
-    
+
     const handleSendNotification = useCallback(async (teacherId: string, content: string, target: Notification['target']) => {
-        const FCM_FUNCTION_URL = 'https://fcm-notifications-980531128265.us-central1.run.app/send-fcm-push';
+        // Fallback to hardcoded if not set yet, for backwards compatibility
+        const FCM_FUNCTION_URL = functionUrls.fcmNotification || 'https://fcm-notifications-980531128265.us-central1.run.app/send-fcm-push';
         try {
             const response = await fetch(FCM_FUNCTION_URL, {
                 method: 'POST',
@@ -514,23 +516,23 @@ export const useAdminActions = (deps: any) => {
     const handleRequestWithdrawal = useCallback(async (teacherId: string, amount: number) => {
         const teacher = teachers.find(t => t.id === teacherId);
         if (!teacher) { addToast("Teacher not found.", "error"); return; }
-        
+
         const teacherRef = doc(db, "teachers", teacherId);
-    
+
         try {
             await runTransaction(db, async (transaction) => {
                 const teacherDoc = await transaction.get(teacherRef);
                 if (!teacherDoc.exists()) throw new Error("Teacher profile not found.");
-                
+
                 const teacherData = teacherDoc.data() as Teacher;
                 const earnings = teacherData.earnings;
-                
+
                 if (earnings.available < amount) {
                     throw new Error("Insufficient available balance for withdrawal.");
                 }
-    
+
                 const newWithdrawal: Withdrawal = { id: `w_${Date.now()}`, userId: teacher.userId, amount, requestedAt: new Date().toISOString(), status: 'pending' };
-                
+
                 transaction.update(teacherRef, {
                     'earnings.available': increment(-amount),
                     withdrawalHistory: arrayUnion(newWithdrawal)
@@ -552,10 +554,10 @@ export const useAdminActions = (deps: any) => {
         const newCourses = [...teacher.courses];
         newCourses[courseIndex].adminApproval = decision;
         if (decision === 'approved') newCourses[courseIndex].isPublished = true;
-        
+
         await handleUpdateTeacher(teacherId, { courses: newCourses });
         addToast(`Course has been ${decision}.`, "success");
-        
+
         if (decision === 'approved') {
             const subject = `Your course "${newCourses[courseIndex].title}" has been approved!`;
             const htmlBody = `
@@ -566,7 +568,7 @@ export const useAdminActions = (deps: any) => {
                     <p>The Clazz.lk Team</p>
                 </div>
             `;
-            await sendNotification({ email: teacher.email }, subject, htmlBody);
+            await sendNotification(functionUrls.notification, { email: teacher.email }, subject, htmlBody);
         }
     }, [teachers, handleUpdateTeacher, addToast]);
 
@@ -579,7 +581,7 @@ export const useAdminActions = (deps: any) => {
         const newProducts = [...teacher.products];
         newProducts[productIndex].adminApproval = decision;
         if (decision === 'approved') newProducts[productIndex].isPublished = true;
-        
+
         await handleUpdateTeacher(teacherId, { products: newProducts });
         addToast(`Product has been ${decision}.`, "success");
 
@@ -593,18 +595,18 @@ export const useAdminActions = (deps: any) => {
                     <p>The Clazz.lk Team</p>
                 </div>
             `;
-            await sendNotification({ email: teacher.email }, subject, htmlBody);
+            await sendNotification(functionUrls.notification, { email: teacher.email }, subject, htmlBody);
         }
     }, [teachers, handleUpdateTeacher, addToast]);
 
     const handleAssignReferralCode = useCallback(async (userId: string, code: string) => {
         // Find referrer by code
         const referrer = users.find(u => u.referralCode?.toUpperCase() === code.toUpperCase());
-        
+
         if (!referrer) {
             throw new Error(`Referral code "${code}" is invalid.`);
         }
-        
+
         if (referrer.id === userId) {
             throw new Error("Cannot assign self as referrer.");
         }
@@ -636,7 +638,7 @@ export const useAdminActions = (deps: any) => {
                 redemptionRules: details.rules,
                 purchasedAt: new Date().toISOString(),
                 expiresAt: details.expiryDate,
-                
+
                 // Dummy billing info for admin generation
                 billingFirstName: 'Admin',
                 billingLastName: 'System',
@@ -644,7 +646,7 @@ export const useAdminActions = (deps: any) => {
                 billingContactNumber: '',
                 billingAddressLineOne: 'System Generated',
             };
-            
+
             batch.set(voucherRef, newVoucher);
             generatedVouchers.push(newVoucher);
         });
@@ -652,7 +654,7 @@ export const useAdminActions = (deps: any) => {
         try {
             await batch.commit();
             addToast(`Successfully generated ${generatedVouchers.length} vouchers.`, 'success');
-            
+
             // Notify students (optional but good UX)
             // Ideally use a batched cloud function, but here's a loop for simplicity or integrate with the notification service later.
         } catch (error: any) {
@@ -678,6 +680,16 @@ export const useAdminActions = (deps: any) => {
         } catch (e) {
             console.error(e);
             addToast("Failed to update voucher.", "error");
+        }
+    }, [addToast]);
+
+    const handleUpdateDeveloperSettings = useCallback(async (settings: { genAiKey: string; gDriveFetcherApiKey: string; functionUrls: any }) => {
+        try {
+            await updateDoc(doc(db, 'settings', 'clientAppConfig'), settings);
+            addToast('Developer settings updated successfully.', 'success');
+        } catch (e) {
+            console.error(e);
+            addToast('Failed to update developer settings.', 'error');
         }
     }, [addToast]);
 
@@ -715,6 +727,7 @@ export const useAdminActions = (deps: any) => {
         handleAssignReferralCode,
         handleGenerateVouchers,
         handleDeleteVoucher,
-        handleUpdateVoucher
+        handleUpdateVoucher,
+        handleUpdateDeveloperSettings
     };
 };

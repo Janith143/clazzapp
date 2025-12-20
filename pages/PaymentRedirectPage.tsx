@@ -4,18 +4,8 @@ import { LogoIcon } from '../components/Icons.tsx';
 import { useNavigation } from '../contexts/NavigationContext.tsx';
 
 // --- WebXPay Configuration ---
-const WEBXPAY_PUBLIC_KEY = `-----BEGIN PUBLIC KEY-----
-MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCz6RFF+L4rWbdnk7Ita+u/0C0+
-y3syMIYd1KI/dVJ5PIxQNxcxQ+fZSDjvX6DU8906mQOurS0yQO0RUiraSUVj92HZ
-rebhOWCy+AdPJc6wPgiWvgXmGd4SFSFFEEqWIx8uY1BaK7qxphy0ci4wFIlg7YcX
-JwI425SRIyXz9YYsJwIDAQAB
------END PUBLIC KEY-----`;
-const WEBXPAY_SECRET_KEY =  'c5bd50e8-b56b-4b25-a828-73348a4da427';
-const WEBXPAY_URL = 'https://webxpay.com/index.php?route=checkout/billing';
-const PAYMENT_FUNCTION_URL = 'https://us-central1-gen-lang-client-0695487820.cloudfunctions.net/payment-handler';
-
-// Marx backend URL
-const MARX_FUNCTION_URL = 'https://marxpaymenthandler-gtlcyfs7jq-uc.a.run.app';
+// --- WebXPay Configuration ---
+// Removed hardcoded constants. Now using NavigationContext.
 
 interface PaymentRedirectPageProps {
     user: User | null;
@@ -26,7 +16,7 @@ const PaymentRedirectPage: React.FC<PaymentRedirectPageProps> = ({ user: context
     const formRef = useRef<HTMLFormElement>(null);
     const [formData, setFormData] = useState<Record<string, string> | null>(null);
     const [error, setError] = useState<string | null>(null);
-    const { paymentGatewaySettings } = useNavigation();
+    const { paymentGatewaySettings, functionUrls } = useNavigation();
 
     const user = (payload as any).updatedUser as User | undefined || contextUser;
 
@@ -59,7 +49,7 @@ const PaymentRedirectPage: React.FC<PaymentRedirectPageProps> = ({ user: context
                     amount = payload.sale.totalAmount;
                     data = { ...baseUserDetails, items };
                     break;
-                
+
                 case 'topup':
                     customFieldsObject = { type: 'topup', amount: payload.amount };
                     order_id = `topup_${user?.id}_${Date.now()}`;
@@ -106,10 +96,10 @@ const PaymentRedirectPage: React.FC<PaymentRedirectPageProps> = ({ user: context
                         items,
                     };
                     break;
-                case 'photo_purchase': 
+                case 'photo_purchase':
                 case 'marketplace_purchase': {
                     const { cart, totalAmount, billingDetails } = payload;
-                    
+
                     const slimCart = cart.map(item => {
                         if (item.type === 'product') {
                             return {
@@ -132,7 +122,7 @@ const PaymentRedirectPage: React.FC<PaymentRedirectPageProps> = ({ user: context
                     });
 
                     customFieldsObject = { ...payload, cart: slimCart };
-                    
+
                     order_id = `${payload.type}_${Date.now()}`;
                     items = `Purchase (${cart.length} items)`;
                     amount = totalAmount;
@@ -171,7 +161,7 @@ const PaymentRedirectPage: React.FC<PaymentRedirectPageProps> = ({ user: context
                     setError("Invalid payment type.");
                     return;
             }
-            
+
             if (amount <= 0 && payload.type !== 'enrollment') {
                 setError("Amount must be greater than zero for this transaction type.");
                 return;
@@ -197,7 +187,7 @@ const PaymentRedirectPage: React.FC<PaymentRedirectPageProps> = ({ user: context
                         custom_fields: custom_fields
                     };
 
-                    const response = await fetch(`${MARX_FUNCTION_URL}/createOrder`, {
+                    const response = await fetch(`${functionUrls.marxPayment}/createOrder`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(marxPayload)
@@ -216,24 +206,33 @@ const PaymentRedirectPage: React.FC<PaymentRedirectPageProps> = ({ user: context
             } else { // WebXPay
                 const plaintext = `${order_id}|${amount.toFixed(2)}`;
                 const encrypt = new (window as any).JSEncrypt();
-                encrypt.setPublicKey(WEBXPAY_PUBLIC_KEY);
+
+                // Get Key from config
+                const webxpayPublicKey = paymentGatewaySettings.gateways.webxpay.publicKey;
+                if (!webxpayPublicKey) {
+                    setError("Payment configuration error: Missing Public Key.");
+                    return;
+                }
+
+                encrypt.setPublicKey(webxpayPublicKey);
                 const payment = encrypt.encrypt(plaintext);
-                
+
                 if (!payment) {
                     console.error("Encryption failed! Plaintext:", plaintext);
                     setError("Could not prepare payment data. Please try again.");
                     return;
                 }
-                
+
                 const custom_fields = btoa(unescape(encodeURIComponent(JSON.stringify(customFieldsObject))));
 
                 const finalData = {
                     ...data,
-                    secret_key: WEBXPAY_SECRET_KEY,
+                    // Get Secret from config
+                    secret_key: paymentGatewaySettings.gateways.webxpay.secretKey,
                     payment,
                     process_currency: 'LKR',
                     cms: 'React',
-                    return_url: `${PAYMENT_FUNCTION_URL}/payment-callback`,
+                    return_url: `${functionUrls.payment}/payment-callback`,
                     custom_fields,
                     enc_method: 'JCs3J+6oSz4V0LgE0zi/Bg==',
                 };
@@ -264,11 +263,11 @@ const PaymentRedirectPage: React.FC<PaymentRedirectPageProps> = ({ user: context
                 setError("A required payment library failed to load. Please check your network connection and refresh the page.");
             }
         };
-        
+
         tryGenerate();
 
     }, [user, payload, paymentGatewaySettings]);
-    
+
     useEffect(() => {
         if (formData && formRef.current) {
             formRef.current.submit();
@@ -296,13 +295,13 @@ const PaymentRedirectPage: React.FC<PaymentRedirectPageProps> = ({ user: context
                 <p className="mt-2 text-light-subtle dark:text-dark-subtle">You will be redirected automatically. Do not close this window.</p>
                 <div className="mt-8"><div className="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-primary"></div></div>
             </div>
-            
-            <form ref={formRef} method="post" action={WEBXPAY_URL} style={{ display: 'none' }}>
+
+            <form ref={formRef} method="post" action="https://webxpay.com/index.php?route=checkout/billing" style={{ display: 'none' }}>
                 {formData && Object.entries(formData).map(([key, value]) => (
                     <input type="hidden" name={key} value={value as string} key={key} />
                 ))}
             </form>
-        </div>
+        </div >
     );
 };
 

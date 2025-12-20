@@ -18,7 +18,7 @@ interface EventDetailPageProps {
     eventId: string;
 }
 
-const DetailItem: React.FC<{ icon: React.ReactNode; label: string; value?: string | React.ReactNode;}> = ({ icon, label, value }) => (
+const DetailItem: React.FC<{ icon: React.ReactNode; label: string; value?: string | React.ReactNode; }> = ({ icon, label, value }) => (
     <div className="flex items-start">
         <div className="flex-shrink-0 w-5 h-5 text-light-subtle dark:text-dark-subtle mt-1">{icon}</div>
         <div className="ml-3">
@@ -34,7 +34,7 @@ const EventPhotoGallery: React.FC<{ event: Event }> = ({ event }) => {
     const [error, setError] = useState<string | null>(null);
     const [visibleCount, setVisibleCount] = useState(10);
     const { favoritePhotos } = useUI();
-    const { photoPrintOptions } = useNavigation();
+    const { photoPrintOptions, functionUrls, gDriveFetcherApiKey } = useNavigation();
 
     useEffect(() => {
         if (!event.gallery?.googleDriveLink) {
@@ -47,16 +47,14 @@ const EventPhotoGallery: React.FC<{ event: Event }> = ({ event }) => {
             setError(null);
             try {
                 // IMPORTANT: Replace this with your deployed Cloud Function URL after deployment.
-                const G_DRIVE_FUNCTION_URL = 'https://gdriveimagefetcher-gtlcyfs7jq-uc.a.run.app';
-                
-                const response = await fetch(G_DRIVE_FUNCTION_URL, {
+                const response = await fetch(functionUrls.gDriveFetcher, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
                         url: event.gallery.googleDriveLink,
-                        apiKey: 'AIzaSyAOXMXnOsBKgj2c0HmA3mIZndz9eXXOkL0', // Use the Gemini API key
+                        apiKey: gDriveFetcherApiKey,
                     }),
                 });
 
@@ -65,7 +63,7 @@ const EventPhotoGallery: React.FC<{ event: Event }> = ({ event }) => {
                 if (!response.ok || !data.success) {
                     throw new Error(data.message || 'Failed to fetch photos.');
                 }
-                
+
                 setPhotos(data.photos);
 
             } catch (err: any) {
@@ -162,7 +160,7 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId }) => {
         if (!event) return [];
         return teachers.filter(t => event.participatingTeacherIds.includes(t.id));
     }, [teachers, event]);
-    
+
     useSEO(
         event ? event.title : 'Event Details',
         event ? (event.description || '').substring(0, 160) : 'View event details on clazz.lk',
@@ -170,9 +168,9 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId }) => {
     );
 
     const [isConfirmingEnrollment, setIsConfirmingEnrollment] = useState(false);
-    
+
     const dynamicStatus = useMemo(() => event ? getDynamicEventStatus(event) : 'scheduled', [event]);
-    
+
     if (dataLoading) {
         return (
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center flex flex-col items-center justify-center">
@@ -198,7 +196,7 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId }) => {
         handleEnroll(event, 'event');
         setIsConfirmingEnrollment(false);
     };
-    
+
     const currencyFormatter = new Intl.NumberFormat('en-LK', { style: 'currency', currency: 'LKR' });
     const eventStartDateTime = new Date(`${event.startDate}T${event.startTime}`);
     const registrationDeadline = new Date(event.registrationDeadline);
@@ -216,18 +214,18 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId }) => {
 
     return (
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-slideInUp">
-             <div className="mb-4">
+            <div className="mb-4">
                 <button onClick={handleBack} className="flex items-center space-x-2 text-sm font-medium text-primary hover:text-primary-dark transition-colors">
                     <ChevronLeftIcon className="h-5 w-5" />
                     <span>Back</span>
                 </button>
             </div>
-            
+
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Main Content */}
                 <div className="lg:col-span-2 space-y-8">
                     <div className="bg-light-surface dark:bg-dark-surface rounded-lg shadow-lg overflow-hidden">
-                        <img src={event.flyerImage} alt={event.title} className="w-full h-auto object-cover" crossOrigin="anonymous"/>
+                        <img src={event.flyerImage} alt={event.title} className="w-full h-auto object-cover" crossOrigin="anonymous" />
                     </div>
 
                     <div className="bg-light-surface dark:bg-dark-surface p-6 rounded-lg shadow-md">

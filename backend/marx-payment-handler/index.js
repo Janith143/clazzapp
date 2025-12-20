@@ -34,7 +34,7 @@ app.post('/createOrder', async (req, res) => {
     const { order_id, amount, items, customer, custom_fields } = req.body;
 
     try {
-        const settingsDoc = await db.collection('settings').doc('appConfig').get();
+        const settingsDoc = await db.collection('settings').doc('clientAppConfig').get();
         const apiKey = settingsDoc.data()?.paymentGatewaySettings?.gateways?.marxipg?.apiKey;
         if (!apiKey) {
             throw new Error('Marx IPG API key not configured.');
@@ -48,14 +48,14 @@ app.post('/createOrder', async (req, res) => {
         // If it starts with a leading 0, replace it with +94
         if (finalMobile.startsWith('0')) {
             finalMobile = `+94${finalMobile.substring(1)}`;
-        } 
+        }
         // If it starts with 94 but not +, add it.
         else if (finalMobile.startsWith('94') && !finalMobile.startsWith('+')) {
             finalMobile = `+${finalMobile}`;
         }
         // If it's a 9 digit number, prepend +94
         else if (finalMobile.length === 9 && !finalMobile.startsWith('94')) {
-             finalMobile = `+94${finalMobile}`;
+            finalMobile = `+94${finalMobile}`;
         }
 
         const payload = {
@@ -85,7 +85,7 @@ app.post('/createOrder', async (req, res) => {
             console.error('Marx API Error:', result.message, result.data);
             throw new Error(result.message || 'Failed to create Marx order.');
         }
-        
+
         // Store custom_fields temporarily for later retrieval
         await db.collection('payment_sessions').doc(order_id).set({
             custom_fields: custom_fields,
@@ -104,7 +104,7 @@ app.post('/completePayment', async (req, res) => {
     const { trId, merchantRID } = req.body;
 
     try {
-        const settingsDoc = await db.collection('settings').doc('appConfig').get();
+        const settingsDoc = await db.collection('settings').doc('clientAppConfig').get();
         const apiKey = settingsDoc.data()?.paymentGatewaySettings?.gateways?.marxipg?.apiKey;
         if (!apiKey) {
             throw new Error('Marx IPG API key not configured.');
@@ -127,10 +127,10 @@ app.post('/completePayment', async (req, res) => {
                 throw new Error('Payment session data not found.');
             }
             const custom_fields = sessionDoc.data().custom_fields;
-            
+
             // Clean up the session document
             await db.collection('payment_sessions').doc(merchantRID).delete();
-            
+
             res.status(200).send({ success: true, finalStatus: 'SUCCESS', custom_fields });
         } else {
             res.status(200).send({ success: false, finalStatus: 'FAILURE', message: result.message });

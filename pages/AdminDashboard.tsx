@@ -20,10 +20,11 @@ import { useNavigation } from '../contexts/NavigationContext';
 import { useUI } from '../contexts/UIContext';
 import PaymentGatewayManagement from '../components/admin/PaymentGatewayManagement';
 import StaffManagement from '../components/admin/StaffManagement';
+import DeveloperSettings from '../components/admin/DeveloperSettings';
 import { useAuth } from '../contexts/AuthContext';
 
 const AdminDashboard: React.FC = () => {
-    const { 
+    const {
         teachers, users, sales, defaultCoverImages, vouchers, topUpRequests,
         handleUpdateTeacher, handleUpdateWithdrawal, handleRemoveDefaultCoverImage, handleTopUpDecision,
         handleUpdateSaleStatus, handleRefundSale, handleCourseApproval, handleProductApproval, handleUpdateUser
@@ -40,9 +41,9 @@ const AdminDashboard: React.FC = () => {
     // Initialize active view based on permissions
     useEffect(() => {
         if (currentUser && currentUser.permissions && !currentUser.permissions.includes('all') && !currentUser.permissions.includes(activeView)) {
-             if (currentUser.permissions.length > 0) {
-                 setActiveView(currentUser.permissions[0] as AdminView);
-             }
+            if (currentUser.permissions.length > 0) {
+                setActiveView(currentUser.permissions[0] as AdminView);
+            }
         }
     }, [currentUser]);
 
@@ -50,7 +51,7 @@ const AdminDashboard: React.FC = () => {
 
     const onViewTeacher = (teacherId: string) => handleNavigate({ name: 'teacher_profile', teacherId });
     const onViewStudentDashboard = (userId: string) => handleNavigate({ name: 'admin_view_student_dashboard', userId });
-    
+
     const onAddDefaultCoverImage = () => {
         openImageUploadModal('admin_default_cover');
     };
@@ -65,7 +66,7 @@ const AdminDashboard: React.FC = () => {
             setImageToDelete(null);
         }
     };
-    
+
     const handleSaveStaffPermissions = (userId: string, permissions: string[]) => {
         handleUpdateUser({ id: userId, permissions });
     };
@@ -81,51 +82,51 @@ const AdminDashboard: React.FC = () => {
             case 'analytics':
                 return <AnalyticsDashboard teachers={teachers} users={users} sales={sales} />;
             case 'users':
-                return <UserManagement 
-                            teachers={teachers} 
-                            users={users}
-                            onUpdateTeacher={handleUpdateTeacher}
-                            onViewTeacher={onViewTeacher}
-                            onViewStudentDashboard={onViewStudentDashboard}
-                            defaultCoverImages={defaultCoverImages} 
-                        />;
+                return <UserManagement
+                    teachers={teachers}
+                    users={users}
+                    onUpdateTeacher={handleUpdateTeacher}
+                    onViewTeacher={onViewTeacher}
+                    onViewStudentDashboard={onViewStudentDashboard}
+                    defaultCoverImages={defaultCoverImages}
+                />;
             case 'staff':
                 return <StaffManagement users={users} onUpdatePermissions={handleSaveStaffPermissions} />;
             case 'content':
-                return <ContentManagement 
-                            teachers={teachers}
-                            defaultCoverImages={defaultCoverImages}
-                            onAddDefaultCoverImage={onAddDefaultCoverImage}
-                            onRemoveDefaultCoverImage={onRemoveDefaultCoverImage}
-                            onCourseApproval={handleCourseApproval}
-                        />;
+                return <ContentManagement
+                    teachers={teachers}
+                    defaultCoverImages={defaultCoverImages}
+                    onAddDefaultCoverImage={onAddDefaultCoverImage}
+                    onRemoveDefaultCoverImage={onRemoveDefaultCoverImage}
+                    onCourseApproval={handleCourseApproval}
+                />;
             case 'products':
-                return <ProductManagement 
-                            teachers={teachers}
-                            onProductApproval={handleProductApproval}
-                        />;
+                return <ProductManagement
+                    teachers={teachers}
+                    onProductApproval={handleProductApproval}
+                />;
             case 'allsales':
                 return <AllSalesManagement
-                            allSales={sales}
-                            allUsers={users}
-                            allTeachers={teachers}
-                            onViewTeacher={onViewTeacher}
-                            onUpdateSaleStatus={handleUpdateSaleStatus}
-                            onRefundSale={handleRefundSale}
-                        />;
+                    allSales={sales}
+                    allUsers={users}
+                    allTeachers={teachers}
+                    onViewTeacher={onViewTeacher}
+                    onUpdateSaleStatus={handleUpdateSaleStatus}
+                    onRefundSale={handleRefundSale}
+                />;
             case 'photo_orders':
                 return <PhotoOrderManagement />;
             case 'physical_orders':
                 return <PhysicalOrderManagement />;
             case 'revenue':
                 return <RevenueManagement
-                            teachers={teachers}
-                            allUsers={users}
-                            topUpRequests={topUpRequests}
-                            onUpdateWithdrawal={handleUpdateWithdrawal}
-                            handleTopUpDecision={handleTopUpDecision}
-                            onViewTeacher={onViewTeacher}
-                        />;
+                    teachers={teachers}
+                    allUsers={users}
+                    topUpRequests={topUpRequests}
+                    onUpdateWithdrawal={handleUpdateWithdrawal}
+                    handleTopUpDecision={handleTopUpDecision}
+                    onViewTeacher={onViewTeacher}
+                />;
             case 'vouchers':
                 return <VoucherManagement vouchers={vouchers} users={users} />;
             case 'referrals':
@@ -136,6 +137,8 @@ const AdminDashboard: React.FC = () => {
                 return <SiteContentManagement initialKey={targetContentSection} />;
             case 'calculation_guide':
                 return <CalculationGuide setActiveView={setActiveView} onNavigateToContent={handleNavigateToContent} />;
+            case 'developer':
+                return <DeveloperSettings />;
             default:
                 return <div>Select a view</div>;
         }

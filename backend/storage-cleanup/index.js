@@ -51,7 +51,7 @@ const getTeacherImageUrls = (teacherData) => {
   if (teacherData.avatar) urls.add(teacherData.avatar);
   if (teacherData.profileImage) urls.add(teacherData.profileImage);
   if (Array.isArray(teacherData.coverImages)) {
-    teacherData.coverImages.forEach((url) => { if(url) urls.add(url); });
+    teacherData.coverImages.forEach((url) => { if (url) urls.add(url); });
   }
   if (teacherData.verification?.id?.imageUrl) urls.add(teacherData.verification.id.imageUrl);
   if (teacherData.verification?.bank?.imageUrl) urls.add(teacherData.verification.bank.imageUrl);
@@ -108,14 +108,14 @@ exports.onUserUpdate = onDocumentUpdated("users/{userId}", async (event) => {
 });
 
 exports.onTopUpRequestUpdate = onDocumentUpdated("topUpRequests/{requestId}", async (event) => {
-    const beforeUrl = event.data.before.data()?.imageUrl;
-    const afterUrl = event.data.after.data()?.imageUrl;
-    if (beforeUrl && beforeUrl !== afterUrl) {
-        await deleteFileFromUrl(beforeUrl);
-    }
+  const beforeUrl = event.data.before.data()?.imageUrl;
+  const afterUrl = event.data.after.data()?.imageUrl;
+  if (beforeUrl && beforeUrl !== afterUrl) {
+    await deleteFileFromUrl(beforeUrl);
+  }
 });
 
-exports.onSettingsUpdate = onDocumentUpdated("settings/appConfig", async (event) => {
+exports.onSettingsUpdate = onDocumentUpdated("settings/clientAppConfig", async (event) => {
   const beforeImages = new Set(event.data.before.data()?.defaultCoverImages || []);
   const afterImages = new Set(event.data.after.data()?.defaultCoverImages || []);
 
@@ -127,14 +127,14 @@ exports.onSettingsUpdate = onDocumentUpdated("settings/appConfig", async (event)
   }
 
   await Promise.all(urlsToDelete.map(async (url) => {
-      const filePath = getPathFromUrl(url);
-      if (filePath && filePath.startsWith("default-cover-images/")) {
-          try {
-              await bucket.file(filePath).delete();
-              logger.log(`Admin action: Successfully deleted default image: ${filePath}`);
-          } catch (error) {
-              logger.error(`Failed to delete default image during settings update: ${filePath}`, error);
-          }
+    const filePath = getPathFromUrl(url);
+    if (filePath && filePath.startsWith("default-cover-images/")) {
+      try {
+        await bucket.file(filePath).delete();
+        logger.log(`Admin action: Successfully deleted default image: ${filePath}`);
+      } catch (error) {
+        logger.error(`Failed to delete default image during settings update: ${filePath}`, error);
       }
+    }
   }));
 });

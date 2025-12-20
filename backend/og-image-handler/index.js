@@ -5,7 +5,7 @@ const { logger } = require("firebase-functions");
 
 // Initialize Firebase Admin SDK
 if (!admin.apps.length) {
-  admin.initializeApp();
+    admin.initializeApp();
 }
 const db = admin.firestore();
 const app = express();
@@ -20,11 +20,11 @@ app.get('/', async (req, res) => {
     res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.set('Pragma', 'no-cache');
     res.set('Expires', '0');
-    
+
     try {
-        const configDoc = await db.collection('settings').doc('appConfig').get();
+        const configDoc = await db.collection('settings').doc('clientAppConfig').get();
         // Use an absolute URL for your default image as a reliable fallback
-        let imageUrl = 'https://clazz.lk/Logo3.png'; 
+        let imageUrl = 'https://clazz.lk/Logo3.png';
 
         if (configDoc.exists()) {
             const configData = configDoc.data();
@@ -32,7 +32,7 @@ app.get('/', async (req, res) => {
                 imageUrl = configData.ogImageUrl;
             }
         }
-        
+
         logger.log(`Redirecting OG image request to: ${imageUrl}`);
         // Use a 307 Temporary Redirect to suggest the resource might change.
         res.redirect(307, imageUrl);

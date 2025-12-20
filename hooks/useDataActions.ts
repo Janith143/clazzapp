@@ -41,7 +41,7 @@ export const useDataActions = (deps: any) => {
         else if (type === 'og_image') filePath = `site-assets/og_image_${timestamp}`;
         else if (type === 'payment_method_logo') filePath = `site-assets/payment-logos/${opContext.methodId}_${timestamp}`;
         else throw new Error(`Unsupported image upload type: ${type}`);
-        
+
         // FIX: Use the correctly imported ref function from firebase/storage.
         const storageRef = ref(storage, filePath);
         try {
@@ -50,7 +50,7 @@ export const useDataActions = (deps: any) => {
             await uploadString(storageRef, base64, 'data_url');
             // FIX: Use the correctly imported getDownloadURL function from firebase/storage.
             const downloadURL = await getDownloadURL(storageRef);
-            
+
             if (type === 'student_profile' && currentUser) {
                 await updateDoc(doc(db, "users", currentUser.id), { avatar: downloadURL });
             } else if (type === 'profile') {
@@ -76,11 +76,11 @@ export const useDataActions = (deps: any) => {
                     await updateDoc(doc(db, "teachers", opContext.teacherId), { coverImages: newCoverImages });
                 }
             } else if (type === 'admin_default_cover') {
-                await updateDoc(doc(db, "settings", "appConfig"), { defaultCoverImages: arrayUnion(downloadURL) });
+                await updateDoc(doc(db, "settings", "clientAppConfig"), { defaultCoverImages: arrayUnion(downloadURL) });
             }
 
             if (!['payment_slip', 'event_flyer', 'quiz_question_image', 'product_cover', 'course_cover', 'og_image', 'payment_method_logo'].includes(type as string)) {
-                 addToast("Image saved successfully!", "success");
+                addToast("Image saved successfully!", "success");
             }
             return downloadURL;
         } catch (error) {
@@ -88,76 +88,76 @@ export const useDataActions = (deps: any) => {
             addToast("Image save failed. Please try again.", "error");
         }
     };
-    
+
     // Although the logic is split into multiple hooks for organization,
     // they are all included here to be created as one cohesive `useDataActions` hook
     // to satisfy the user's prompt structure with minimal new files.
-    const userActions = useUserActions({ currentUser, ui, users });
+    const userActions = useUserActions({ currentUser, ui, users, nav });
     const adminActions = useAdminActions({ ui, nav, users, teachers, tuitionInstitutes, knownInstitutes, sales, topUpRequests, ...userActions, handleImageSave });
-    
+
     const contentActionsDeps = { currentUser, teachers, sales, submissions, ui, nav, handleUpdateTeacher: adminActions.handleUpdateTeacher, handleImageSave };
     const contentActions = {
-      ...useContentActions(contentActionsDeps),
-      handleSaveHomeworkSubmission: useCallback(async (teacherId: string, classId: number, instanceDate: string, link: string) => {
-          if (!currentUser) {
-              addToast("You must be logged in to submit homework.", "error");
-              return;
-          }
-          const teacherRef = doc(db, 'teachers', teacherId);
-          try {
-              await runTransaction(db, async (transaction) => {
-                  const teacherDoc = await transaction.get(teacherRef);
-                  if (!teacherDoc.exists()) throw new Error("Class teacher not found.");
-    
-                  const teacherData = teacherDoc.data() as Teacher;
-                  
-                  // FIX: Use Array.isArray() to prevent crash
-                  const classes = Array.isArray(teacherData.individualClasses) ? teacherData.individualClasses : [];
-                  const classIndex = classes.findIndex(c => c.id === classId);
-                  if (classIndex === -1) throw new Error("Class not found.");
-    
-                  const classToUpdate = { ...classes[classIndex] };
-                  const submissionsForDate = classToUpdate.homeworkSubmissions?.[instanceDate] || [];
-                  
-                  const existingSubmissionIndex = submissionsForDate.findIndex(s => s.studentId === currentUser.id);
-    
-                  const newSubmission = {
-                      studentId: currentUser.id,
-                      link,
-                      submittedAt: new Date().toISOString(),
-                  };
-    
-                  if (existingSubmissionIndex > -1) {
-                      submissionsForDate[existingSubmissionIndex] = newSubmission;
-                  } else {
-                      submissionsForDate.push(newSubmission);
-                  }
-                  
-                  if (!classToUpdate.homeworkSubmissions) {
-                      classToUpdate.homeworkSubmissions = {};
-                  }
-                  // FIX: Changed from function call syntax to array/object property access syntax.
-                  classToUpdate.homeworkSubmissions[instanceDate] = submissionsForDate;
-                  
-                  // FIX: Use the 'classes' variable that is guaranteed to be an array
-                  const updatedClasses = [...classes];
-                  updatedClasses[classIndex] = classToUpdate;
-    
-                  transaction.update(teacherRef, { individualClasses: updatedClasses });
-              });
-              addToast("Homework submitted successfully!", "success");
-          } catch (e) {
-              console.error("Failed to save homework submission:", e);
-              addToast((e as Error).message || "Error saving homework.", "error");
-          }
-      }, [currentUser, addToast])
+        ...useContentActions(contentActionsDeps),
+        handleSaveHomeworkSubmission: useCallback(async (teacherId: string, classId: number, instanceDate: string, link: string) => {
+            if (!currentUser) {
+                addToast("You must be logged in to submit homework.", "error");
+                return;
+            }
+            const teacherRef = doc(db, 'teachers', teacherId);
+            try {
+                await runTransaction(db, async (transaction) => {
+                    const teacherDoc = await transaction.get(teacherRef);
+                    if (!teacherDoc.exists()) throw new Error("Class teacher not found.");
+
+                    const teacherData = teacherDoc.data() as Teacher;
+
+                    // FIX: Use Array.isArray() to prevent crash
+                    const classes = Array.isArray(teacherData.individualClasses) ? teacherData.individualClasses : [];
+                    const classIndex = classes.findIndex(c => c.id === classId);
+                    if (classIndex === -1) throw new Error("Class not found.");
+
+                    const classToUpdate = { ...classes[classIndex] };
+                    const submissionsForDate = classToUpdate.homeworkSubmissions?.[instanceDate] || [];
+
+                    const existingSubmissionIndex = submissionsForDate.findIndex(s => s.studentId === currentUser.id);
+
+                    const newSubmission = {
+                        studentId: currentUser.id,
+                        link,
+                        submittedAt: new Date().toISOString(),
+                    };
+
+                    if (existingSubmissionIndex > -1) {
+                        submissionsForDate[existingSubmissionIndex] = newSubmission;
+                    } else {
+                        submissionsForDate.push(newSubmission);
+                    }
+
+                    if (!classToUpdate.homeworkSubmissions) {
+                        classToUpdate.homeworkSubmissions = {};
+                    }
+                    // FIX: Changed from function call syntax to array/object property access syntax.
+                    classToUpdate.homeworkSubmissions[instanceDate] = submissionsForDate;
+
+                    // FIX: Use the 'classes' variable that is guaranteed to be an array
+                    const updatedClasses = [...classes];
+                    updatedClasses[classIndex] = classToUpdate;
+
+                    transaction.update(teacherRef, { individualClasses: updatedClasses });
+                });
+                addToast("Homework submitted successfully!", "success");
+            } catch (e) {
+                console.error("Failed to save homework submission:", e);
+                addToast((e as Error).message || "Error saving homework.", "error");
+            }
+        }, [currentUser, addToast])
     };
 
     const transactionActions = useTransactionActions({ currentUser, users, teachers, tuitionInstitutes, sales, vouchers, ui, auth, nav, handleImageSave, handleUpdateUser: userActions.handleUpdateUser, currencyFormatter });
     const instituteActions = useInstituteActions({ ui, currentUser, teachers, tuitionInstitutes, sales });
-    
+
     const handleUpdateOgImage = useCallback(async (imageUrl: string) => {
-        await updateDoc(doc(db, 'settings', 'appConfig'), { ogImageUrl: imageUrl });
+        await updateDoc(doc(db, 'settings', 'clientAppConfig'), { ogImageUrl: imageUrl });
     }, []);
 
     return {

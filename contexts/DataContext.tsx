@@ -1,14 +1,14 @@
 
 import React, { createContext, useState, useContext, useEffect, useMemo, useCallback, useRef } from 'react';
-import { 
-    User, Teacher, Sale, Course, IndividualClass, Quiz, Lecture, StudentSubmission, 
+import {
+    User, Teacher, Sale, Course, IndividualClass, Quiz, Lecture, StudentSubmission,
     Voucher, TopUpRequest, EditableImageType, PayoutDetails, BillingDetails, MonthlyReferralEarning, Withdrawal, PageState, DashboardTab, HomeSlide, StaticPageKey, SocialMediaLink, Notification, TuitionInstitute, UpcomingExam, PhotoPrintOption, Event, Product, ClassGrading,
     PaymentGatewaySettings, KnownInstitute, FinancialSettings, SupportSettings, PaymentMethod
 } from '../types';
 import { useAuth } from './AuthContext';
 import { db, storage } from '../firebase';
-import { 
-    collection, onSnapshot, doc, 
+import {
+    collection, onSnapshot, doc,
     query, QuerySnapshot, DocumentData, DocumentSnapshot,
     writeBatch,
     runTransaction,
@@ -17,6 +17,7 @@ import {
 } from 'firebase/firestore';
 import { useDataActions } from '../hooks/useDataActions';
 import { getDynamicClassStatus } from '../utils';
+import { useNavigation } from './NavigationContext';
 
 
 export interface DataContextType {
@@ -55,7 +56,7 @@ export interface DataContextType {
     handleTopUpWithGateway: (amount: number, selectedMethod?: PaymentMethod) => void;
     handleTopUpWithSlip: (amount: number, slipImage: string) => void;
     handleRedeemVoucher: (code: string) => Promise<boolean>;
-    handleVoucherPurchaseRequest: (details: Omit<Voucher, 'id'|'code'|'isUsed'|'purchasedAt'|'expiresAt'>, quantity: number) => void;
+    handleVoucherPurchaseRequest: (details: Omit<Voucher, 'id' | 'code' | 'isUsed' | 'purchasedAt' | 'expiresAt'>, quantity: number) => void;
     handleExternalTopUpRequest: (students: Pick<User, 'id' | 'firstName' | 'lastName'>[], amountPerStudent: number, billingDetails: BillingDetails) => void;
     handleRequestWithdrawal: (teacherId: string, amount: number) => void;
     handleSaveBankDetails: (teacherId: string, details: PayoutDetails) => void;
@@ -98,6 +99,7 @@ export interface DataContextType {
     handleToggleEventPublishState: (instituteId: string, eventId: string) => void;
     handleSaveProduct: (productDetails: Product) => void;
     handleProductApproval: (teacherId: string, productId: string, decision: 'approved' | 'rejected') => void;
+    handleUpdateDeveloperSettings: (settings: { genAiKey: string; gDriveFetcherApiKey: string; functionUrls: any }) => Promise<void>;
     handleSaveClassRecording: (teacherId: string, classId: number, instanceDate: string, recordingUrls: string[]) => Promise<void>;
     handleSaveGrading: (teacherId: string, classId: number, instanceDate: string, grades: ClassGrading) => Promise<void>;
     handleSaveHomeworkSubmission: (teacherId: string, classId: number, instanceDate: string, link: string) => Promise<void>;
@@ -109,41 +111,11 @@ export interface DataContextType {
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
-const sendLinkReminder = async (teacher: User, cls: IndividualClass, time: string) => {
-    const NOTIFICATION_FUNCTION_URL = 'https://us-central1-gen-lang-client-0695487820.cloudfunctions.net/notification-function';
-    
-    const subject = `Reminder: Add Joining Link for '${cls.title}'`;
-    const htmlBody = `
-        <div style="font-family: Arial, sans-serif; color: #333;">
-            <p>Dear ${teacher.firstName},</p>
-            <p>This is a reminder that your class, <strong>${cls.title}</strong>, is scheduled to start in approximately <strong>${time}</strong>.</p>
-            <p>The joining link for this online/hybrid class has not been added yet. Please add it as soon as possible from your teacher dashboard so that students can join on time.</p>
-            <p>Thank you,</p>
-            <p>The clazz.lk Team</p>
-        </div>
-    `;
-
-    try {
-        const response = await fetch(NOTIFICATION_FUNCTION_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                toEmail: teacher.email,
-                subject,
-                htmlBody
-            })
-        });
-        if (!response.ok) {
-            throw new Error('Notification API returned an error.');
-        }
-        console.log(`Sent ${time} reminder to ${teacher.email} for class ${cls.id}`);
-    } catch (error) {
-        console.error("Failed to send reminder email:", error);
-    }
-};
+// function moved inside provider
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { currentUser } = useAuth();
+    const { functionUrls } = useNavigation();
     const [users, setUsers] = useState<User[]>([]);
     const [teachers, setTeachers] = useState<Teacher[]>([]);
     const [tuitionInstitutes, setTuitionInstitutes] = useState<TuitionInstitute[]>([]);
@@ -153,8 +125,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [topUpRequests, setTopUpRequests] = useState<TopUpRequest[]>([]);
     const [submissions, setSubmissions] = useState<StudentSubmission[]>([]);
     const [defaultCoverImages, setDefaultCoverImages] = useState<string[]>([]);
-    const [remindersSent, setRemindersSent] = useState<{[key: string]: '30min' | '5min'}>({});
-    
+    const [remindersSent, setRemindersSent] = useState<{ [key: string]: '30min' | '5min' }>({});
+
     const [loading, setLoading] = useState(true);
     const [teachersLoaded, setTeachersLoaded] = useState(false);
     const [institutesLoaded, setInstitutesLoaded] = useState(false);
@@ -162,7 +134,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     useEffect(() => {
         const unsubUsers = onSnapshot(collection(db, 'users'), (snapshot: QuerySnapshot) => setUsers(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as User))));
-        
+
         const unsubTeachers = onSnapshot(collection(db, 'teachers'), (snapshot: QuerySnapshot) => {
             setTeachers(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Teacher)));
             setTeachersLoaded(true);
@@ -176,12 +148,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const unsubKnownInstitutes = onSnapshot(collection(db, 'knownInstitutes'), (snapshot: QuerySnapshot) => {
             setKnownInstitutes(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as KnownInstitute)));
         });
-        
+
         const unsubSales = onSnapshot(collection(db, 'sales'), (snapshot: QuerySnapshot) => setSales(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Sale))));
         const unsubVouchers = onSnapshot(collection(db, 'vouchers'), (snapshot: QuerySnapshot) => setVouchers(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Voucher))));
         const unsubTopUps = onSnapshot(collection(db, 'topUpRequests'), (snapshot: QuerySnapshot) => setTopUpRequests(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as TopUpRequest))));
         const unsubSubmissions = onSnapshot(collection(db, 'submissions'), (snapshot: QuerySnapshot) => setSubmissions(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as StudentSubmission))));
-        const unsubConfig = onSnapshot(doc(db, 'settings', 'appConfig'), (docSnap: DocumentSnapshot) => {
+        const unsubConfig = onSnapshot(doc(db, 'settings', 'clientAppConfig'), (docSnap: DocumentSnapshot) => {
             setDefaultCoverImages(docSnap.exists() ? (docSnap.data() as any).defaultCoverImages || [] : []);
         });
 
@@ -189,7 +161,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             unsubUsers(); unsubTeachers(); unsubInstitutes(); unsubKnownInstitutes(); unsubSales(); unsubVouchers(); unsubTopUps(); unsubSubmissions(); unsubConfig();
         };
     }, []);
-    
+
     useEffect(() => {
         if (teachersLoaded && institutesLoaded) {
             setLoading(false);
@@ -197,21 +169,52 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, [teachersLoaded, institutesLoaded, teachers, tuitionInstitutes]);
 
     useEffect(() => {
+        const sendLinkReminder = async (teacher: User, cls: IndividualClass, time: string) => {
+            const subject = `Reminder: Add Joining Link for '${cls.title}'`;
+            const htmlBody = `
+                <div style="font-family: Arial, sans-serif; color: #333;">
+                    <p>Dear ${teacher.firstName},</p>
+                    <p>This is a reminder that your class, <strong>${cls.title}</strong>, is scheduled to start in approximately <strong>${time}</strong>.</p>
+                    <p>The joining link for this online/hybrid class has not been added yet. Please add it as soon as possible from your teacher dashboard so that students can join on time.</p>
+                    <p>Thank you,</p>
+                    <p>The clazz.lk Team</p>
+                </div>
+            `;
+
+            try {
+                const response = await fetch(functionUrls.notification, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        toEmail: teacher.email,
+                        subject,
+                        htmlBody
+                    })
+                });
+                if (!response.ok) {
+                    throw new Error('Notification API returned an error.');
+                }
+                console.log(`Sent ${time} reminder to ${teacher.email} for class ${cls.id}`);
+            } catch (error) {
+                console.error("Failed to send reminder email:", error);
+            }
+        };
+
         const interval = setInterval(() => {
             const now = new Date();
             teachers.forEach(teacher => {
                 const teacherUser = users.find(u => u.id === teacher.userId);
                 if (!teacherUser || !teacherUser.email) return;
-    
+
                 teacher.individualClasses.forEach(cls => {
                     if ((cls.mode === 'Online' || cls.mode === 'Both') && !cls.joiningLink && cls.status === 'scheduled') {
                         const startDateTime = new Date(`${cls.date}T${cls.startTime}`);
                         if (isNaN(startDateTime.getTime())) return;
 
                         const diffMinutes = (startDateTime.getTime() - now.getTime()) / (1000 * 60);
-    
+
                         const reminderKey = `${teacher.id}_${cls.id}`;
-                        
+
                         if (diffMinutes > 29 && diffMinutes <= 30 && remindersSent[reminderKey] !== '30min' && remindersSent[reminderKey] !== '5min') {
                             sendLinkReminder(teacherUser, cls, '30 minutes');
                             setRemindersSent(prev => ({ ...prev, [reminderKey]: '30min' }));
@@ -222,11 +225,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     }
                 });
             });
-        }, 60 * 1000); 
-    
+        }, 60 * 1000);
+
         return () => clearInterval(interval);
-    }, [teachers, users, remindersSent]);
-    
+    }, [teachers, users, remindersSent, functionUrls.notification]);
+
     useEffect(() => {
         const checkAndUnpublishClasses = async () => {
             if (teachers.length === 0) return;
@@ -311,7 +314,7 @@ export const useFetchItem = (type: 'course' | 'class' | 'quiz' | 'product', id: 
             else if (type === 'class') foundItem = t.individualClasses.find(c => c.id === id);
             else if (type === 'quiz') foundItem = t.quizzes.find(q => q.id === id);
             else if (type === 'product') foundItem = (t.products || []).find(p => p.id === id);
-            
+
             if (foundItem) {
                 item = foundItem;
                 teacher = t;
@@ -319,10 +322,10 @@ export const useFetchItem = (type: 'course' | 'class' | 'quiz' | 'product', id: 
             }
         }
 
-        if (!item && currentUser && type !== 'product') { 
+        if (!item && currentUser && type !== 'product') {
             const saleRecord = sales.find(s => s.studentId === currentUser.id && s.itemType === type && String(s.itemId) === String(id));
             if (saleRecord) {
-                const snapshotTeacher = teachers.find(t => t.id === saleRecord.teacherId); 
+                const snapshotTeacher = teachers.find(t => t.id === saleRecord.teacherId);
                 item = { ...saleRecord.itemSnapshot as any, isDeleted: true };
                 teacher = snapshotTeacher || null;
             }
@@ -331,15 +334,15 @@ export const useFetchItem = (type: 'course' | 'class' | 'quiz' | 'product', id: 
         if (!item || !teacher) {
             return { item: null, teacher: null, isOwner: false, isEnrolled: false };
         }
-        
+
         const isOwner = currentUser?.id === teacher.userId;
-        let isEnrolled = isOwner; 
+        let isEnrolled = isOwner;
         if (!isEnrolled && currentUser) {
             isEnrolled = sales.some(s => {
                 if (s.studentId !== currentUser.id || String(s.itemId) !== String(id) || s.itemType !== type || s.status !== 'completed') {
                     return false;
                 }
-                
+
                 if (type === 'class' && (item as IndividualClass).weeklyPaymentOption === 'per_month') {
                     const saleDate = new Date(s.saleDate);
                     const now = new Date();
@@ -355,12 +358,12 @@ export const useFetchItem = (type: 'course' | 'class' | 'quiz' | 'product', id: 
 
                     if (liveItem.instanceStartDate) {
                         return saleItem.instanceStartDate === liveItem.instanceStartDate;
-                    } 
+                    }
                     else {
                         return !saleItem.instanceStartDate;
                     }
                 }
-                
+
                 if (type === 'course' || type === 'product' || type === 'event') {
                     return true;
                 }
@@ -368,7 +371,7 @@ export const useFetchItem = (type: 'course' | 'class' | 'quiz' | 'product', id: 
                 return false;
             });
         }
-        
+
         return { item, teacher, isOwner, isEnrolled };
     }, [teachers, currentUser, type, id, sales]);
 };

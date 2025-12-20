@@ -20,7 +20,7 @@ app.use(express.json());
 // Helper to get Telegram Config
 const getTelegramConfig = async () => {
     try {
-        const configDoc = await db.collection('settings').doc('appConfig').get();
+        const configDoc = await db.collection('settings').doc('clientAppConfig').get();
         if (!configDoc.exists) {
             console.log("appConfig document does not exist");
             return {};
@@ -37,7 +37,7 @@ const getTelegramConfig = async () => {
 
 const handleSendMessage = async (req, res) => {
     const { chatId, text, userLanguage, userId } = req.body;
-    
+
     console.log("Processing sendMessage for chatId:", chatId, "User ID:", userId);
 
     try {
@@ -49,7 +49,7 @@ const handleSendMessage = async (req, res) => {
         }
 
         const { telegramBotToken, telegramChatId } = config;
-        
+
         if (!telegramBotToken || !telegramChatId) {
             console.error("Telegram settings missing. Token:", !!telegramBotToken, "ChatID:", !!telegramChatId);
             return res.status(500).json({ success: false, error: "Telegram settings not configured in Admin Dashboard." });
@@ -57,7 +57,7 @@ const handleSendMessage = async (req, res) => {
 
         // Updated message template to include User ID
         const message = `🔔 New Support Message\n\nUser ID: ${userId || 'Guest'}\nChat ID: ${chatId}\nLanguage: ${userLanguage}\n\n${text}`;
-        
+
         const telegramUrl = `https://api.telegram.org/bot${telegramBotToken}/sendMessage`;
 
         // Use global fetch (Node 20+)
@@ -69,14 +69,14 @@ const handleSendMessage = async (req, res) => {
                 text: message
             })
         });
-        
+
         const result = await response.json();
-        
+
         if (!result.ok) {
             console.error("Telegram API Error:", result);
             throw new Error(`Telegram API Error: ${result.description}`);
         }
-        
+
         console.log("Message sent to Telegram successfully");
         res.status(200).json({ success: true });
 
@@ -88,7 +88,7 @@ const handleSendMessage = async (req, res) => {
 
 const handleWebhook = async (req, res) => {
     const update = req.body;
-    
+
     // 1. Basic Validation: Is this a message?
     if (!update || !update.message) {
         // Return 200 to acknowledge other types of updates (typing, status changes, etc.) so Telegram doesn't retry
@@ -107,7 +107,7 @@ const handleWebhook = async (req, res) => {
     // 3. Content Extraction: Handle Text or Captions (for images/files)
     // If the agent sends a photo without a caption, we use a placeholder.
     const replyText = message.text || message.caption || "[Media/File Sent]";
-    
+
     // 4. ID Extraction: Look at the ORIGINAL message being replied to
     const originalText = message.reply_to_message.text || message.reply_to_message.caption || "";
 
@@ -115,11 +115,11 @@ const handleWebhook = async (req, res) => {
     // Supports: "Chat ID: 123", "Chat ID:123", "chat id: 123", handles newlines
     const chatIDRegex = /Chat ID:\s*([a-zA-Z0-9\-_]+)/i;
     const match = originalText.match(chatIDRegex);
-    
+
     if (match && match[1]) {
         const chatId = match[1];
         console.log(`Webhook: Found Chat ID ${chatId}. Forwarding agent reply...`);
-        
+
         try {
             // Add agent reply to Firestore
             await db.collection('supportChats').doc(chatId).collection('messages').add({
@@ -135,7 +135,7 @@ const handleWebhook = async (req, res) => {
         console.warn("Webhook Warning: Could not find 'Chat ID' in the original message. Agent must reply to a message containing the ID header.");
         console.log("Original Text was:", originalText.substring(0, 50) + "...");
     }
-    
+
     // Always return 200 OK to Telegram
     res.status(200).send('OK');
 };
@@ -153,13 +153,13 @@ app.get('/', (req, res) => {
 // CATCH-ALL POST HANDLER: Handles requests sent to root /
 app.post('/', async (req, res) => {
     console.log('Received POST at root /');
-    
+
     // If body contains chatId, it's a message from the app
     if (req.body && (req.body.chatId || req.body.text)) {
         console.log('Routing to sendMessage handler');
         return handleSendMessage(req, res);
     }
-    
+
     // If body looks like a Telegram Update object
     if (req.body && (req.body.message || req.body.update_id || req.body.callback_query)) {
         console.log('Routing to webhook handler');
