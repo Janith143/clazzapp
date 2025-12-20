@@ -184,7 +184,8 @@ const PaymentRedirectPage: React.FC<PaymentRedirectPageProps> = ({ user: context
                             email: data.email,
                             contact_number: data.contact_number,
                         },
-                        custom_fields: custom_fields
+                        custom_fields: custom_fields,
+                        return_url: `${functionUrls.marxPayment}/marx-callback`
                     };
 
                     const response = await fetch(`${functionUrls.marxPayment}/createOrder`, {

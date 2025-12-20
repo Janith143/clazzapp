@@ -31,7 +31,7 @@ app.get('/marx-callback', (req, res) => {
 
 // Endpoint for the frontend to call to initiate a payment
 app.post('/createOrder', async (req, res) => {
-    const { order_id, amount, items, customer, custom_fields } = req.body;
+    const { order_id, amount, items, customer, custom_fields, return_url } = req.body;
 
     try {
         const settingsDoc = await db.collection('settings').doc('clientAppConfig').get();
@@ -62,11 +62,11 @@ app.post('/createOrder', async (req, res) => {
             merchantRID: order_id,
             amount: parseFloat(amount.toFixed(2)),
             validTimeLimit: 2, // How many hours the payment link will work
-            returnUrl: `https://marxpaymenthandler-gtlcyfs7jq-uc.a.run.app/marx-callback`,
+            returnUrl: req.body.return_url || `https://marxpaymenthandler-gtlcyfs7jq-uc.a.run.app/marx-callback`,
             customerMail: customer.email,
             customerMobile: finalMobile,
             orderSummary: items,
-            customerReference: `${customer.first_name} ${customer.last_name}`,
+            customerReference: order_id, // Changed from name to Invoice Number (order_id)
             paymentMethod: "OTHER" // "OTHER" (for Visa/Mastercard/UnionPay) or "AMEX"
         };
 
