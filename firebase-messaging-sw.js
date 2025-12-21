@@ -3,26 +3,26 @@ importScripts('https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js'
 importScripts('https://www.gstatic.com/firebasejs/9.22.0/firebase-messaging-compat.js');
 
 firebase.initializeApp({
-  apiKey: "AIzaSyA6oJphhWF6MNu9laM6VttpWnIr-WdNuRo",
-  authDomain: "clazz2-9e0a9.firebaseapp.com",
-  projectId: "clazz2-9e0a9",
-  storageBucket: "clazz2-9e0a9.firebasestorage.app",
-  messagingSenderId: "980531128265",
-  appId: "1:980531128265:web:0426d80e932d6adbfc2a18"
+    apiKey: "AIzaSyDu1E1bp_xNe9mjCa1UH568yQuh8zBDYM4",
+    authDomain: "clazz2-new.firebaseapp.com",
+    projectId: "clazz2-new",
+    storageBucket: "clazz2-new.firebasestorage.app",
+    messagingSenderId: "487626975727",
+    appId: "1:487626975727:web:2cfcb0cac5ddcf50ddae1a"
 });
 
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
-  console.log('[firebase-messaging-sw.js] Received background message ', payload);
-  const notificationTitle = payload.notification.title;
-  const notificationOptions = {
-    body: payload.notification.body,
-    icon: payload.webpush?.notification?.icon || '/Logo3.png',
-    data: payload.data
-  };
+    console.log('[firebase-messaging-sw.js] Received background message ', payload);
+    const notificationTitle = payload.notification.title;
+    const notificationOptions = {
+        body: payload.notification.body,
+        icon: payload.webpush?.notification?.icon || '/Logo3.png',
+        data: payload.data
+    };
 
-  self.registration.showNotification(notificationTitle, notificationOptions);
+    self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
 self.addEventListener('notificationclick', (event) => {
