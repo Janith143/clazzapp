@@ -3,8 +3,8 @@ import { User, GoogleUserInfo, FirebaseUser } from '../types.ts';
 import { useUI } from './UIContext.tsx';
 import { useNavigation } from './NavigationContext.tsx';
 import { auth, db } from '../firebase.ts';
-import { 
-    onAuthStateChanged, 
+import {
+    onAuthStateChanged,
     signInWithEmailAndPassword,
     GoogleAuthProvider,
     signInWithPopup,
@@ -18,7 +18,7 @@ import {
     verifyBeforeUpdateEmail,
     User as AuthUser
 } from 'firebase/auth';
-import { doc, getDoc, setDoc, query, where, getDocs, collection, onSnapshot, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, query, where, getDocs, collection, onSnapshot, updateDoc, deleteDoc, DocumentSnapshot } from 'firebase/firestore';
 
 export interface AuthContextType {
     currentUser: User | null;
@@ -44,7 +44,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [loading, setLoading] = useState(true);
     const { addToast, setModalState } = useUI();
     const { handleNavigate } = useNavigation();
-    
+
     // NOTE: Replace with your actual deployed Cloud Function URL base
     const cloudFunctionBaseUrl = 'https://us-central1-gen-lang-client-0695487820.cloudfunctions.net/notification-function';
 
@@ -69,21 +69,61 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     if (!querySnapshot.empty) {
                         const userDocRef = querySnapshot.docs[0].ref;
 
+                        // RECOVERY LOGIC START: Check if this is a duplicated "new" profile while an "old" one exists
+                        const currentUserData = querySnapshot.docs[0].data() as User;
+                        // Determine if this profile is "fresh" (e.g., created in the last 24 hours or has no ID prefix logic)
+                        // simplified check: If we find ANOTHER user with the same email/phone but different UID, we assume THAT is the original.
+
+                        let potentialMatch: DocumentSnapshot | undefined;
+
+                        if (firebaseUser.email) {
+                            const emailQuery = query(usersRef, where("email", "==", firebaseUser.email));
+                            const emailSnapshot = await getDocs(emailQuery);
+                            if (emailSnapshot.size > 0) {
+                                potentialMatch = emailSnapshot.docs.find(d => d.data().uid !== firebaseUser.uid);
+                            }
+                        }
+
+                        if (!potentialMatch && firebaseUser.phoneNumber) {
+                            // Check by phone number if email didn't yield a match
+                            const phoneQuery = query(usersRef, where("contactNumber", "==", firebaseUser.phoneNumber));
+                            const phoneSnapshot = await getDocs(phoneQuery);
+                            if (phoneSnapshot.size > 0) {
+                                potentialMatch = phoneSnapshot.docs.find(d => d.data().uid !== firebaseUser.uid);
+                            }
+                        }
+
+                        if (potentialMatch) {
+                            console.log("AuthContext: Found orphaned profile. Merging...", potentialMatch.id);
+                            // This 'potentialMatch' is likely the real data.
+                            // 1. Update potentialMatch with the new UID
+                            await updateDoc(potentialMatch.ref, { uid: firebaseUser.uid });
+
+                            // 2. Delete the currently active 'empty' profile to avoid future conflicts
+                            await deleteDoc(userDocRef);
+
+                            // 3. Reload window to force re-fetch of the CORRECT (now updated) profile
+                            window.location.reload();
+                            return;
+                        }
+                        // RECOVERY LOGIC END
+
                         // FIX: Add an error handler to the onSnapshot listener for robustness.
-                        unsubscribeUserSnapshot = onSnapshot(userDocRef, 
+                        unsubscribeUserSnapshot = onSnapshot(userDocRef,
                             (docSnap) => {
                                 if (docSnap.exists()) {
                                     const userData = docSnap.data() as User;
                                     if (firebaseUser.emailVerified || firebaseUser.phoneNumber) {
-                                        setCurrentUser({ 
-                                            ...userData, 
-                                            isEmailVerified: firebaseUser.emailVerified, 
-                                            isMobileVerified: !!firebaseUser.phoneNumber 
+                                        setCurrentUser({
+                                            ...userData,
+                                            isEmailVerified: firebaseUser.emailVerified,
+                                            isMobileVerified: !!firebaseUser.phoneNumber
                                         });
                                     } else {
                                         setCurrentUser(null);
                                     }
                                 } else {
+                                    // Handle edge case where doc might be deleted during merge
                                     setCurrentUser(null);
                                 }
                                 setLoading(false);
@@ -95,6 +135,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                             }
                         );
                     } else {
+                        // Edge Case: User logged in via Auth, but no UID match found.
+                        // Try matching by EMAIL before giving up.
+                        const emailQuery2 = query(usersRef, where("email", "==", firebaseUser.email));
+                        const emailSnapshot2 = await getDocs(emailQuery2);
+
+                        if (!emailSnapshot2.empty) {
+                            console.log("AuthContext: Found profile by Email (UID mismatch). Relinking...");
+                            const orphanedDoc = emailSnapshot2.docs[0];
+                            // Relink: Update orphan with new UID
+                            await updateDoc(orphanedDoc.ref, { uid: firebaseUser.uid });
+                            // Reload to fetch normally next time
+                            window.location.reload();
+                            return;
+                        }
+
                         setCurrentUser(null);
                         setLoading(false);
                     }
@@ -120,7 +175,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const handleLoginSuccess = useCallback((user: User, customMessage?: string | null) => {
         // This manually sets the user state, fixing the race condition on new user registration.
         setCurrentUser(user);
-        
+
         setModalState({ name: 'none' });
         if (customMessage) {
             addToast(customMessage, 'success');
@@ -131,19 +186,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const handleLogin = useCallback(async (email: string, password: string): Promise<User | null> => {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        
+        console.log("[AuthContext] Auth Login Success. UID:", userCredential.user?.uid);
+
         if (!userCredential.user!.emailVerified) {
+            console.warn("[AuthContext] Email not verified.");
             throw { code: 'auth/email-not-verified', user: userCredential.user };
         }
 
         const usersRef = collection(db, "users");
+        console.log("[AuthContext] Querying Firestore for UID:", userCredential.user!.uid, " in DB:", db.app.name);
+
         const q = query(usersRef, where("uid", "==", userCredential.user!.uid));
         const querySnapshot = await getDocs(q);
 
+        console.log("[AuthContext] Query Result Size:", querySnapshot.size);
+
         if (querySnapshot.empty) {
+            console.error("[AuthContext] Profile not found for UID:", userCredential.user!.uid);
             throw { code: 'auth/profile-incomplete', user: userCredential.user };
         }
-        
+
         const userDoc = querySnapshot.docs[0];
         const userData = userDoc.data() as User;
 
@@ -166,7 +228,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             handleLoginSuccess(userData, `Welcome back, ${userData.firstName}!`);
             return { existingUser: userData, newUserInfo: null };
         } else {
-            return { 
+            return {
                 existingUser: null,
                 newUserInfo: {
                     uid: user.uid,
@@ -177,13 +239,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             };
         }
     }, [handleLoginSuccess]);
-    
+
     const handleRegister = useCallback(async (email: string, password: string): Promise<FirebaseUser | null> => {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         await sendEmailVerification(userCredential.user!);
         return userCredential.user as FirebaseUser;
     }, []);
-    
+
     const handleResendVerificationEmail = useCallback(async (firebaseUser: AuthUser) => {
         await sendEmailVerification(firebaseUser);
         addToast("Verification email sent. Please check your inbox.", "info");
@@ -198,20 +260,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!user) {
             throw new Error("No user is currently authenticated.");
         }
-    
+
         const hasEmailProvider = user.providerData.some(
             (provider) => provider.providerId === EmailAuthProvider.PROVIDER_ID
         );
-    
+
         try {
             if (hasEmailProvider) {
                 await verifyBeforeUpdateEmail(user, newEmail);
             } else {
                 const tempPassword = Math.random().toString(36).slice(-10);
                 const credential = EmailAuthProvider.credential(newEmail, tempPassword);
-    
+
                 await linkWithCredential(user, credential);
-    
+
                 const updatedUser = auth.currentUser;
                 if (updatedUser) {
                     await sendEmailVerification(updatedUser);
@@ -223,12 +285,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (error.code === 'auth/email-already-in-use' || error.code === 'auth/credential-already-in-use') {
                 throw new Error("This email is already associated with another account.");
             } else if (error.code === 'auth/requires-recent-login') {
-                 throw new Error('This is a sensitive action. Please log out and log back in to update your email.');
+                throw new Error('This is a sensitive action. Please log out and log back in to update your email.');
             }
             throw error;
         }
     }, []);
-    
+
     const sendPhoneNumberOtp = useCallback(async (phoneNumber: string) => {
         const response = await fetch(`${cloudFunctionBaseUrl}/send-otp`, {
             method: 'POST',
@@ -248,15 +310,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ phoneNumber, otp }),
         });
-    
+
         const data = await response.json();
         if (!response.ok || !data.success) {
             throw new Error(data.message || 'Failed to verify OTP.');
         }
-    
+
         const { customToken, isNewUser, newFirebaseUser } = data;
         const userCredential = await signInWithCustomToken(auth, customToken);
-    
+
         if (isNewUser) {
             // Firestore document will be created in RegistrationPage, so we just return the new auth user
             return { existingUser: null, newFirebaseUser: newFirebaseUser as AuthUser };
@@ -265,19 +327,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const usersRef = collection(db, "users");
             const q = query(usersRef, where("uid", "==", userCredential.user!.uid));
             const querySnapshot = await getDocs(q);
-    
+
             if (querySnapshot.empty) {
                 // This case means auth user exists, but firestore doc doesn't. Treat as new.
                 return { existingUser: null, newFirebaseUser: userCredential.user };
             }
-    
+
             const userDoc = querySnapshot.docs[0];
             const userData = userDoc.data() as User;
             handleLoginSuccess(userData, `Welcome back!`);
             return { existingUser: userData, newFirebaseUser: null };
         }
     }, [cloudFunctionBaseUrl, handleLoginSuccess]);
-    
+
     const linkPhoneNumber = sendPhoneNumberOtp;
 
     const verifyPhoneNumberLink = useCallback(async (otp: string, phoneNumber: string) => {
@@ -295,7 +357,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!response.ok || !data.success) {
             throw new Error(data.message || 'Failed to verify and link phone number.');
         }
-        
+
         // Update Firestore document which will trigger the onSnapshot listener to update the context state
         const updatedFields = {
             contactNumber: phoneNumber,
