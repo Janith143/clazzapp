@@ -1,11 +1,13 @@
-const { onRequest } = require("firebase-functions/v2/onRequest");
+// const { onRequest } = require("firebase-functions/v2/onRequest");
 const express = require('express');
 const cors = require('cors');
 const admin = require('firebase-admin');
 const fetch = require('node-fetch');
 
 if (!admin.apps.length) {
-    admin.initializeApp();
+    admin.initializeApp({
+        credential: admin.credential.applicationDefault()
+    });
 }
 const db = admin.firestore();
 const app = express();
@@ -141,4 +143,10 @@ app.post('/completePayment', async (req, res) => {
     }
 });
 
-exports.marxPaymentHandler = onRequest({ cors: true }, app);
+const port = parseInt(process.env.PORT) || 8080;
+
+app.listen(port, '0.0.0.0', () => {
+    console.log(`Marx Payment Handler listening on port ${port}`);
+});
+
+// exports.marxPaymentHandler = onRequest({ cors: true }, app);
