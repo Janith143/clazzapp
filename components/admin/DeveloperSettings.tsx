@@ -45,7 +45,7 @@ const DeveloperSettings: React.FC = () => {
                     payment: 'https://asia-south1-clazz2-new.cloudfunctions.net/paymentHandler',
                     marxPayment: 'https://asia-south1-clazz2-new.cloudfunctions.net/marxPaymentHandler',
                     gDriveFetcher: 'https://asia-south1-clazz2-new.cloudfunctions.net/gdriveImageFetcher',
-                    fcmNotification: 'https://asia-south1-clazz2-new.cloudfunctions.net/fcmNotifications',
+                    fcmNotification: 'https://asia-south1-clazz2-new.cloudfunctions.net/fcmNotifications/send-fcm-push',
                     googleMeetHandler: 'https://asia-south1-clazz2-new.cloudfunctions.net/googleMeetHandler',
                     telegramBot: 'https://asia-south1-clazz2-new.cloudfunctions.net/telegramBot',
                     chatNotifications: 'https://asia-south1-clazz2-new.cloudfunctions.net/sendChatNotification',

@@ -1,0 +1,13 @@
+[
+    {
+        "origin": [
+            "https://app.clazz.lk",
+            "http://localhost:5173",
+            "https://clazz.lk"
+        ],
+        "method": [
+            "GET"
+        ],
+        "maxAgeSeconds": 3600
+    }
+]

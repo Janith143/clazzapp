@@ -14,7 +14,7 @@ const defaultAppConfig = {
         payment: 'https://asia-south1-clazz2-new.cloudfunctions.net/paymentHandler',
         marxPayment: 'https://asia-south1-clazz2-new.cloudfunctions.net/marxPaymentHandler',
         gDriveFetcher: 'https://asia-south1-clazz2-new.cloudfunctions.net/gdriveImageFetcher',
-        fcmNotification: 'https://asia-south1-clazz2-new.cloudfunctions.net/fcmNotifications',
+        fcmNotification: 'https://asia-south1-clazz2-new.cloudfunctions.net/fcmNotifications/send-fcm-push',
         storageCleanup: '',
         googleMeetHandler: 'https://asia-south1-clazz2-new.cloudfunctions.net/googleMeetHandler',
         ogImageHandler: 'https://asia-south1-clazz2-new.cloudfunctions.net/ogImageHandler',
