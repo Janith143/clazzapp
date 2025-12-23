@@ -194,7 +194,7 @@ export const useAdminActions = (deps: any) => {
 
     const handleRemoveDefaultCoverImage = useCallback(async (imageUrl: string) => {
         try {
-            const settingsRef = doc(db, "settings", "clientAppConfig");
+            const settingsRef = doc(db, "settings", "appConfig");
             await updateDoc(settingsRef, { defaultCoverImages: arrayRemove(imageUrl) });
             addToast("Default cover image removed.", "success");
         } catch (e) {
@@ -364,39 +364,39 @@ export const useAdminActions = (deps: any) => {
     }, [teachers, handleUpdateTeacher, addToast]);
 
     const handleUpdateStaticContent = useCallback(async (key: StaticPageKey, data: { title: string; content: string; }) => {
-        await updateDoc(doc(db, 'settings', 'clientAppConfig'), { [`staticContent.${key}`]: data });
+        await setDoc(doc(db, 'settings', 'appConfig'), { [`staticContent.${key}`]: data }, { merge: true });
     }, []);
 
     const handleUpdateHomeSlides = useCallback(async (slides: HomeSlide[]) => {
-        await updateDoc(doc(db, 'settings', 'clientAppConfig'), { homeSlides: slides });
+        await setDoc(doc(db, 'settings', 'appConfig'), { homeSlides: slides }, { merge: true });
     }, []);
 
     const handleUpdateSocialMediaLinks = useCallback(async (links: SocialMediaLink[]) => {
-        await updateDoc(doc(db, 'settings', 'clientAppConfig'), { socialMediaLinks: links });
+        await setDoc(doc(db, 'settings', 'appConfig'), { socialMediaLinks: links }, { merge: true });
     }, []);
 
     const handleUpdateSubjects = useCallback(async (subjects: Record<string, { value: string, label: string }[]>) => {
-        await updateDoc(doc(db, 'settings', 'clientAppConfig'), { subjects });
+        await setDoc(doc(db, 'settings', 'appConfig'), { subjects }, { merge: true });
     }, []);
 
     const handleUpdateStudentCardTaglines = useCallback(async (taglines: string[]) => {
-        await updateDoc(doc(db, 'settings', 'clientAppConfig'), { studentCardTaglines: taglines });
+        await setDoc(doc(db, 'settings', 'appConfig'), { studentCardTaglines: taglines }, { merge: true });
     }, []);
 
     const handleUpdateTeacherCardTaglines = useCallback(async (taglines: string[]) => {
-        await updateDoc(doc(db, 'settings', 'clientAppConfig'), { teacherCardTaglines: taglines });
+        await setDoc(doc(db, 'settings', 'appConfig'), { teacherCardTaglines: taglines }, { merge: true });
     }, []);
 
     const handleUpdateHomePageCardCounts = useCallback(async (counts: { teachers: number, courses: number, classes: number, quizzes: number, events: number }) => {
-        await updateDoc(doc(db, 'settings', 'clientAppConfig'), { homePageCardCounts: counts });
+        await setDoc(doc(db, 'settings', 'appConfig'), { homePageCardCounts: counts }, { merge: true });
     }, []);
 
     const handleUpdateUpcomingExams = useCallback(async (exams: UpcomingExam[]) => {
-        await updateDoc(doc(db, 'settings', 'clientAppConfig'), { upcomingExams: exams });
+        await setDoc(doc(db, 'settings', 'appConfig'), { upcomingExams: exams }, { merge: true });
     }, []);
 
     const handleUpdatePhotoPrintOptions = useCallback(async (options: PhotoPrintOption[]) => {
-        await updateDoc(doc(db, 'settings', 'clientAppConfig'), { photoPrintOptions: options });
+        await setDoc(doc(db, 'settings', 'appConfig'), { photoPrintOptions: options }, { merge: true });
     }, []);
 
     const handleUpdatePaymentGatewaySettings = useCallback(async (settings: PaymentGatewaySettings) => {
@@ -404,15 +404,15 @@ export const useAdminActions = (deps: any) => {
     }, []);
 
     const handleUpdateTeacherDashboardMessage = useCallback(async (message: string) => {
-        await updateDoc(doc(db, 'settings', 'clientAppConfig'), { teacherDashboardMessage: message });
+        await setDoc(doc(db, 'settings', 'appConfig'), { teacherDashboardMessage: message }, { merge: true });
     }, []);
 
     const handleUpdateFinancialSettings = useCallback(async (settings: FinancialSettings) => {
-        await updateDoc(doc(db, 'settings', 'clientAppConfig'), { financialSettings: settings });
+        await setDoc(doc(db, 'settings', 'appConfig'), { financialSettings: settings }, { merge: true });
     }, []);
 
     const handleUpdateSupportSettings = useCallback(async (settings: SupportSettings) => {
-        await updateDoc(doc(db, 'settings', 'clientAppConfig'), { supportSettings: settings });
+        await setDoc(doc(db, 'settings', 'appConfig'), { supportSettings: settings }, { merge: true });
     }, []);
 
     const processMonthlyPayouts = useCallback(async (userType: 'teacher' | 'institute' | 'student', userId: string) => {
@@ -683,9 +683,37 @@ export const useAdminActions = (deps: any) => {
         }
     }, [addToast]);
 
-    const handleUpdateDeveloperSettings = useCallback(async (settings: { genAiKey: string; gDriveFetcherApiKey: string; functionUrls: any }) => {
+    const handleUpdateDeveloperSettings = useCallback(async (settings: any) => {
         try {
-            await updateDoc(doc(db, 'settings', 'clientAppConfig'), settings);
+            // Split settings into Client Config and System Config
+            const {
+                EMAIL_USER, EMAIL_PASS, NOTIFY_LK_USER_ID, NOTIFY_LK_API_KEY, NOTIFY_LK_SENDER_ID, // Backend keys
+                ...clientConfig // Existing client keys (genAiKey, functionUrls, etc.)
+            } = settings;
+
+            const batch = writeBatch(db);
+
+            // 1. Update Client App Config (Frontend visible)
+            if (Object.keys(clientConfig).length > 0) {
+                batch.update(doc(db, 'settings', 'clientAppConfig'), clientConfig);
+            }
+
+            // 2. Update System Config (Backend only / Secure)
+            const backendConfig = {
+                EMAIL_USER, EMAIL_PASS, NOTIFY_LK_USER_ID, NOTIFY_LK_API_KEY, NOTIFY_LK_SENDER_ID
+            };
+
+            // Filter out undefined values to avoid overwriting with nothing if not provided
+            const cleanBackendConfig = Object.fromEntries(
+                Object.entries(backendConfig).filter(([_, v]) => v !== undefined)
+            );
+
+            if (Object.keys(cleanBackendConfig).length > 0) {
+                // Use set with merge: true to create if not exists
+                batch.set(doc(db, 'settings', 'system_config'), cleanBackendConfig, { merge: true });
+            }
+
+            await batch.commit();
             addToast('Developer settings updated successfully.', 'success');
         } catch (e) {
             console.error(e);

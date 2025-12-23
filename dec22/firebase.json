@@ -1,0 +1,68 @@
+{
+  "functions": [
+    {
+      "source": "backend/payment-handler",
+      "codebase": "payment-handler",
+      "runtime": "nodejs20"
+    },
+    {
+      "source": "backend/send-notification",
+      "codebase": "send-notification",
+      "runtime": "nodejs20"
+    },
+    {
+      "source": "backend/fcm-notifications",
+      "codebase": "fcm-notifications",
+      "runtime": "nodejs20"
+    },
+    {
+      "source": "backend/storage-cleanup",
+      "codebase": "storage-cleanup",
+      "runtime": "nodejs20"
+    },
+    {
+      "source": "backend/gdrive-image-fetcher",
+      "codebase": "gdrive-image-fetcher",
+      "runtime": "nodejs20"
+    },
+    {
+      "source": "backend/google-meet-handler",
+      "codebase": "google-meet-handler",
+      "runtime": "nodejs20"
+    },
+    {
+      "source": "backend/marx-payment-handler",
+      "codebase": "marx-payment-handler",
+      "runtime": "nodejs20"
+    },
+    {
+      "source": "backend/og-image-handler",
+      "codebase": "og-image-handler",
+      "runtime": "nodejs20"
+    },
+    {
+      "source": "backend/telegram-bot",
+      "codebase": "telegram-bot",
+      "runtime": "nodejs20"
+    },
+    {
+      "source": "backend/chat-notifications",
+      "codebase": "chat-notifications",
+      "runtime": "nodejs20"
+    }
+  ],
+  "hosting": {
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  }
+}

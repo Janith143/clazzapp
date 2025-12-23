@@ -76,7 +76,9 @@ export const useDataActions = (deps: any) => {
                     await updateDoc(doc(db, "teachers", opContext.teacherId), { coverImages: newCoverImages });
                 }
             } else if (type === 'admin_default_cover') {
-                await updateDoc(doc(db, "settings", "clientAppConfig"), { defaultCoverImages: arrayUnion(downloadURL) });
+                // Use setDoc with merge to ensure doc exists, but arrayUnion works best with updateDoc if doc exists.
+                // To be safe and since we are adding, setDoc with merge and arrayUnion works.
+                await setDoc(doc(db, "settings", "appConfig"), { defaultCoverImages: arrayUnion(downloadURL) }, { merge: true });
             }
 
             if (!['payment_slip', 'event_flyer', 'quiz_question_image', 'product_cover', 'course_cover', 'og_image', 'payment_method_logo'].includes(type as string)) {
@@ -157,7 +159,7 @@ export const useDataActions = (deps: any) => {
     const instituteActions = useInstituteActions({ ui, currentUser, teachers, tuitionInstitutes, sales });
 
     const handleUpdateOgImage = useCallback(async (imageUrl: string) => {
-        await updateDoc(doc(db, 'settings', 'clientAppConfig'), { ogImageUrl: imageUrl });
+        await setDoc(doc(db, 'settings', 'appConfig'), { ogImageUrl: imageUrl }, { merge: true });
     }, []);
 
     return {

@@ -1,5 +1,7 @@
 // This Cloud Function is dedicated to handling payment gateway callbacks.
 const { onRequest } = require("firebase-functions/v2/https");
+const { setGlobalOptions } = require("firebase-functions/v2");
+setGlobalOptions({ region: "asia-south1" });
 const express = require('express');
 const cors = require('cors');
 const admin = require('firebase-admin');
@@ -26,12 +28,12 @@ app.post('/payment-callback', (req, res) => {
     console.log('--- Received WebXPay Callback ---');
     console.log('Raw Body:', req.body);
 
-    const frontendUrl = 'https://clazz.lk'; 
+    const frontendUrl = 'https://clazz.lk';
 
     try {
         const encodedPayment = req.body.payment;
         const customFields = req.body.custom_fields || req.body.custom_feilds;
-        
+
         const orderId = req.body.order_id;
         const msg = req.body.msg;
 
@@ -50,13 +52,13 @@ app.post('/payment-callback', (req, res) => {
         }
 
         const rawStatusCode = paymentParts[4] || '';
-        const statusCode = rawStatusCode.split(' ')[0]; 
+        const statusCode = rawStatusCode.split(' ')[0];
         console.log('Extracted Status Code:', statusCode);
 
         const redirectUrl = new URL(frontendUrl);
         redirectUrl.searchParams.append('status_code', statusCode);
         redirectUrl.searchParams.append('custom_fields', customFields);
-        
+
         if (orderId) redirectUrl.searchParams.append('order_id', orderId);
         if (msg) redirectUrl.searchParams.append('msg', msg);
 

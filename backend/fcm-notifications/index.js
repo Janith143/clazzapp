@@ -2,6 +2,8 @@
 // This is the correct structure for a Google Cloud Function (2nd Gen) using Express.
 // It EXPORTS the app; it does NOT listen on a port.
 const { onRequest } = require("firebase-functions/v2/https");
+const { setGlobalOptions } = require("firebase-functions/v2");
+setGlobalOptions({ region: "asia-south1" });
 const express = require('express');
 const cors = require('cors');
 const admin = require('firebase-admin');
@@ -89,7 +91,7 @@ app.post('/send-fcm-push', async (req, res) => {
         for (let i = 0; i < uniqueStudentIds.length; i += chunkSize) {
             const chunk = uniqueStudentIds.slice(i, i + chunkSize);
             const usersSnapshot = await db.collection('users').where('id', 'in', chunk).get();
-            
+
             usersSnapshot.forEach(userDoc => {
                 const user = userDoc.data();
                 if (user.fcmTokens && user.fcmTokens.length > 0) {
@@ -110,7 +112,7 @@ app.post('/send-fcm-push', async (req, res) => {
         if (allTokens.length === 0) {
             return res.status(200).send({ success: true, message: 'Notification saved, but no registered devices found to send a push notification.' });
         }
-        
+
         const uniqueTokens = [...new Set(allTokens)];
         const clickLink = `https://clazz.lk/?teacherId=${teacher.id}&notification_id=${newNotification.id}`;
         const iconUrl = teacher.avatar || 'https://clazz.lk/Logo3.png';
@@ -144,9 +146,9 @@ app.post('/send-fcm-push', async (req, res) => {
         };
 
         const response = await messaging.sendEachForMulticast(messagePayload);
-        
+
         console.log(`Successfully sent ${response.successCount} messages.`);
-        
+
         if (response.failureCount > 0) {
             const failedTokens = [];
             response.responses.forEach((resp, idx) => {
@@ -170,7 +172,9 @@ exports.fcmNotifications = onRequest({ cors: true }, app);
 
 // Start the server directly for Cloud Run (Docker)
 // This check ensures we don't conflict when running in Firebase environment
-if (process.env.K_SERVICE || process.env.PORT) {
+// Start the server directly for Cloud Run (Docker)
+// This check ensures we don't conflict when running in Firebase environment
+if (require.main === module) {
     const PORT = process.env.PORT || 8080;
     app.listen(PORT, () => {
         console.log(`Server listening on port ${PORT}`);

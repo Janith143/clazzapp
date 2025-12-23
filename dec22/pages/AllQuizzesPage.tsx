@@ -1,0 +1,224 @@
+
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import QuizCard from '../components/QuizCard.tsx';
+import { ChevronLeftIcon } from '../components/Icons.tsx';
+import SearchBar from '../components/SearchBar.tsx';
+import { useNavigation } from '../contexts/NavigationContext.tsx';
+import { useData } from '../contexts/DataContext.tsx';
+import { useAuth } from '../contexts/AuthContext.tsx';
+import { getDynamicQuizStatus } from '../utils.ts';
+import { useSEO } from '../hooks/useSEO.ts';
+
+const quizSortOptions = [
+    { value: 'newest', label: 'Newest First' },
+    { value: 'date', label: 'By Date' },
+    { value: 'oldest', label: 'Oldest First' },
+    { value: 'fee_high', label: 'Fee: High to Low' },
+    { value: 'fee_low', label: 'Fee: Low to High' },
+];
+const ITEMS_PER_PAGE = 9;
+
+const AllQuizzesPage: React.FC = () => {
+  const { teachers } = useData();
+  const { currentUser } = useAuth();
+  const { handleNavigate, allSubjects } = useNavigation();
+  const [visibleCount, setVisibleCount] = useState(ITEMS_PER_PAGE);
+  const [sortOption, setSortOption] = useState('newest');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [subjectFilter, setSubjectFilter] = useState('all');
+  const [includeFinished, setIncludeFinished] = useState(false);
+  const loader = useRef(null);
+  const isLoadingMore = useRef(false);
+
+  useSEO(
+    'All Quizzes | clazz.lk',
+    'Test your knowledge with our collection of quizzes from expert teachers.'
+  );
+
+  const onViewQuiz = (quiz: any) => handleNavigate({ name: 'quiz_detail', quizId: quiz.id });
+  const onBack = () => handleNavigate({ name: 'home' });
+
+  const filteredAndSortedQuizzes = useMemo(() => {
+    const allQuizzes = teachers
+        .filter(t => t.registrationStatus === 'approved')
+        .flatMap(teacher => 
+            teacher.quizzes
+              .filter(quiz => quiz.isPublished && quiz.status !== 'canceled')
+              .map(quiz => ({ ...quiz, teacher }))
+        );
+    
+    const quizzesToShow = allQuizzes.filter(q => {
+        if (includeFinished) return true;
+        return getDynamicQuizStatus(q) !== 'finished';
+    });
+
+    const filtered = quizzesToShow.filter(item => {
+      // Subject filter
+      if (subjectFilter !== 'all' && item.subject !== subjectFilter) {
+          return false;
+      }
+      
+      // Search query filter
+      if (searchQuery.trim()) {
+        const lowerQuery = searchQuery.toLowerCase();
+        const searchableContent = [
+            item.title,
+            item.description,
+            item.subject,
+            item.teacher.name,
+            item.teacher.id
+        ].join(' ').toLowerCase();
+        if (!searchableContent.includes(lowerQuery)) return false;
+      }
+
+      return true;
+    });
+
+    return [...filtered].sort((a, b) => {
+        switch(sortOption) {
+            case 'newest': return b.id.localeCompare(a.id);
+            case 'oldest': return a.id.localeCompare(b.id);
+            case 'fee_high': return b.fee - a.fee;
+            case 'fee_low': return a.fee - b.fee;
+            case 'date':
+            default: return new Date(a.date).getTime() - new Date(b.date).getTime();
+        }
+    });
+  }, [teachers, searchQuery, sortOption, includeFinished, subjectFilter]);
+
+  useEffect(() => {
+    setVisibleCount(ITEMS_PER_PAGE);
+  }, [searchQuery, sortOption, includeFinished, subjectFilter]);
+
+  const paginatedQuizzes = useMemo(() => {
+    return filteredAndSortedQuizzes.slice(0, visibleCount);
+  }, [filteredAndSortedQuizzes, visibleCount]);
+  
+  const handleObserver = useCallback((entries: IntersectionObserverEntry[]) => {
+    const target = entries[0];
+    if (target.isIntersecting && !isLoadingMore.current) {
+        isLoadingMore.current = true;
+        setVisibleCount(prev => prev + ITEMS_PER_PAGE);
+    }
+  }, []);
+
+  useEffect(() => {
+    isLoadingMore.current = false;
+  }, [visibleCount]);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(handleObserver, {
+        root: null,
+        rootMargin: "200px",
+        threshold: 0
+    });
+    const currentLoader = loader.current;
+    if (currentLoader) {
+        observer.observe(currentLoader);
+    }
+    return () => {
+        if (currentLoader) {
+            observer.unobserve(currentLoader);
+        }
+    };
+  }, [handleObserver, paginatedQuizzes]); // Added paginatedQuizzes to dependencies
+
+  return (
+    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-slideInUp">
+      <div className="mb-8">
+        <button onClick={onBack} className="flex items-center space-x-2 text-sm font-medium text-primary hover:text-primary-dark transition-colors">
+          <ChevronLeftIcon className="h-5 w-5" />
+          <span>Back to Home</span>
+        </button>
+      </div>
+
+       <div className="text-center mb-8">
+        <h1 className="text-4xl font-bold">Explore All Quizzes</h1>
+        <p className="mt-2 text-lg text-light-subtle dark:text-dark-subtle">Test your knowledge with our wide range of quizzes.</p>
+      </div>
+
+       <div className="sticky top-16 z-20 py-4 bg-light-background/80 dark:bg-dark-background/80 backdrop-blur-sm -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 mb-8">
+        <div className="max-w-5xl mx-auto space-y-4">
+            <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
+             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label htmlFor="sort-quizzes" className="block text-sm font-medium text-light-text dark:text-dark-text mb-1">Sort by</label>
+                    <select
+                      id="sort-quizzes"
+                      value={sortOption}
+                      onChange={(e) => setSortOption(e.target.value)}
+                      className="w-full px-3 py-2 border border-light-border dark:border-dark-border text-light-text dark:text-dark-text bg-light-surface dark:bg-dark-surface rounded-md focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
+                    >
+                      {quizSortOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+                    </select>
+                </div>
+                <div>
+                    <label htmlFor="filter-subject" className="block text-sm font-medium text-light-text dark:text-dark-text mb-1">Subject</label>
+                    <select
+                      id="filter-subject"
+                      value={subjectFilter}
+                      onChange={(e) => setSubjectFilter(e.target.value)}
+                      className="w-full px-3 py-2 border border-light-border dark:border-dark-border text-light-text dark:text-dark-text bg-light-surface dark:bg-dark-surface rounded-md focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
+                    >
+                      <option value="all">All Subjects</option>
+                      {allSubjects.map(subject => <option key={subject.value} value={subject.value}>{subject.label}</option>)}
+                    </select>
+                </div>
+                <div className="flex items-end">
+                    <div className="flex items-center space-x-2">
+                        <label htmlFor="include-finished" className="text-sm font-medium">Include Finished</label>
+                        <button
+                            id="include-finished"
+                            type="button"
+                            onClick={() => setIncludeFinished(!includeFinished)}
+                            className={`${
+                                includeFinished ? 'bg-primary' : 'bg-gray-200 dark:bg-gray-600'
+                            } relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2`}
+                            role="switch"
+                            aria-checked={includeFinished}
+                        >
+                            <span
+                                aria-hidden="true"
+                                className={`${
+                                    includeFinished ? 'translate-x-5' : 'translate-x-0'
+                                } pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
+                            />
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+      </div>
+      
+      {paginatedQuizzes.length > 0 ? (
+        <>
+           <p className="text-sm text-light-subtle dark:text-dark-subtle mb-6">Showing {paginatedQuizzes.length} of {filteredAndSortedQuizzes.length} quizzes.</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {paginatedQuizzes.map(({teacher, ...quiz}) => (
+              <QuizCard
+                key={quiz.id}
+                quiz={quiz}
+                teacher={teacher}
+                viewMode="public"
+                onView={onViewQuiz}
+                currentUser={currentUser}
+              />
+            ))}
+          </div>
+          {paginatedQuizzes.length < filteredAndSortedQuizzes.length && (
+            <div ref={loader} className="flex justify-center items-center h-20">
+                <div className="w-8 h-8 border-4 border-dashed rounded-full animate-spin border-primary"></div>
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="text-center py-16 text-light-subtle dark:text-dark-subtle">
+          <p className="text-xl font-semibold">No quizzes found</p>
+          <p>Try adjusting your search query or filters.</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default AllQuizzesPage;

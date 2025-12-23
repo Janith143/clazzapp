@@ -1,3 +1,7 @@
+const { onRequest } = require("firebase-functions/v2/https");
+const { setGlobalOptions } = require("firebase-functions/v2");
+setGlobalOptions({ region: "asia-south1" });
+
 const express = require('express');
 const cors = require('cors');
 const admin = require('firebase-admin');
@@ -172,7 +176,11 @@ app.post('/', async (req, res) => {
 });
 
 // Start the server
-const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => {
-    console.log(`Telegram Bot Service listening on port ${PORT}`);
-});
+if (require.main === module) {
+    const PORT = process.env.PORT || 8080;
+    app.listen(PORT, () => {
+        console.log(`Telegram Bot Service listening on port ${PORT}`);
+    });
+}
+
+exports.telegramBot = onRequest({ cors: true }, app);

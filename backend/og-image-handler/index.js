@@ -1,4 +1,6 @@
 const { onRequest } = require("firebase-functions/v2/https");
+const { setGlobalOptions } = require("firebase-functions/v2");
+setGlobalOptions({ region: "asia-south1" });
 const express = require('express');
 const admin = require('firebase-admin');
 const { logger } = require("firebase-functions");

@@ -1,4 +1,6 @@
-// const { onRequest } = require("firebase-functions/v2/onRequest");
+const { onRequest } = require("firebase-functions/v2/https");
+const { setGlobalOptions } = require("firebase-functions/v2");
+setGlobalOptions({ region: "asia-south1" });
 const express = require('express');
 const cors = require('cors');
 const admin = require('firebase-admin');
@@ -64,7 +66,7 @@ app.post('/createOrder', async (req, res) => {
             merchantRID: order_id,
             amount: parseFloat(amount.toFixed(2)),
             validTimeLimit: 2, // How many hours the payment link will work
-            returnUrl: req.body.return_url || `https://marxpaymenthandler-gtlcyfs7jq-uc.a.run.app/marx-callback`,
+            returnUrl: req.body.return_url || `https://${req.get('host')}/marx-callback`,
             customerMail: customer.email,
             customerMobile: finalMobile,
             orderSummary: items,
@@ -145,8 +147,10 @@ app.post('/completePayment', async (req, res) => {
 
 const port = parseInt(process.env.PORT) || 8080;
 
-app.listen(port, '0.0.0.0', () => {
-    console.log(`Marx Payment Handler listening on port ${port}`);
-});
+if (require.main === module) {
+    app.listen(port, '0.0.0.0', () => {
+        console.log(`Marx Payment Handler listening on port ${port}`);
+    });
+}
 
-// exports.marxPaymentHandler = onRequest({ cors: true }, app);
+exports.marxPaymentHandler = onRequest({ cors: true }, app);

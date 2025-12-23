@@ -1,6 +1,8 @@
 // This Cloud Function is dedicated to fetching images from Google Drive using v2 syntax.
 
 const { onRequest } = require("firebase-functions/v2/https");
+const { setGlobalOptions } = require("firebase-functions/v2");
+setGlobalOptions({ region: "asia-south1" });
 const { google } = require('googleapis');
 const { logger } = require("firebase-functions");
 
@@ -57,7 +59,7 @@ exports.gdriveImageFetcher = onRequest({ cors: true }, async (req, res) => {
         if (!response.data.files || response.data.files.length === 0) {
             return res.status(404).send({ success: false, message: 'No image files found. Make sure the folder is public ("Anyone with the link") and contains images.' });
         }
-        
+
         const photos = response.data.files.map(file => ({
             id: file.id,
             url_thumb: file.thumbnailLink,
@@ -72,7 +74,7 @@ exports.gdriveImageFetcher = onRequest({ cors: true }, async (req, res) => {
         let userMessage = 'An error occurred while fetching images from Google Drive.';
         // The `google-api-nodejs-client` library throws errors with a `code` property.
         if (error.code === 403) {
-             userMessage = 'API key error or folder is not public. Please check sharing settings ("Anyone with the link").';
+            userMessage = 'API key error or folder is not public. Please check sharing settings ("Anyone with the link").';
         } else if (error.code === 404) {
             userMessage = 'Folder not found. Please check the link and sharing permissions.';
         } else if (error.message && error.message.includes('API key not valid')) {

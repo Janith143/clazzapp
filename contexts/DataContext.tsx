@@ -161,7 +161,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const unsubVouchers = onSnapshot(collection(db, 'vouchers'), (snapshot: QuerySnapshot) => setVouchers(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Voucher))), (error) => console.error("Error fetching vouchers:", error));
         const unsubTopUps = onSnapshot(collection(db, 'topUpRequests'), (snapshot: QuerySnapshot) => setTopUpRequests(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as TopUpRequest))), (error) => console.error("Error fetching topUpRequests:", error));
         const unsubSubmissions = onSnapshot(collection(db, 'submissions'), (snapshot: QuerySnapshot) => setSubmissions(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as StudentSubmission))), (error) => console.error("Error fetching submissions:", error));
-        const unsubConfig = onSnapshot(doc(db, 'settings', 'clientAppConfig'), (docSnap: DocumentSnapshot) => {
+        const unsubConfig = onSnapshot(doc(db, 'settings', 'appConfig'), (docSnap: DocumentSnapshot) => {
             setDefaultCoverImages(docSnap.exists() ? (docSnap.data() as any).defaultCoverImages || [] : []);
         }, (error) => console.error("Error fetching clientAppConfig:", error));
 

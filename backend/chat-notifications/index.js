@@ -1,5 +1,7 @@
 
 const { onDocumentCreated } = require("firebase-functions/v2/firestore");
+const { setGlobalOptions } = require("firebase-functions/v2");
+setGlobalOptions({ region: "asia-south1" });
 const admin = require("firebase-admin");
 const { logger } = require("firebase-functions");
 
@@ -15,7 +17,7 @@ const chatNotificationHandler = async (event) => {
         if (event.params && event.params.chatId && event.data && typeof event.data.data === 'function') {
             chatId = event.params.chatId;
             messageData = event.data.data();
-        } 
+        }
         // CASE 2: Raw CloudEvent (deployed via gcloud run)
         else if (event.subject) {
             // Subject format: documents/supportChats/{chatId}/messages/{messageId}
@@ -30,7 +32,7 @@ const chatNotificationHandler = async (event) => {
                     .collection('messages')
                     .doc(messageId)
                     .get();
-                
+
                 if (!msgDoc.exists) {
                     console.log("Document does not exist (raw mode).");
                     return;
@@ -63,7 +65,7 @@ const chatNotificationHandler = async (event) => {
             logger.info(`No FCM token found for chat ${chatId}. Skipping notification.`);
             return;
         }
-        
+
         const clickLink = `https://clazz.lk/?action=open_chat`;
 
         const payload = {
@@ -76,9 +78,9 @@ const chatNotificationHandler = async (event) => {
                 type: 'chat_reply',
                 chatId: chatId,
                 url: clickLink,
-                click_action: "FLUTTER_NOTIFICATION_CLICK" 
+                click_action: "FLUTTER_NOTIFICATION_CLICK"
             },
-             webpush: {
+            webpush: {
                 notification: {
                     icon: 'https://clazz.lk/Logo3.png',
                     requireInteraction: true,
@@ -98,7 +100,10 @@ const chatNotificationHandler = async (event) => {
 };
 
 // Export for Firebase Functions (CLI deployment)
-exports.sendChatNotification = onDocumentCreated("supportChats/{chatId}/messages/{messageId}", chatNotificationHandler);
+exports.sendChatNotification = onDocumentCreated({
+    document: "supportChats/{chatId}/messages/{messageId}",
+    database: "clazzdb2"
+}, chatNotificationHandler);
 
 // Export for Cloud Run / Functions Framework (Manual gcloud deployment)
 exports.sendChatNotificationRaw = chatNotificationHandler;

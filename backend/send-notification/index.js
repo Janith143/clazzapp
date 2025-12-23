@@ -1,10 +1,20 @@
 // This is the correct structure for a Google Cloud Function (2nd Gen) using Express.
 // It EXPORTS the app; it does NOT listen on a port.
 const { onRequest } = require("firebase-functions/v2/https");
+const { setGlobalOptions } = require("firebase-functions/v2");
+setGlobalOptions({ region: "asia-south1" });
 const express = require('express');
 const nodemailer = require('nodemailer');
 const cors = require('cors');
 const fetch = require('node-fetch');
+const admin = require('firebase-admin');
+
+// Initialize Admin SDK once
+if (!admin.apps.length) {
+    admin.initializeApp();
+}
+const db = admin.firestore();
+const auth = admin.auth();
 
 const app = express();
 
@@ -12,21 +22,35 @@ const app = express();
 app.use(cors({ origin: true }));
 app.use(express.json());
 
+// Helper to get config from Firestore or Env
+async function getConfig() {
+    try {
+        const configDoc = await db.collection('settings').doc('system_config').get();
+        if (configDoc.exists) {
+            return { ...process.env, ...configDoc.data() };
+        }
+    } catch (error) {
+        console.error("Error fetching system_config:", error);
+    }
+    return process.env;
+}
+
 // Health check endpoint
 app.get('/', (req, res) => {
-    res.status(200).send('Generic notification service is running.');
+    res.status(200).send('Notification service is running.');
 });
 
-// Main function logic for generic notifications
+// Main endpoint: generic notification (email + SMS)
 app.post('/', async (req, res) => {
     const { toEmail, toSms, subject, htmlBody, smsMessage } = req.body;
+    const config = await getConfig();
 
     const emailPromise = async () => {
         if (!toEmail || !subject || !htmlBody) return { service: 'email', status: 'skipped', reason: 'Missing parameters.' };
 
-        const { EMAIL_USER, EMAIL_PASS } = process.env;
+        const { EMAIL_USER, EMAIL_PASS } = config;
         if (!EMAIL_USER || !EMAIL_PASS) {
-            console.error('Email environment variables not set.');
+            console.error('Email environment variables/config not set.');
             return { service: 'email', status: 'failed', error: 'Server not configured for emails.' };
         }
 
@@ -43,13 +67,16 @@ app.post('/', async (req, res) => {
     const smsPromise = async () => {
         if (!toSms || !smsMessage) return { service: 'sms', status: 'skipped', reason: 'Missing parameters.' };
 
-        const { NOTIFY_LK_USER_ID, NOTIFY_LK_API_KEY, NOTIFY_LK_SENDER_ID } = process.env;
+        const { NOTIFY_LK_USER_ID, NOTIFY_LK_API_KEY, NOTIFY_LK_SENDER_ID } = config;
         if (!NOTIFY_LK_USER_ID || !NOTIFY_LK_API_KEY || !NOTIFY_LK_SENDER_ID) {
-            console.error('SMS environment variables not set.');
+            console.error('SMS environment variables/config not set.');
             return { service: 'sms', status: 'failed', error: 'Server not configured for SMS.' };
         }
 
-        const url = `https://app.notify.lk/api/v1/send?user_id=${NOTIFY_LK_USER_ID}&api_key=${NOTIFY_LK_API_KEY}&sender_id=${encodeURIComponent(NOTIFY_LK_SENDER_ID)}&to=${toSms}&message=${encodeURIComponent(smsMessage)}`;
+        // Logic from legacy: Remove '+' for Notify.lk
+        const notifyNumber = toSms.replace(/^\+/, '');
+        const url = `https://app.notify.lk/api/v1/send?user_id=${NOTIFY_LK_USER_ID}&api_key=${NOTIFY_LK_API_KEY}&sender_id=${encodeURIComponent(NOTIFY_LK_SENDER_ID)}&to=${notifyNumber}&message=${encodeURIComponent(smsMessage)}`;
+
         try {
             const response = await fetch(url);
             const jsonResponse = await response.json();
@@ -69,40 +96,45 @@ app.post('/', async (req, res) => {
     }
 });
 
-
-// Export the Express app for Google Cloud Functions to handle.
-const admin = require('firebase-admin');
-admin.initializeApp();
-
-// OTP Endpoints
+// OTP generation endpoint
 app.post('/send-otp', async (req, res) => {
     const { phoneNumber } = req.body;
-    if (!phoneNumber) return res.status(400).send({ success: false, message: 'Phone number is required.' });
+    console.log('Received phoneNumber:', phoneNumber);
+
+    if (!phoneNumber || !/^\+94\d{9}$/.test(phoneNumber)) {
+        return res.status(400).send({ success: false, message: 'Invalid phone number format. Use +94XXXXXXXXX.' });
+    }
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    // Logic from legacy: 10 minute expiry
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
     try {
-        // Store OTP in Firestore
-        await admin.firestore().collection('otps').doc(phoneNumber).set({
+        // Logic from legacy: Use 'otp_requests' collection
+        await db.collection('otp_requests').doc(phoneNumber).set({
             otp,
-            createdAt: admin.firestore.FieldValue.serverTimestamp()
+            expiresAt: admin.firestore.Timestamp.fromDate(expiresAt)
         });
 
-        // Send SMS via Notify.lk
-        const { NOTIFY_LK_USER_ID, NOTIFY_LK_API_KEY, NOTIFY_LK_SENDER_ID } = process.env;
+        const config = await getConfig();
+        const { NOTIFY_LK_USER_ID, NOTIFY_LK_API_KEY, NOTIFY_LK_SENDER_ID } = config;
+
         if (!NOTIFY_LK_USER_ID || !NOTIFY_LK_API_KEY || !NOTIFY_LK_SENDER_ID) {
-            console.error('SMS environment variables not set.');
+            console.error('SMS environment variables/config not set.');
             // Fallback for demo/dev if SMS not configured: Log it
             console.log(`[DEV MODE] OTP for ${phoneNumber}: ${otp}`);
             return res.status(200).send({ success: true, message: 'OTP generated (Dev Mode).' });
         }
 
+        const notifyNumber = phoneNumber.replace(/^\+/, '');
         const smsMessage = `Your Clazz.lk verification code is: ${otp}`;
-        const url = `https://app.notify.lk/api/v1/send?user_id=${NOTIFY_LK_USER_ID}&api_key=${NOTIFY_LK_API_KEY}&sender_id=${encodeURIComponent(NOTIFY_LK_SENDER_ID)}&to=${phoneNumber}&message=${encodeURIComponent(smsMessage)}`;
+        const url = `https://app.notify.lk/api/v1/send?user_id=${NOTIFY_LK_USER_ID}&api_key=${NOTIFY_LK_API_KEY}&sender_id=${encodeURIComponent(NOTIFY_LK_SENDER_ID)}&to=${notifyNumber}&message=${encodeURIComponent(smsMessage)}`;
 
-        await fetch(url);
+        const response = await fetch(url);
+        const json = await response.json();
+        if (json.status !== 'success') throw new Error(json.message || 'Notify.lk API error.');
+
         res.status(200).send({ success: true, message: 'OTP sent successfully.' });
-
     } catch (error) {
         console.error("Error sending OTP:", error);
         res.status(500).send({ success: false, message: error.message });
@@ -110,43 +142,73 @@ app.post('/send-otp', async (req, res) => {
 });
 
 app.post('/verify-otp', async (req, res) => {
-    const { phoneNumber, otp } = req.body;
+    const { phoneNumber, otp, idToken } = req.body;
+    console.log('--- /verify-otp called ---', { phoneNumber, hasIdToken: !!idToken });
+
     if (!phoneNumber || !otp) return res.status(400).send({ success: false, message: 'Phone number and OTP are required.' });
 
     try {
-        const otpDoc = await admin.firestore().collection('otps').doc(phoneNumber).get();
-        if (!otpDoc.exists || otpDoc.data().otp !== otp) {
+        const otpRef = db.collection('otp_requests').doc(phoneNumber);
+        const otpDoc = await otpRef.get();
+
+        if (!otpDoc.exists) {
             return res.status(400).send({ success: false, message: 'Invalid or expired OTP.' });
         }
 
-        // OTP Valid. Clear it.
-        await admin.firestore().collection('otps').doc(phoneNumber).delete();
+        const { otp: storedOtp, expiresAt } = otpDoc.data();
 
-        // Find or Create User
-        let uid;
-        let isNewUser = false;
-        let newFirebaseUser = null;
-
-        try {
-            const userRecord = await admin.auth().getUserByPhoneNumber(phoneNumber);
-            uid = userRecord.uid;
-        } catch (error) {
-            if (error.code === 'auth/user-not-found') {
-                isNewUser = true;
-                const newUser = await admin.auth().createUser({
-                    phoneNumber: phoneNumber,
-                    verified: true
-                });
-                uid = newUser.uid;
-                newFirebaseUser = newUser;
-            } else {
-                throw error;
-            }
+        // Logic from legacy: Check expiry
+        if (expiresAt.toDate() < new Date()) {
+            await otpRef.delete();
+            return res.status(400).send({ success: false, message: 'OTP expired.' });
         }
 
-        // Create Custom Token
-        const customToken = await admin.auth().createCustomToken(uid);
-        res.status(200).send({ success: true, customToken, isNewUser, newFirebaseUser });
+        if (storedOtp !== otp) {
+            return res.status(400).send({ success: false, message: 'Invalid OTP.' });
+        }
+
+        // OTP Valid. Clear it.
+        await otpRef.delete();
+
+        // Logic from legacy: Handle linking vs login
+        if (idToken) {
+            // ✅ LINK phone to existing user
+            const decodedToken = await auth.verifyIdToken(idToken);
+            await auth.updateUser(decodedToken.uid, { phoneNumber });
+            return res.status(200).send({ success: true, message: 'Phone number linked successfully.' });
+        } else {
+            // ✅ SIGNUP/LOGIN flow
+            let uid;
+            let isNewUser = false;
+            let newFirebaseUser = null;
+
+            try {
+                const userRecord = await auth.getUserByPhoneNumber(phoneNumber);
+                uid = userRecord.uid;
+            } catch (error) {
+                if (error.code === 'auth/user-not-found') {
+                    isNewUser = true;
+                    // Use legacy response structure for compatibility
+                    const newUser = await auth.createUser({
+                        phoneNumber: phoneNumber,
+                        verified: true
+                    });
+                    uid = newUser.uid;
+                    newFirebaseUser = {
+                        uid: newUser.uid,
+                        phoneNumber: newUser.phoneNumber,
+                        email: null,
+                        emailVerified: false
+                    };
+                } else {
+                    throw error;
+                }
+            }
+
+            // Create Custom Token
+            const customToken = await auth.createCustomToken(uid);
+            res.status(200).send({ success: true, customToken, isNewUser, newFirebaseUser });
+        }
 
     } catch (error) {
         console.error("Error verifying OTP:", error);
@@ -154,4 +216,5 @@ app.post('/verify-otp', async (req, res) => {
     }
 });
 
+// Export the Express app for Google Cloud Functions to handle.
 exports.sendNotification = onRequest({ cors: true }, app);

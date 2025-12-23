@@ -3,12 +3,15 @@
   "version": "1.0.0",
   "description": "Sends push notifications for live chat replies.",
   "main": "index.js",
+  "engines": {
+    "node": "20"
+  },
   "scripts": {
     "start": "functions-framework --target=sendChatNotificationRaw --signature-type=cloudevent --port=8080"
   },
   "dependencies": {
     "@google-cloud/functions-framework": "^3.0.0",
     "firebase-admin": "^12.1.0",
-    "firebase-functions": "^5.0.1"
+    "firebase-functions": "^7.0.2"
   }
 }

@@ -1,4 +1,6 @@
 const { onDocumentDeleted, onDocumentUpdated } = require("firebase-functions/v2/firestore");
+const { setGlobalOptions } = require("firebase-functions/v2");
+setGlobalOptions({ region: "asia-south1" });
 const { logger } = require("firebase-functions");
 const admin = require("firebase-admin");
 
@@ -60,20 +62,29 @@ const getTeacherImageUrls = (teacherData) => {
 
 // --- Deletion Triggers ---
 
-exports.onTeacherDelete = onDocumentDeleted("teachers/{teacherId}", async (event) => {
+exports.onTeacherDelete = onDocumentDeleted({
+  document: "teachers/{teacherId}",
+  database: "clazzdb2"
+}, async (event) => {
   const deletedData = event.data.data();
   const urlsToDelete = getTeacherImageUrls(deletedData);
   await Promise.all(urlsToDelete.map(deleteFileFromUrl));
 });
 
-exports.onUserDelete = onDocumentDeleted("users/{userId}", async (event) => {
+exports.onUserDelete = onDocumentDeleted({
+  document: "users/{userId}",
+  database: "clazzdb2"
+}, async (event) => {
   const deletedData = event.data.data();
   if (deletedData?.avatar) {
     await deleteFileFromUrl(deletedData.avatar);
   }
 });
 
-exports.onTopUpRequestDelete = onDocumentDeleted("topUpRequests/{requestId}", async (event) => {
+exports.onTopUpRequestDelete = onDocumentDeleted({
+  document: "topUpRequests/{requestId}",
+  database: "clazzdb2"
+}, async (event) => {
   const deletedData = event.data.data();
   if (deletedData?.imageUrl) {
     await deleteFileFromUrl(deletedData.imageUrl);
@@ -82,7 +93,10 @@ exports.onTopUpRequestDelete = onDocumentDeleted("topUpRequests/{requestId}", as
 
 // --- Update Triggers ---
 
-exports.onTeacherUpdate = onDocumentUpdated("teachers/{teacherId}", async (event) => {
+exports.onTeacherUpdate = onDocumentUpdated({
+  document: "teachers/{teacherId}",
+  database: "clazzdb2"
+}, async (event) => {
   const beforeData = event.data.before.data();
   const afterData = event.data.after.data();
 
@@ -99,7 +113,10 @@ exports.onTeacherUpdate = onDocumentUpdated("teachers/{teacherId}", async (event
   await Promise.all(urlsToDelete.map(deleteFileFromUrl));
 });
 
-exports.onUserUpdate = onDocumentUpdated("users/{userId}", async (event) => {
+exports.onUserUpdate = onDocumentUpdated({
+  document: "users/{userId}",
+  database: "clazzdb2"
+}, async (event) => {
   const beforeAvatar = event.data.before.data()?.avatar;
   const afterAvatar = event.data.after.data()?.avatar;
   if (beforeAvatar && beforeAvatar !== afterAvatar) {
@@ -107,7 +124,10 @@ exports.onUserUpdate = onDocumentUpdated("users/{userId}", async (event) => {
   }
 });
 
-exports.onTopUpRequestUpdate = onDocumentUpdated("topUpRequests/{requestId}", async (event) => {
+exports.onTopUpRequestUpdate = onDocumentUpdated({
+  document: "topUpRequests/{requestId}",
+  database: "clazzdb2"
+}, async (event) => {
   const beforeUrl = event.data.before.data()?.imageUrl;
   const afterUrl = event.data.after.data()?.imageUrl;
   if (beforeUrl && beforeUrl !== afterUrl) {
@@ -115,7 +135,10 @@ exports.onTopUpRequestUpdate = onDocumentUpdated("topUpRequests/{requestId}", as
   }
 });
 
-exports.onSettingsUpdate = onDocumentUpdated("settings/clientAppConfig", async (event) => {
+exports.onSettingsUpdate = onDocumentUpdated({
+  document: "settings/clientAppConfig",
+  database: "clazzdb2"
+}, async (event) => {
   const beforeImages = new Set(event.data.before.data()?.defaultCoverImages || []);
   const afterImages = new Set(event.data.after.data()?.defaultCoverImages || []);
 

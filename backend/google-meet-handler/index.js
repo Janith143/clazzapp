@@ -1,6 +1,8 @@
 
 
-const { onRequest } = require("firebase-functions/v2/onRequest");
+const { onRequest } = require("firebase-functions/v2/https");
+const { setGlobalOptions } = require("firebase-functions/v2");
+setGlobalOptions({ region: "asia-south1" });
 const express = require('express');
 const { google } = require('googleapis');
 const admin = require('firebase-admin');
@@ -17,33 +19,47 @@ app.use(require('cors')({ origin: true }));
 app.use(express.json());
 
 
-// Load credentials from environment variables set by `firebase functions:config:set`
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
-const REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI;
-
-const oauth2Client = new google.auth.OAuth2(
-    GOOGLE_CLIENT_ID,
-    GOOGLE_CLIENT_SECRET,
-    REDIRECT_URI
-);
+// Helper to get System Config
+async function getConfig() {
+    try {
+        const configDoc = await db.collection('settings').doc('system_config').get();
+        if (configDoc.exists) {
+            return { ...process.env, ...configDoc.data() };
+        }
+    } catch (error) {
+        logger.error("Error fetching system_config:", error);
+    }
+    return process.env;
+}
 
 // --- 1. Start the Authentication Flow ---
-app.get('/googleAuthRedirect', (req, res) => {
+app.get('/googleAuthRedirect', async (req, res) => {
     const { teacherId } = req.query;
     if (!teacherId) {
         return res.status(400).send('Teacher ID is required.');
     }
 
-    if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET || !REDIRECT_URI) {
-        logger.error("Google OAuth environment variables are not set correctly in the function's runtime.");
-        return res.status(500).send('Server configuration error. Please contact support.');
+    const config = await getConfig();
+    const GOOGLE_CLIENT_ID = config.GOOGLE_CLIENT_ID;
+    const GOOGLE_CLIENT_SECRET = config.GOOGLE_CLIENT_SECRET;
+    // Dynamic Redirect URI based on current host
+    const REDIRECT_URI = `https://${req.get('host')}/googleAuthCallback`;
+
+    if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+        logger.error("Google OAuth credentials missing in settings/system_config.");
+        return res.status(500).send('Server configuration error on OAuth credentials.');
     }
+
+    const oauth2Client = new google.auth.OAuth2(
+        GOOGLE_CLIENT_ID,
+        GOOGLE_CLIENT_SECRET,
+        REDIRECT_URI
+    );
 
     const authUrl = oauth2Client.generateAuthUrl({
         access_type: 'offline',
         scope: ['https://www.googleapis.com/auth/calendar.events'],
-        state: Buffer.from(JSON.stringify({ teacherId })).toString('base64'),
+        state: Buffer.from(JSON.stringify({ teacherId, redirect_base: `https://${req.get('host')}` })).toString('base64'),
     });
     res.redirect(authUrl);
 });
@@ -78,7 +94,7 @@ app.get('/googleAuthCallback', async (req, res) => {
             // The existing token remains valid until revoked.
             logger.warn("No new refresh token received for teacher:", teacherId, "This is expected on subsequent authentications.");
         }
-        
+
         // Redirect to the index page which will then load the teacher's profile via JS
         res.redirect(`https://clazz.lk/?teacherId=${teacherId}`);
 
@@ -112,9 +128,21 @@ app.post('/createGoogleMeet', async (req, res) => {
             return res.status(403).send({ success: false, message: 'Teacher has not connected their Google account.' });
         }
 
+        const config = await getConfig();
+        const GOOGLE_CLIENT_ID = config.GOOGLE_CLIENT_ID;
+        const GOOGLE_CLIENT_SECRET = config.GOOGLE_CLIENT_SECRET;
+        // Redirect URI not strictly needed for refresh flow but required for constructor
+        const REDIRECT_URI = `https://${req.get('host')}/googleAuthCallback`;
+
+        const oauth2Client = new google.auth.OAuth2(
+            GOOGLE_CLIENT_ID,
+            GOOGLE_CLIENT_SECRET,
+            REDIRECT_URI
+        );
+
         oauth2Client.setCredentials({ refresh_token: refreshToken });
         const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
-        
+
         const eventResource = {
             summary: title,
             description: `This is an online class for clazz.lk.`,
@@ -143,10 +171,10 @@ app.post('/createGoogleMeet', async (req, res) => {
                 eventId: googleEventId,
                 fields: 'hangoutLink' // We only need this one field
             });
-            
+
             const meetLink = updatedEvent.data.hangoutLink;
             if (!meetLink) {
-                 throw new Error("Failed to retrieve the Google Meet link after updating the event.");
+                throw new Error("Failed to retrieve the Google Meet link after updating the event.");
             }
 
             logger.log(`Successfully patched event. Meet link confirmed: ${meetLink}`);
@@ -169,7 +197,7 @@ app.post('/createGoogleMeet', async (req, res) => {
                 resource: event,
                 conferenceDataVersion: 1,
             });
-            
+
             const meetLink = response.data.hangoutLink;
             const eventId = response.data.id;
 
@@ -188,6 +216,10 @@ app.post('/createGoogleMeet', async (req, res) => {
 
 
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => {
-  logger.log(`Server listening on port ${PORT}`);
-});
+if (require.main === module) {
+    app.listen(PORT, () => {
+        logger.log(`Server listening on port ${PORT}`);
+    });
+}
+
+exports.googleMeetHandler = onRequest({ cors: true }, app);

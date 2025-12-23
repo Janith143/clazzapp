@@ -1,0 +1,15 @@
+{
+  "name": "og-image-handler",
+  "version": "1.0.0",
+  "description": "Redirects to the current OG image URL from Firestore.",
+  "main": "index.js",
+  "engines": {
+    "node": "20"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "firebase-admin": "^12.1.0",
+    "firebase-functions": "^5.0.1"
+  }
+}

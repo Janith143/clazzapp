@@ -4,17 +4,22 @@ import { PageState, StaticPageKey, HomeSlide, SocialMediaLink, FinancialSettings
 import { homeSlides as mockHomeSlides, mockSocialMediaLinks, defaultSubjectsByAudience, mockPhotoPrintOptions } from '../data/mockData';
 import { staticPageContent as mockStaticPageContent } from '../data/staticContent';
 import { db } from '../firebase';
-import { doc, onSnapshot, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
 
 const defaultAppConfig = {
     genAiKey: 'AIzaSyB7BZfezyOj30ga7-dqKPQSVW6EbTMZiiQ',
     gDriveFetcherApiKey: 'AIzaSyAOXMXnOsBKgj2c0HmA3mIZndz9eXXOkL0',
     functionUrls: {
-        notification: 'https://us-central1-gen-lang-client-0695487820.cloudfunctions.net/notification-function',
-        payment: 'https://us-central1-gen-lang-client-0695487820.cloudfunctions.net/payment-handler',
-        marxPayment: 'https://marxpaymenthandler-gtlcyfs7jq-uc.a.run.app',
-        gDriveFetcher: 'https://gdriveimagefetcher-gtlcyfs7jq-uc.a.run.app',
-        fcmNotification: 'https://fcm-notifications-980531128265.us-central1.run.app/send-fcm-push'
+        notification: 'https://asia-south1-clazz2-new.cloudfunctions.net/sendNotification',
+        payment: 'https://asia-south1-clazz2-new.cloudfunctions.net/paymentHandler',
+        marxPayment: 'https://asia-south1-clazz2-new.cloudfunctions.net/marxPaymentHandler',
+        gDriveFetcher: 'https://asia-south1-clazz2-new.cloudfunctions.net/gdriveImageFetcher',
+        fcmNotification: 'https://asia-south1-clazz2-new.cloudfunctions.net/fcmNotifications',
+        storageCleanup: '',
+        googleMeetHandler: 'https://asia-south1-clazz2-new.cloudfunctions.net/googleMeetHandler',
+        ogImageHandler: 'https://asia-south1-clazz2-new.cloudfunctions.net/ogImageHandler',
+        telegramBot: 'https://asia-south1-clazz2-new.cloudfunctions.net/telegramBot',
+        chatNotifications: 'https://asia-south1-clazz2-new.cloudfunctions.net/sendChatNotification'
     },
     paymentGatewaySettings: {
         gateways: {
@@ -108,6 +113,11 @@ export interface NavigationContextType {
         marxPayment: string;
         gDriveFetcher: string;
         fcmNotification: string;
+        storageCleanup: string;
+        googleMeetHandler: string;
+        ogImageHandler: string;
+        telegramBot: string;
+        chatNotifications: string;
     };
 
     handleNavigate: (page: PageState, options?: { quizFinish?: boolean }) => void;
@@ -239,7 +249,7 @@ export const NavigationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     const [ogImageUrl, setOgImageUrl] = useState<string>('');
     const [teacherDashboardMessage, setTeacherDashboardMessage] = useState<string>('');
 
-    // Secure Config State
+    // Secure/Dev Config State (from clientAppConfig)
     const [genAiKey, setGenAiKey] = useState<string>(defaultAppConfig.genAiKey);
     const [gDriveFetcherApiKey, setGDriveFetcherApiKey] = useState<string>(defaultAppConfig.gDriveFetcherApiKey);
     const [functionUrls, setFunctionUrls] = useState(defaultAppConfig.functionUrls);
@@ -252,19 +262,32 @@ export const NavigationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
         window.addEventListener('hashchange', handleHashChange);
 
-        const unsubConfig = onSnapshot(doc(db, 'settings', 'clientAppConfig'), (docSnap) => {
+        // Listener 1: Site Content (appConfig)
+        const unsubAppConfig = onSnapshot(doc(db, 'settings', 'appConfig'), (docSnap) => {
             if (docSnap.exists()) {
-                const data = docSnap.data() as any; // Cast to any to access properties
+                const data = docSnap.data() as any;
                 setHomeSlides(data.homeSlides || mockHomeSlides);
                 setStaticPageContent(prev => ({ ...mockStaticPageContent, ...data.staticContent }));
                 setSocialMediaLinks(data.socialMediaLinks || mockSocialMediaLinks);
                 setSubjects(data.subjects || defaultSubjectsByAudience);
                 setStudentCardTaglines(data.studentCardTaglines || []);
                 setTeacherCardTaglines(data.teacherCardTaglines || []);
-                setFinancialSettings({ ...defaultFinancialSettings, ...(data.financialSettings || {}) });
                 setHomePageCardCounts(data.homePageCardCounts || { teachers: 3, courses: 3, classes: 3, quizzes: 3, events: 3 });
                 setUpcomingExams(data.upcomingExams || []);
                 setPhotoPrintOptions(data.photoPrintOptions || mockPhotoPrintOptions);
+                setFinancialSettings({ ...defaultFinancialSettings, ...(data.financialSettings || {}) });
+                setSupportSettings(data.supportSettings || defaultSupportSettings);
+                setOgImageUrl(data.ogImageUrl || '');
+                setTeacherDashboardMessage(data.teacherDashboardMessage || '');
+            }
+        });
+
+        // Listener 2: Developer/System Settings (clientAppConfig)
+        const unsubClientConfig = onSnapshot(doc(db, 'settings', 'clientAppConfig'), (docSnap) => {
+            if (docSnap.exists()) {
+                const data = docSnap.data() as any;
+
+                // Payment settings are in clientAppConfig
                 const mergedPaymentSettings = {
                     ...defaultPaymentGatewaySettings,
                     ...(data.paymentGatewaySettings || {}),
@@ -286,58 +309,21 @@ export const NavigationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
                     }
                 };
                 setPaymentGatewaySettings(mergedPaymentSettings);
-                setSupportSettings(data.supportSettings || defaultSupportSettings);
-                setOgImageUrl(data.ogImageUrl || '');
-                setTeacherDashboardMessage(data.teacherDashboardMessage || '');
 
                 // Secure Config Loading
                 setGenAiKey(data.genAiKey || defaultAppConfig.genAiKey);
                 setGDriveFetcherApiKey(data.gDriveFetcherApiKey || defaultAppConfig.gDriveFetcherApiKey);
                 setFunctionUrls({ ...defaultAppConfig.functionUrls, ...(data.functionUrls || {}) });
 
-                // Auto-Seed: Check if critical new keys are missing in the EXISTING doc, and update if so.
-                const needsUpdate = !data.genAiKey || !data.functionUrls || !data.paymentGatewaySettings?.gateways?.webxpay?.secretKey;
-                if (needsUpdate) {
-                    // Update only missing fields to avoid overwriting existing data
-                    const updateData: any = {};
-                    if (!data.genAiKey) updateData.genAiKey = defaultAppConfig.genAiKey;
-                    if (!data.gDriveFetcherApiKey) updateData.gDriveFetcherApiKey = defaultAppConfig.gDriveFetcherApiKey;
-                    if (!data.functionUrls) updateData.functionUrls = defaultAppConfig.functionUrls;
-
-                    // Specific check for WebXPay secret to inject it if missing
-                    if (!data.paymentGatewaySettings?.gateways?.webxpay?.secretKey) {
-                        updateData['paymentGatewaySettings.gateways.webxpay.secretKey'] = defaultAppConfig.paymentGatewaySettings.gateways.webxpay.secretKey;
-                    }
-                    if (!data.paymentGatewaySettings?.gateways?.webxpay?.publicKey) {
-                        updateData['paymentGatewaySettings.gateways.webxpay.publicKey'] = defaultAppConfig.paymentGatewaySettings.gateways.webxpay.publicKey;
-                    }
-
-                    updateDoc(doc(db, 'settings', 'clientAppConfig'), updateData).catch(err => console.error("Failed to auto-seed config:", err));
-                }
-
             } else {
-                // Document does not exist - Seed it completely
-                setDoc(doc(db, 'settings', 'clientAppConfig'), {
-                    ...defaultAppConfig,
-                    // Include structural defaults if needed, or rely on them being optional/merged
-                    financialSettings: defaultFinancialSettings,
-                    paymentGatewaySettings: {
-                        ...defaultPaymentGatewaySettings,
-                        gateways: {
-                            ...defaultPaymentGatewaySettings.gateways,
-                            webxpay: {
-                                ...defaultPaymentGatewaySettings.gateways.webxpay,
-                                ...defaultAppConfig.paymentGatewaySettings.gateways.webxpay
-                            }
-                        }
-                    }
-                }).catch(err => console.error("Failed to create initial config:", err));
+                console.warn("Client config document not found in Firestore. Using default values.");
             }
         });
 
         return () => {
             window.removeEventListener('hashchange', handleHashChange);
-            unsubConfig();
+            unsubAppConfig();
+            unsubClientConfig();
         };
     }, []);
 

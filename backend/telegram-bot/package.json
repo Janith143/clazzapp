@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Handles Telegram integration for support chat",
   "main": "index.js",
+  "engines": {
+    "node": "20"
+  },
   "scripts": {
     "start": "node index.js"
   },
@@ -10,6 +13,7 @@
     "cors": "^2.8.5",
     "express": "^4.19.2",
     "firebase-admin": "^12.1.0",
+    "firebase-functions": "^7.0.2",
     "node-fetch": "^2.7.0"
   }
 }

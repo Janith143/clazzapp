@@ -1,0 +1,13 @@
+{
+  "name": "storage-cleanup-service",
+  "version": "1.0.0",
+  "description": "Cleans up Firebase Storage files when corresponding Firestore documents are deleted or updated.",
+  "main": "index.js",
+  "engines": {
+    "node": "20"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.1.0",
+    "firebase-functions": "^5.0.1"
+  }
+}
