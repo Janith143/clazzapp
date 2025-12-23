@@ -122,6 +122,11 @@ export const createSrcSet = (baseUrl: string, sizes: number[]): string => {
 export const getOptimizedImageUrl = (url: string, width: number, height?: number): string => {
     if (!url) return '';
 
+    // HOTFIX: Replace old bucket URL with new bucket URL
+    if (url.includes('clazz2-9e0a9.firebasestorage.app')) {
+        url = url.replace('clazz2-9e0a9.firebasestorage.app', 'clazz2-new.firebasestorage.app');
+    }
+
     // Google User Content (Drive, Auth Profiles)
     // Supports patterns like lh3.googleusercontent.com/...
     // Also handles standard Google Drive file links
@@ -183,7 +188,7 @@ export const getYoutubeVideoId = (url: string): string | null => {
     // - youtube.com/embed/VIDEO_ID
     // - youtube.com/v/VIDEO_ID
     // and other variations.
-    const regex = /(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
+    const regex = /(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?|shorts)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
     const match = url.match(regex);
     return match ? match[1] : null;
 };
