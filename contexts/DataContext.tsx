@@ -99,7 +99,18 @@ export interface DataContextType {
     handleToggleEventPublishState: (instituteId: string, eventId: string) => void;
     handleSaveProduct: (productDetails: Product) => void;
     handleProductApproval: (teacherId: string, productId: string, decision: 'approved' | 'rejected') => void;
-    handleUpdateDeveloperSettings: (settings: { genAiKey: string; gDriveFetcherApiKey: string; functionUrls: any }) => Promise<void>;
+    handleUpdateDeveloperSettings: (settings: {
+        genAiKey: string;
+        gDriveFetcherApiKey: string;
+        functionUrls: any;
+        EMAIL_USER?: string;
+        EMAIL_PASS?: string;
+        NOTIFY_LK_USER_ID?: string;
+        NOTIFY_LK_API_KEY?: string;
+        NOTIFY_LK_SENDER_ID?: string;
+        GOOGLE_CLIENT_ID?: string;
+        GOOGLE_CLIENT_SECRET?: string;
+    }) => Promise<void>;
     handleSaveClassRecording: (teacherId: string, classId: number, instanceDate: string, recordingUrls: string[]) => Promise<void>;
     handleSaveGrading: (teacherId: string, classId: number, instanceDate: string, grades: ClassGrading) => Promise<void>;
     handleSaveHomeworkSubmission: (teacherId: string, classId: number, instanceDate: string, link: string) => Promise<void>;

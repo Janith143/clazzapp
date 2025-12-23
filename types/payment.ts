@@ -17,12 +17,12 @@ export interface TopUpRequest {
 }
 
 export interface MonthlyReferralEarning {
-  year: number;
-  month: number; // 0-11
-  netPlatformIncome: number;
-  commissionRate: number;
-  earnings: number;
-  status: 'pending' | 'processed';
+    year: number;
+    month: number; // 0-11
+    netPlatformIncome: number;
+    commissionRate: number;
+    earnings: number;
+    status: 'pending' | 'processed';
 }
 
 export interface Withdrawal {
@@ -76,9 +76,11 @@ export interface PaymentGatewaySettings {
         webxpay: {
             secretKey: string;
             publicKey: string;
+            baseUrl?: string; // Optional for backward compatibility initally
         };
         marxipg: {
             apiKey: string;
+            baseUrl?: string;
         };
     };
 }

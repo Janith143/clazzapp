@@ -1,0 +1,15 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Default: Allow read/write for authenticated users
+    match /{allPaths=**} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Explicit rule for payment logos (though the wildcard above covers it, explicit is good for clarity)
+    match /site-assets/payment-logos/{fileName} {
+      allow read: if true; // Public read access for logos
+      allow write: if request.auth != null;
+    }
+  }
+}

@@ -31,20 +31,29 @@ const NotificationsPanel: React.FC<{ userNotifications: UserNotification[], onCl
                 return;
             }
             setLoading(true);
-            const notifIds = userNotifications.slice(0, 10).map(n => n.notificationId);
-            const q = query(collection(db, 'notifications'), where('id', 'in', notifIds));
-            const querySnapshot = await getDocs(q);
-            const notifs = querySnapshot.docs.map(doc => doc.data() as Notification);
+            try {
+                // Reverse to get newest notifications first
+                const recentNotifications = [...userNotifications].reverse().slice(0, 10);
+                const notifIds = recentNotifications.map(n => n.notificationId);
 
-            // Sort by createdAt descending
-            notifs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+                const q = query(collection(db, 'notifications'), where('id', 'in', notifIds));
+                const querySnapshot = await getDocs(q);
 
-            setNotifications(notifs);
-            setLoading(false);
+                const notifs = querySnapshot.docs.map(doc => doc.data() as Notification);
+
+                // Sort by createdAt descending
+                notifs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+                setNotifications(notifs);
+            } catch (error) {
+                console.error("Error fetching notifications headers:", error);
+            } finally {
+                setLoading(false);
+            }
         };
         fetchNotifications();
     }, [userNotifications]);
-    
+
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (panelRef.current && !panelRef.current.contains(event.target as Node)) {
@@ -68,22 +77,22 @@ const NotificationsPanel: React.FC<{ userNotifications: UserNotification[], onCl
             </div>
             <div className="max-h-96 overflow-y-auto">
                 {loading ? <div className="p-4 text-center text-light-subtle dark:text-dark-subtle">Loading...</div> :
-                 notifications.length === 0 ? <div className="p-4 text-center text-light-subtle dark:text-dark-subtle">No new notifications.</div> :
-                 notifications.map(notif => {
-                     const userNotif = userNotifications.find(un => un.notificationId === notif.id);
-                     const isRead = userNotif?.isRead || false;
-                     return (
-                         <button key={notif.id} onClick={() => handleNotificationClick(notif)} className={`w-full text-left p-3 flex items-start space-x-3 hover:bg-light-border dark:hover:bg-dark-border ${!isRead ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}>
-                             <img src={notif.teacherAvatar} alt={notif.teacherName} className="w-8 h-8 rounded-full" />
-                             <div className="flex-1">
-                                 <p className="text-sm font-semibold">{notif.teacherName}</p>
-                                 <p className="text-xs text-light-subtle dark:text-dark-subtle">{notif.content}</p>
-                                 <p className="text-xs text-light-subtle dark:text-dark-subtle mt-1">{new Date(notif.createdAt).toLocaleString()}</p>
-                             </div>
-                             {!isRead && <div className="w-2.5 h-2.5 bg-primary rounded-full mt-1 flex-shrink-0"></div>}
-                         </button>
-                     )
-                 })
+                    notifications.length === 0 ? <div className="p-4 text-center text-light-subtle dark:text-dark-subtle">No new notifications.</div> :
+                        notifications.map(notif => {
+                            const userNotif = userNotifications.find(un => un.notificationId === notif.id);
+                            const isRead = userNotif?.isRead || false;
+                            return (
+                                <button key={notif.id} onClick={() => handleNotificationClick(notif)} className={`w-full text-left p-3 flex items-start space-x-3 hover:bg-light-border dark:hover:bg-dark-border ${!isRead ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}>
+                                    <img src={notif.teacherAvatar} alt={notif.teacherName} className="w-8 h-8 rounded-full" />
+                                    <div className="flex-1">
+                                        <p className="text-sm font-semibold">{notif.teacherName}</p>
+                                        <p className="text-xs text-light-subtle dark:text-dark-subtle">{notif.content}</p>
+                                        <p className="text-xs text-light-subtle dark:text-dark-subtle mt-1">{new Date(notif.createdAt).toLocaleString()}</p>
+                                    </div>
+                                    {!isRead && <div className="w-2.5 h-2.5 bg-primary rounded-full mt-1 flex-shrink-0"></div>}
+                                </button>
+                            )
+                        })
                 }
             </div>
         </div>
@@ -105,12 +114,12 @@ const MobileMenu: React.FC<{
         onNavigate(page);
         onClose();
     };
-    
+
     const handleAuthClick = (modalState: any) => {
         setModalState(modalState);
         onClose();
     }
-    
+
     const handleLogoutClick = () => {
         handleLogout();
         onClose();
@@ -131,7 +140,7 @@ const MobileMenu: React.FC<{
         }
         handleLinkClick(page);
     };
-    
+
     const companyLinks = [
         { key: 'about_us', label: "About Us", type: 'static' },
         { key: 'contact_support', label: "Contact Support", type: 'static' },
@@ -155,7 +164,7 @@ const MobileMenu: React.FC<{
         { key: 'cookie_policy', label: "Cookie Policy" }
     ];
 
-    
+
     const iconMap: { [key: string]: React.FC<any> } = {
         FacebookIcon, TwitterIcon, LinkedInIcon, InstagramIcon, YouTubeIcon, WhatsAppIcon,
     };
@@ -199,7 +208,7 @@ const MobileMenu: React.FC<{
                             <button onClick={handleLogoutClick} className="w-full text-left font-semibold py-3 text-lg hover:text-primary transition-colors">Sign Out</button>
                         </div>
                     ) : (
-                         <div className="space-y-4">
+                        <div className="space-y-4">
                             <h3 className="font-semibold text-light-text dark:text-dark-text">For Students & General Users</h3>
                             <div className="space-y-3">
                                 <button onClick={() => handleAuthClick({ name: 'login', userType: 'user' })} className="w-full text-left font-semibold py-2 text-lg hover:text-primary transition-colors">Log In</button>
@@ -215,18 +224,18 @@ const MobileMenu: React.FC<{
                             </ul>
                         </div>
                     )}
-                    
+
                     <div className="border-t border-light-border dark:border-dark-border my-6"></div>
-                    
+
                     <div className="space-y-4">
                         <h3 className="font-semibold text-light-text dark:text-dark-text">Company</h3>
                         <ul className="space-y-2">
                             {companyLinks.map(link => (
                                 <li key={link.key}>
-                                    <button 
-                                        onClick={() => handleLinkClick(link.type === 'static' 
-                                            ? { name: 'static', pageKey: link.key as StaticPageKey } 
-                                            : { name: link.key as 'gift_voucher' | 'referral_dashboard' })} 
+                                    <button
+                                        onClick={() => handleLinkClick(link.type === 'static'
+                                            ? { name: 'static', pageKey: link.key as StaticPageKey }
+                                            : { name: link.key as 'gift_voucher' | 'referral_dashboard' })}
                                         className="text-light-subtle dark:text-dark-subtle hover:text-primary"
                                     >
                                         {link.label}
@@ -239,18 +248,18 @@ const MobileMenu: React.FC<{
                         <ul className="space-y-2">
                             {communityLinks.map(link => (
                                 <li key={link.key}>
-                                    <button onClick={() => handleLinkClick({name: 'static', pageKey: link.key as StaticPageKey})} className="text-light-subtle dark:text-dark-subtle hover:text-primary">
+                                    <button onClick={() => handleLinkClick({ name: 'static', pageKey: link.key as StaticPageKey })} className="text-light-subtle dark:text-dark-subtle hover:text-primary">
                                         {link.label}
                                     </button>
                                 </li>
                             ))}
                         </ul>
-                        
+
                         <h3 className="font-semibold text-light-text dark:text-dark-text pt-4">Legal</h3>
                         <ul className="space-y-2">
                             {legalLinks.map(link => (
                                 <li key={link.key}>
-                                    <button onClick={() => handleLinkClick({name: 'static', pageKey: link.key as StaticPageKey})} className="text-light-subtle dark:text-dark-subtle hover:text-primary">
+                                    <button onClick={() => handleLinkClick({ name: 'static', pageKey: link.key as StaticPageKey })} className="text-light-subtle dark:text-dark-subtle hover:text-primary">
                                         {link.label}
                                     </button>
                                 </li>
@@ -279,173 +288,172 @@ const MobileMenu: React.FC<{
 
 
 const Header: React.FC = () => {
-  const { theme, toggleTheme, setModalState, cart } = useUI();
-  const { currentUser, handleLogout } = useAuth();
-  const { pageState, handleNavigate } = useNavigation();
-  const { teachers, handleMarkAllAsRead } = useData();
-  
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [refCode, setRefCode] = useState<string | undefined>(undefined);
-  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+    const { theme, toggleTheme, setModalState, cart } = useUI();
+    const { currentUser, handleLogout } = useAuth();
+    const { pageState, handleNavigate } = useNavigation();
+    const { teachers, handleMarkAllAsRead } = useData();
 
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const code = params.get('ref');
-    if (code) {
-      setRefCode(code);
-    }
-  }, []);
-  
-  const unreadCount = useMemo(() => {
-    return currentUser?.notifications?.filter(n => !n.isRead).length || 0;
-  }, [currentUser]);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [refCode, setRefCode] = useState<string | undefined>(undefined);
+    const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
 
-  const onViewDashboard = () => {
-    if (currentUser?.role === 'admin') {
-        handleNavigate({ name: 'admin_dashboard' });
-    } else if (currentUser?.role === 'teacher') {
-        const teacher = teachers.find(t => t.userId === currentUser.id);
-        if (teacher) {
-            handleNavigate({ name: 'teacher_profile', teacherId: teacher.id });
-        } else {
-            handleNavigate({ name: 'home' });
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const code = params.get('ref');
+        if (code) {
+            setRefCode(code);
         }
-    } else if (currentUser?.role === 'tuition_institute') {
-        handleNavigate({ name: 'ti_dashboard' });
-    } else {
-        handleNavigate({ name: 'student_dashboard' });
-    }
-  };
+    }, []);
 
-  const onLogoClick = () => handleNavigate({ name: 'home' });
-  const onLoginClick = () => setModalState({ name: 'login' });
-  const onRegisterClick = () => setModalState({ name: 'register', refCode });
-  
-  const navItems = [
-    { name: 'all_teachers', label: 'Teachers' },
-    { name: 'all_courses', label: 'Courses' },
-    { name: 'all_classes', label: 'Classes' },
-    { name: 'all_quizzes', label: 'Quizzes' },
-    { name: 'all_products', label: 'Store' },
-    { name: 'all_events', label: 'Events' },
-  ];
+    const unreadCount = useMemo(() => {
+        return currentUser?.notifications?.filter(n => !n.isRead).length || 0;
+    }, [currentUser]);
 
-  return (
-    <>
-      <header className="sticky top-0 z-40 w-full bg-light-surface/80 dark:bg-dark-surface/80 backdrop-blur-sm border-b border-light-border dark:border-dark-border">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center">
-              <button onClick={onLogoClick} className="flex items-center space-x-2">
-                <LogoIcon className="h-8 w-8" />
-                <span className="text-xl font-bold hidden sm:inline">clazz.<span className="text-primary">lk</span></span>
-              </button>
-               <nav className="hidden md:flex items-center space-x-6 ml-10">
-                {navItems.map(item => (
-                    <button
-                        key={item.name}
-                        onClick={() => handleNavigate({ name: item.name as any })}
-                        className={`font-medium text-sm transition-colors ${
-                            pageState.name === item.name
-                                ? 'text-primary'
-                                : 'text-light-subtle dark:text-dark-subtle hover:text-primary dark:hover:text-primary-light'
-                        }`}
-                    >
-                        {item.label}
-                    </button>
-                ))}
-            </nav>
-            </div>
-            <div className="flex items-center space-x-2 sm:space-x-4">
-              <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
-              
-              {/* Desktop Auth & Notifications */}
-              <div className="hidden md:flex items-center space-x-4">
-                  {currentUser && (
-                    <div className="relative">
-                      <button onClick={() => setIsNotificationsOpen(prev => !prev)} className="p-2 rounded-full text-light-subtle dark:text-dark-subtle hover:bg-light-border dark:hover:bg-dark-border">
-                        <BellIcon className="h-6 w-6"/>
-                        {unreadCount > 0 && <span className="absolute top-0 right-0 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white dark:ring-dark-surface"></span>}
-                      </button>
-                      {isNotificationsOpen && <NotificationsPanel userNotifications={currentUser.notifications || []} onClose={() => setIsNotificationsOpen(false)} onMarkAllRead={handleMarkAllAsRead} />}
-                    </div>
-                  )}
+    const onViewDashboard = () => {
+        if (currentUser?.role === 'admin') {
+            handleNavigate({ name: 'admin_dashboard' });
+        } else if (currentUser?.role === 'teacher') {
+            const teacher = teachers.find(t => t.userId === currentUser.id);
+            if (teacher) {
+                handleNavigate({ name: 'teacher_profile', teacherId: teacher.id });
+            } else {
+                handleNavigate({ name: 'home' });
+            }
+        } else if (currentUser?.role === 'tuition_institute') {
+            handleNavigate({ name: 'ti_dashboard' });
+        } else {
+            handleNavigate({ name: 'student_dashboard' });
+        }
+    };
 
-                  <div className="relative">
-                      <button onClick={() => setModalState({ name: 'cart' })} className="p-2 rounded-full text-light-subtle dark:text-dark-subtle hover:bg-light-border dark:hover:bg-dark-border">
-                          <ShoppingCartIcon className="h-6 w-6" />
-                          {cart.length > 0 && 
-                            <span className="absolute top-0 right-0 flex h-5 w-5">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-5 w-5 bg-primary text-white text-xs items-center justify-center">{cart.length}</span>
-                            </span>
-                          }
-                      </button>
-                  </div>
+    const onLogoClick = () => handleNavigate({ name: 'home' });
+    const onLoginClick = () => setModalState({ name: 'login' });
+    const onRegisterClick = () => setModalState({ name: 'register', refCode });
+
+    const navItems = [
+        { name: 'all_teachers', label: 'Teachers' },
+        { name: 'all_courses', label: 'Courses' },
+        { name: 'all_classes', label: 'Classes' },
+        { name: 'all_quizzes', label: 'Quizzes' },
+        { name: 'all_products', label: 'Store' },
+        { name: 'all_events', label: 'Events' },
+    ];
+
+    return (
+        <>
+            <header className="sticky top-0 z-40 w-full bg-light-surface/80 dark:bg-dark-surface/80 backdrop-blur-sm border-b border-light-border dark:border-dark-border">
+                <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="flex items-center justify-between h-16">
+                        <div className="flex items-center">
+                            <button onClick={onLogoClick} className="flex items-center space-x-2">
+                                <LogoIcon className="h-8 w-8" />
+                                <span className="text-xl font-bold hidden sm:inline">clazz.<span className="text-primary">lk</span></span>
+                            </button>
+                            <nav className="hidden md:flex items-center space-x-6 ml-10">
+                                {navItems.map(item => (
+                                    <button
+                                        key={item.name}
+                                        onClick={() => handleNavigate({ name: item.name as any })}
+                                        className={`font-medium text-sm transition-colors ${pageState.name === item.name
+                                            ? 'text-primary'
+                                            : 'text-light-subtle dark:text-dark-subtle hover:text-primary dark:hover:text-primary-light'
+                                            }`}
+                                    >
+                                        {item.label}
+                                    </button>
+                                ))}
+                            </nav>
+                        </div>
+                        <div className="flex items-center space-x-2 sm:space-x-4">
+                            <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
+
+                            {/* Desktop Auth & Notifications */}
+                            <div className="hidden md:flex items-center space-x-4">
+                                {currentUser && (
+                                    <div className="relative">
+                                        <button onClick={() => setIsNotificationsOpen(prev => !prev)} className="p-2 rounded-full text-light-subtle dark:text-dark-subtle hover:bg-light-border dark:hover:bg-dark-border">
+                                            <BellIcon className="h-6 w-6" />
+                                            {unreadCount > 0 && <span className="absolute top-0 right-0 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white dark:ring-dark-surface"></span>}
+                                        </button>
+                                        {isNotificationsOpen && <NotificationsPanel userNotifications={currentUser.notifications || []} onClose={() => setIsNotificationsOpen(false)} onMarkAllRead={handleMarkAllAsRead} />}
+                                    </div>
+                                )}
+
+                                <div className="relative">
+                                    <button onClick={() => setModalState({ name: 'cart' })} className="p-2 rounded-full text-light-subtle dark:text-dark-subtle hover:bg-light-border dark:hover:bg-dark-border">
+                                        <ShoppingCartIcon className="h-6 w-6" />
+                                        {cart.length > 0 &&
+                                            <span className="absolute top-0 right-0 flex h-5 w-5">
+                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                                                <span className="relative inline-flex rounded-full h-5 w-5 bg-primary text-white text-xs items-center justify-center">{cart.length}</span>
+                                            </span>
+                                        }
+                                    </button>
+                                </div>
 
 
-                  {currentUser ? (
-                    <div className="flex items-center space-x-4">
-                        <button 
-                            onClick={onViewDashboard} 
-                            className="flex items-center space-x-2 p-1 rounded-full hover:bg-light-border dark:hover:bg-dark-border transition-colors"
-                        >
-                            {currentUser.avatar ? (
-                            <img src={currentUser.avatar} alt={`${currentUser.firstName} ${currentUser.lastName}`} className="w-8 h-8 rounded-full object-cover" />
-                            ) : (
-                            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white font-bold text-sm">
-                                <span>
-                                    {currentUser.firstName?.charAt(0) || ''}
-                                    {currentUser.lastName?.charAt(0) || ''}
-                                </span>
+                                {currentUser ? (
+                                    <div className="flex items-center space-x-4">
+                                        <button
+                                            onClick={onViewDashboard}
+                                            className="flex items-center space-x-2 p-1 rounded-full hover:bg-light-border dark:hover:bg-dark-border transition-colors"
+                                        >
+                                            {currentUser.avatar ? (
+                                                <img src={currentUser.avatar} alt={`${currentUser.firstName} ${currentUser.lastName}`} className="w-8 h-8 rounded-full object-cover" />
+                                            ) : (
+                                                <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white font-bold text-sm">
+                                                    <span>
+                                                        {currentUser.firstName?.charAt(0) || ''}
+                                                        {currentUser.lastName?.charAt(0) || ''}
+                                                    </span>
+                                                </div>
+                                            )}
+                                            <span className="font-medium text-sm">{`${currentUser.firstName} ${currentUser.lastName}`}</span>
+                                        </button>
+                                        <button
+                                            onClick={handleLogout}
+                                            className="px-3 py-1.5 text-xs font-medium text-light-subtle dark:text-dark-subtle border border-light-border dark:border-dark-border rounded-md hover:bg-light-border dark:hover:bg-dark-border hover:text-light-text dark:hover:text-dark-text"
+                                        >
+                                            Sign Out
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center space-x-2">
+                                        <button
+                                            onClick={onLoginClick}
+                                            className="px-4 py-2 text-sm font-medium text-primary hover:bg-primary/10 rounded-md transition-colors"
+                                        >
+                                            Log In
+                                        </button>
+                                        <button
+                                            onClick={onRegisterClick}
+                                            className="px-4 py-2 text-sm font-medium text-white bg-primary rounded-md hover:bg-primary-dark transition-colors"
+                                        >
+                                            Sign Up
+                                        </button>
+                                    </div>
+                                )}
                             </div>
-                            )}
-                            <span className="font-medium text-sm">{`${currentUser.firstName} ${currentUser.lastName}`}</span>
-                        </button>
-                        <button
-                            onClick={handleLogout}
-                            className="px-3 py-1.5 text-xs font-medium text-light-subtle dark:text-dark-subtle border border-light-border dark:border-dark-border rounded-md hover:bg-light-border dark:hover:bg-dark-border hover:text-light-text dark:hover:text-dark-text"
-                        >
-                          Sign Out
-                        </button>
-                    </div>
-                  ) : (
-                    <div className="flex items-center space-x-2">
-                      <button
-                        onClick={onLoginClick}
-                        className="px-4 py-2 text-sm font-medium text-primary hover:bg-primary/10 rounded-md transition-colors"
-                      >
-                        Log In
-                      </button>
-                      <button
-                        onClick={onRegisterClick}
-                        className="px-4 py-2 text-sm font-medium text-white bg-primary rounded-md hover:bg-primary-dark transition-colors"
-                      >
-                        Sign Up
-                      </button>
-                    </div>
-                  )}
-              </div>
 
-              {/* Mobile Menu Button */}
-              <div className="md:hidden">
-                  <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 rounded-full text-light-subtle dark:text-dark-subtle hover:bg-light-border dark:hover:bg-dark-border">
-                      <MenuIcon className="h-6 w-6" />
-                  </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
-      
-      <MobileMenu 
-        isOpen={isMobileMenuOpen} 
-        onClose={() => setIsMobileMenuOpen(false)} 
-        onNavigate={handleNavigate}
-        currentUser={currentUser}
-      />
-    </>
-  );
+                            {/* Mobile Menu Button */}
+                            <div className="md:hidden">
+                                <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 rounded-full text-light-subtle dark:text-dark-subtle hover:bg-light-border dark:hover:bg-dark-border">
+                                    <MenuIcon className="h-6 w-6" />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <MobileMenu
+                isOpen={isMobileMenuOpen}
+                onClose={() => setIsMobileMenuOpen(false)}
+                onNavigate={handleNavigate}
+                currentUser={currentUser}
+            />
+        </>
+    );
 };
 
 export default Header;

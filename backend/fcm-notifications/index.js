@@ -14,7 +14,7 @@ const admin = require('firebase-admin');
 if (!admin.apps.length) {
     try {
         admin.initializeApp({
-            projectId: process.env.GCP_PROJECT || 'clazz2-9e0a9', // Use environment variable or your project ID
+            projectId: process.env.GCP_PROJECT || 'clazz2-new', // Updated to correct project ID
         });
         console.log('Firebase Admin SDK initialized successfully.');
     } catch (error) {
@@ -22,7 +22,9 @@ if (!admin.apps.length) {
     }
 }
 
-const db = admin.firestore();
+const { getFirestore } = require('firebase-admin/firestore'); // Import getFirestore
+
+const db = getFirestore('clazzdb2'); // Use named database
 const messaging = admin.messaging();
 const app = express();
 
@@ -163,7 +165,7 @@ app.post('/send-fcm-push', async (req, res) => {
 
     } catch (error) {
         console.error('Error sending notification:', error);
-        res.status(500).send({ success: false, message: 'An internal error occurred.' });
+        res.status(500).send({ success: false, message: 'An internal error occurred: ' + error.message });
     }
 });
 

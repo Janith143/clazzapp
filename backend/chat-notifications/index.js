@@ -1,11 +1,13 @@
-
 const { onDocumentCreated } = require("firebase-functions/v2/firestore");
 const { setGlobalOptions } = require("firebase-functions/v2");
 setGlobalOptions({ region: "asia-south1" });
 const admin = require("firebase-admin");
+const { getFirestore } = require("firebase-admin/firestore"); // Import correctly
 const { logger } = require("firebase-functions");
 
 if (!admin.apps.length) admin.initializeApp();
+
+const db = getFirestore('clazzdb2'); // Initialize correctly
 
 // Hybrid handler that works for both Firebase SDK and Raw CloudEvents
 const chatNotificationHandler = async (event) => {
@@ -26,7 +28,7 @@ const chatNotificationHandler = async (event) => {
                 chatId = match[1];
                 const messageId = match[2];
                 // Fetch fresh data from Firestore because raw event.data might be protobuf/binary
-                const msgDoc = await admin.firestore()
+                const msgDoc = await db
                     .collection('supportChats')
                     .doc(chatId)
                     .collection('messages')
@@ -52,7 +54,7 @@ const chatNotificationHandler = async (event) => {
         }
 
         // Fetch the parent chat document to get the FCM token
-        const chatDoc = await admin.firestore().collection('supportChats').doc(chatId).get();
+        const chatDoc = await db.collection('supportChats').doc(chatId).get();
         if (!chatDoc.exists) {
             logger.warn(`Chat document ${chatId} not found.`);
             return;

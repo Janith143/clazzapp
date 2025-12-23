@@ -9,13 +9,16 @@ const admin = require('firebase-admin');
 // Initialize Firebase Admin
 if (!admin.apps.length) {
     try {
-        admin.initializeApp();
+        admin.initializeApp({
+            projectId: process.env.GCP_PROJECT || 'clazz2-new',
+        });
         console.log("Firebase Admin initialized");
     } catch (e) {
         console.error("Firebase Admin initialization failed", e);
     }
 }
-const db = admin.firestore();
+const { getFirestore } = require('firebase-admin/firestore');
+const db = getFirestore('clazzdb2');
 
 const app = express();
 app.use(cors({ origin: true }));
@@ -24,7 +27,7 @@ app.use(express.json());
 // Helper to get Telegram Config
 const getTelegramConfig = async () => {
     try {
-        const configDoc = await db.collection('settings').doc('clientAppConfig').get();
+        const configDoc = await db.collection('settings').doc('appConfig').get();
         if (!configDoc.exists) {
             console.log("appConfig document does not exist");
             return {};
@@ -148,6 +151,42 @@ const handleWebhook = async (req, res) => {
 
 app.post('/sendMessageToTelegram', handleSendMessage);
 app.post('/telegramWebhook', handleWebhook);
+
+// Helper endpoint to set Webhook (One-time setup)
+app.get('/set-webhook', async (req, res) => {
+    try {
+        const config = await getTelegramConfig();
+        const { telegramBotToken } = config;
+
+        if (!telegramBotToken) {
+            return res.status(400).send("Telegram Bot Token not found in Settings.");
+        }
+
+        // Construct the webhook URL. 
+        // When running on Cloud Run, req.hostname is usually correct.
+        // Or we can assume the service URL is the same as this request's base.
+        const host = req.get('host');
+        const webhookUrl = `https://${host}/telegramWebhook`;
+
+        console.log(`Setting webhook to: ${webhookUrl}`);
+
+        const url = `https://api.telegram.org/bot${telegramBotToken}/setWebhook?url=${webhookUrl}`;
+
+        // Use fetch (Node 18+ or polyfill)
+        const response = await fetch(url);
+        const data = await response.json();
+
+        res.json({
+            success: data.ok,
+            webhookUrl: webhookUrl,
+            telegramResponse: data
+        });
+
+    } catch (error) {
+        console.error("Error setting webhook:", error);
+        res.status(500).send("Error: " + error.message);
+    }
+});
 
 // Health check
 app.get('/', (req, res) => {

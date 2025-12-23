@@ -28,6 +28,8 @@ const PaymentRedirectPage: React.FC<PaymentRedirectPageProps> = ({ user: context
             let customFieldsObject: any;
             let data: any = {};
 
+            const frontend_url = window.location.origin;
+
             const baseUserDetails = {
                 first_name: user?.firstName || '',
                 last_name: user?.lastName || '',
@@ -43,7 +45,7 @@ const PaymentRedirectPage: React.FC<PaymentRedirectPageProps> = ({ user: context
 
             switch (payload.type) {
                 case 'enrollment':
-                    customFieldsObject = { type: 'enrollment', sale: payload.sale, itemType: ('lectures' in payload.item) ? 'course' : (('questions' in payload.item) ? 'quiz' : 'class') };
+                    customFieldsObject = { type: 'enrollment', sale: payload.sale, itemType: ('lectures' in payload.item) ? 'course' : (('questions' in payload.item) ? 'quiz' : 'class'), frontend_url };
                     order_id = payload.sale.id;
                     items = payload.item.title;
                     amount = payload.sale.totalAmount;
@@ -51,7 +53,7 @@ const PaymentRedirectPage: React.FC<PaymentRedirectPageProps> = ({ user: context
                     break;
 
                 case 'topup':
-                    customFieldsObject = { type: 'topup', amount: payload.amount };
+                    customFieldsObject = { type: 'topup', amount: payload.amount, frontend_url };
                     order_id = `topup_${user?.id}_${Date.now()}`;
                     items = 'Account Top-Up';
                     amount = payload.amount;
@@ -59,7 +61,7 @@ const PaymentRedirectPage: React.FC<PaymentRedirectPageProps> = ({ user: context
                     break;
 
                 case 'voucher':
-                    customFieldsObject = { type: 'voucher', details: payload.details, quantity: payload.quantity, totalAmount: payload.totalAmount };
+                    customFieldsObject = { type: 'voucher', details: payload.details, quantity: payload.quantity, totalAmount: payload.totalAmount, frontend_url };
                     order_id = `voucher_${Date.now()}`;
                     items = `${payload.quantity} x Gift Voucher(s)`;
                     amount = payload.totalAmount;
@@ -79,7 +81,7 @@ const PaymentRedirectPage: React.FC<PaymentRedirectPageProps> = ({ user: context
                     break;
 
                 case 'external_topup':
-                    customFieldsObject = { type: 'external_topup', students: payload.students, amountPerStudent: payload.amountPerStudent, totalAmount: payload.totalAmount, billingDetails: payload.billingDetails };
+                    customFieldsObject = { type: 'external_topup', students: payload.students, amountPerStudent: payload.amountPerStudent, totalAmount: payload.totalAmount, billingDetails: payload.billingDetails, frontend_url };
                     order_id = `ext_topup_${Date.now()}`;
                     items = `Account Top-Up for ${payload.students.length} student(s)`;
                     amount = payload.totalAmount;
@@ -121,7 +123,7 @@ const PaymentRedirectPage: React.FC<PaymentRedirectPageProps> = ({ user: context
                         };
                     });
 
-                    customFieldsObject = { ...payload, cart: slimCart };
+                    customFieldsObject = { ...payload, cart: slimCart, frontend_url };
 
                     order_id = `${payload.type}_${Date.now()}`;
                     items = `Purchase (${cart.length} items)`;
@@ -141,7 +143,7 @@ const PaymentRedirectPage: React.FC<PaymentRedirectPageProps> = ({ user: context
                     break;
                 }
                 case 'teacher_subscription': {
-                    customFieldsObject = { type: 'teacher_subscription', planLevel: payload.planLevel, amount: payload.amount, refCode: payload.refCode, billingDetails: payload.billingDetails };
+                    customFieldsObject = { type: 'teacher_subscription', planLevel: payload.planLevel, amount: payload.amount, refCode: payload.refCode, billingDetails: payload.billingDetails, frontend_url };
                     order_id = `sub_${payload.planLevel}_${Date.now()}`;
                     items = `Teacher Subscription - Plan ${payload.planLevel}`;
                     amount = payload.amount;
@@ -185,7 +187,8 @@ const PaymentRedirectPage: React.FC<PaymentRedirectPageProps> = ({ user: context
                             contact_number: data.contact_number,
                         },
                         custom_fields: custom_fields,
-                        return_url: `${functionUrls.marxPayment}/marx-callback`
+                        return_url: `${functionUrls.marxPayment}/marx-callback`,
+                        frontend_url: frontend_url // Send dynamic frontend URL
                     };
 
                     const response = await fetch(`${functionUrls.marxPayment}/createOrder`, {
@@ -297,7 +300,7 @@ const PaymentRedirectPage: React.FC<PaymentRedirectPageProps> = ({ user: context
                 <div className="mt-8"><div className="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-primary"></div></div>
             </div>
 
-            <form ref={formRef} method="post" action="https://webxpay.com/index.php?route=checkout/billing" style={{ display: 'none' }}>
+            <form ref={formRef} method="post" action={paymentGatewaySettings.gateways.webxpay.baseUrl || "https://webxpay.com/index.php?route=checkout/billing"} style={{ display: 'none' }}>
                 {formData && Object.entries(formData).map(([key, value]) => (
                     <input type="hidden" name={key} value={value as string} key={key} />
                 ))}

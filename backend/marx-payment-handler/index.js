@@ -11,7 +11,8 @@ if (!admin.apps.length) {
         credential: admin.credential.applicationDefault()
     });
 }
-const db = admin.firestore();
+const { getFirestore } = require('firebase-admin/firestore');
+const db = getFirestore('clazzdb2');
 const app = express();
 
 app.use(cors({ origin: true }));
@@ -21,12 +22,30 @@ const MARX_API_BASE_URL = 'https://payment.v4.api.marx.lk/api/v4/ipg';
 const FRONTEND_URL = 'https://clazz.lk';
 
 // Endpoint for the user to be redirected back to from Marx IPG
-app.get('/marx-callback', (req, res) => {
+app.get('/marx-callback', async (req, res) => {
     const { trId, merchantRID } = req.query;
+    const defaultFrontendUrl = 'https://clazz.lk';
+
     if (!trId || !merchantRID) {
-        return res.redirect(`${FRONTEND_URL}/?payment_status=error&msg=Invalid_callback_parameters`);
+        return res.redirect(`${defaultFrontendUrl}/?payment_status=error&msg=Invalid_callback_parameters`);
     }
-    const redirectUrl = new URL(FRONTEND_URL);
+
+    let frontendUrl = defaultFrontendUrl;
+
+    try {
+        // Fetch session to look up dynamic return URL
+        const sessionDoc = await db.collection('payment_sessions').doc(merchantRID).get();
+        if (sessionDoc.exists) {
+            const data = sessionDoc.data();
+            if (data.frontend_url) {
+                frontendUrl = data.frontend_url;
+            }
+        }
+    } catch (e) {
+        console.error("Error fetching session for dynamic redirect:", e);
+    }
+
+    const redirectUrl = new URL(frontendUrl);
     redirectUrl.searchParams.append('payment_gateway', 'marxipg');
     redirectUrl.searchParams.append('trId', trId);
     redirectUrl.searchParams.append('merchantRID', merchantRID);
@@ -35,11 +54,16 @@ app.get('/marx-callback', (req, res) => {
 
 // Endpoint for the frontend to call to initiate a payment
 app.post('/createOrder', async (req, res) => {
-    const { order_id, amount, items, customer, custom_fields, return_url } = req.body;
+    const { order_id, amount, items, customer, custom_fields, return_url, frontend_url } = req.body;
 
     try {
         const settingsDoc = await db.collection('settings').doc('clientAppConfig').get();
-        const apiKey = settingsDoc.data()?.paymentGatewaySettings?.gateways?.marxipg?.apiKey;
+        const marxSettings = settingsDoc.data()?.paymentGatewaySettings?.gateways?.marxipg;
+        const apiKey = marxSettings?.apiKey;
+        const apiBaseUrl = marxSettings?.baseUrl || MARX_API_BASE_URL;
+
+        console.log(`[CreateOrder] Using Marx Base URL: ${apiBaseUrl}`); // Log the active URL
+
         if (!apiKey) {
             throw new Error('Marx IPG API key not configured.');
         }
@@ -62,19 +86,23 @@ app.post('/createOrder', async (req, res) => {
             finalMobile = `+94${finalMobile}`;
         }
 
+        // Generate a unique ID for this specific transaction attempt to avoid "Duplicate Order" errors from Marx
+        // We keep 'order_id' as the customerReference (Invoice No) so it stays consistent.
+        const uniqueMerchantRID = `${order_id}_${Date.now()}`;
+
         const payload = {
-            merchantRID: order_id,
+            merchantRID: uniqueMerchantRID,
             amount: parseFloat(amount.toFixed(2)),
             validTimeLimit: 2, // How many hours the payment link will work
             returnUrl: req.body.return_url || `https://${req.get('host')}/marx-callback`,
             customerMail: customer.email,
             customerMobile: finalMobile,
             orderSummary: items,
-            customerReference: order_id, // Changed from name to Invoice Number (order_id)
+            customerReference: order_id, // This is the visible Invoice Number
             paymentMethod: "OTHER" // "OTHER" (for Visa/Mastercard/UnionPay) or "AMEX"
         };
 
-        const response = await fetch(`${MARX_API_BASE_URL}/orders`, {
+        const response = await fetch(`${apiBaseUrl}/orders`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -90,9 +118,11 @@ app.post('/createOrder', async (req, res) => {
             throw new Error(result.message || 'Failed to create Marx order.');
         }
 
-        // Store custom_fields temporarily for later retrieval
-        await db.collection('payment_sessions').doc(order_id).set({
+        // Store custom_fields temporarily for later retrieval, keyed by the UNIQUE attempt ID
+        await db.collection('payment_sessions').doc(uniqueMerchantRID).set({
+            original_order_id: order_id,
             custom_fields: custom_fields,
+            frontend_url: frontend_url || 'https://clazz.lk', // Save dynamic URL or fallback
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
         });
 
@@ -109,12 +139,15 @@ app.post('/completePayment', async (req, res) => {
 
     try {
         const settingsDoc = await db.collection('settings').doc('clientAppConfig').get();
-        const apiKey = settingsDoc.data()?.paymentGatewaySettings?.gateways?.marxipg?.apiKey;
+        const marxSettings = settingsDoc.data()?.paymentGatewaySettings?.gateways?.marxipg;
+        const apiKey = marxSettings?.apiKey;
+        const apiBaseUrl = marxSettings?.baseUrl || MARX_API_BASE_URL;
+
         if (!apiKey) {
             throw new Error('Marx IPG API key not configured.');
         }
 
-        const response = await fetch(`${MARX_API_BASE_URL}/orders/${trId}`, {
+        const response = await fetch(`${apiBaseUrl}/orders/${trId}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',

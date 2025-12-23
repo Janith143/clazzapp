@@ -13,7 +13,8 @@ const admin = require('firebase-admin');
 if (!admin.apps.length) {
     admin.initializeApp();
 }
-const db = admin.firestore();
+const { getFirestore } = require('firebase-admin/firestore');
+const db = getFirestore('clazzdb2');
 const auth = admin.auth();
 
 const app = express();

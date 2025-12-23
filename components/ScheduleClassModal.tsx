@@ -13,11 +13,11 @@ import MarkdownEditor from './MarkdownEditor';
 import SearchableSelect from './SearchableSelect';
 
 interface ScheduleClassModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSave: (classDetails: IndividualClass) => void;
-  initialData: IndividualClass | null;
-  teacherId: string;
+    isOpen: boolean;
+    onClose: () => void;
+    onSave: (classDetails: IndividualClass) => void;
+    initialData: IndividualClass | null;
+    teacherId: string;
 }
 
 const initialClassState: Omit<IndividualClass, 'id'> = {
@@ -42,7 +42,7 @@ const initialClassState: Omit<IndividualClass, 'id'> = {
 };
 
 const ScheduleClassModal: React.FC<ScheduleClassModalProps> = ({ isOpen, onClose, onSave, initialData, teacherId }) => {
-    const { subjects } = useNavigation();
+    const { subjects, functionUrls } = useNavigation();
     const { currentUser } = useAuth();
     const { teachers } = useData();
     const [classDetails, setClassDetails] = useState<Partial<IndividualClass>>({});
@@ -50,7 +50,7 @@ const ScheduleClassModal: React.FC<ScheduleClassModalProps> = ({ isOpen, onClose
     const [customSubject, setCustomSubject] = useState('');
     const [error, setError] = useState('');
     const [isCreatingMeet, setIsCreatingMeet] = useState(false);
-    
+
     // State for flexible dates
     const [flexibleDates, setFlexibleDates] = useState<{ date: string; startTime: string; endTime: string }[]>([]);
     const [newFlexibleDate, setNewFlexibleDate] = useState({ date: '', startTime: '', endTime: '' });
@@ -59,7 +59,7 @@ const ScheduleClassModal: React.FC<ScheduleClassModalProps> = ({ isOpen, onClose
     const [selectedLocationId, setSelectedLocationId] = useState<string>('');
 
     const isGoogleMeetMode = useMemo(() => initialData?.meetProvider === 'google' || classDetails.meetProvider === 'google', [initialData, classDetails]);
-    
+
     // Get the teacher object to access teachingItems and teachingLocations
     const teacher = useMemo(() => teachers.find(t => t.id === teacherId), [teachers, teacherId]);
     const teachingItems = teacher?.teachingItems || [];
@@ -83,10 +83,10 @@ const ScheduleClassModal: React.FC<ScheduleClassModalProps> = ({ isOpen, onClose
             const availableSubjects = Array.from(new Set(teachingItems
                 .filter(i => i.audience === classDetails.targetAudience)
                 .map(i => i.subject)));
-            
+
             const options = availableSubjects.map(s => ({ value: s, label: s }));
-            
-             // Ensure current selected subject is in the list
+
+            // Ensure current selected subject is in the list
             if (classDetails.subject && !options.some(s => s.value === classDetails.subject)) {
                 options.push({ value: classDetails.subject, label: classDetails.subject });
             }
@@ -105,9 +105,9 @@ const ScheduleClassModal: React.FC<ScheduleClassModalProps> = ({ isOpen, onClose
             teachingItems
                 .filter(i => i.audience === classDetails.targetAudience && i.subject === classDetails.subject)
                 .forEach(i => i.mediums.forEach(m => mediums.add(m)));
-            
+
             const options = Array.from(mediums).map(m => ({ value: m, label: m }));
-             if (classDetails.medium && !options.some(o => o.value === classDetails.medium)) {
+            if (classDetails.medium && !options.some(o => o.value === classDetails.medium)) {
                 options.push({ value: classDetails.medium, label: classDetails.medium });
             }
             return options;
@@ -121,9 +121,9 @@ const ScheduleClassModal: React.FC<ScheduleClassModalProps> = ({ isOpen, onClose
             teachingItems
                 .filter(i => i.audience === classDetails.targetAudience && i.subject === classDetails.subject)
                 .forEach(i => i.grades.forEach(g => grades.add(g)));
-            
+
             const options = Array.from(grades).map(g => ({ value: g, label: g }));
-             if (classDetails.grade && !options.some(o => o.value === classDetails.grade)) {
+            if (classDetails.grade && !options.some(o => o.value === classDetails.grade)) {
                 options.push({ value: classDetails.grade, label: classDetails.grade });
             }
             return options;
@@ -139,21 +139,21 @@ const ScheduleClassModal: React.FC<ScheduleClassModalProps> = ({ isOpen, onClose
 
         // Handle legacy/preserved location for existing classes
         if (initialData?.id && (initialData.mode === 'Physical' || initialData.mode === 'Both')) {
-             const matched = teachingLocations.some(l => 
-                l.instituteName === initialData.institute && 
-                l.town === initialData.town && 
+            const matched = teachingLocations.some(l =>
+                l.instituteName === initialData.institute &&
+                l.town === initialData.town &&
                 l.district === initialData.district
-             );
-             
-             if (!matched) {
-                 const label = [initialData.institute, initialData.town].filter(Boolean).join(' - ') || "Unspecified Location";
-                 options.unshift({
-                     value: 'legacy_location',
-                     label: `${label} (Legacy/Editable)`
-                 });
-             }
+            );
+
+            if (!matched) {
+                const label = [initialData.institute, initialData.town].filter(Boolean).join(' - ') || "Unspecified Location";
+                options.unshift({
+                    value: 'legacy_location',
+                    label: `${label} (Legacy/Editable)`
+                });
+            }
         }
-        
+
         // Admin Override
         if (currentUser?.role === 'admin') {
             options.push({ value: 'custom_location', label: 'Custom / New Location (Admin Only)' });
@@ -161,7 +161,7 @@ const ScheduleClassModal: React.FC<ScheduleClassModalProps> = ({ isOpen, onClose
 
         return options;
     }, [teachingLocations, initialData, currentUser]);
-    
+
     const townOptions = useMemo(() => {
         if (!classDetails.district) return [];
         const towns = sriLankanTownsByDistrict[classDetails.district] || [];
@@ -176,8 +176,8 @@ const ScheduleClassModal: React.FC<ScheduleClassModalProps> = ({ isOpen, onClose
 
             if (isNewClass) {
                 const defaultAudience = hasTeachingItems ? teachingItems[0].audience : 'Secondary school students (Grade 6–11 / O/L candidates)';
-                const defaultSubject = hasTeachingItems 
-                    ? (teachingItems.find(i => i.audience === defaultAudience)?.subject || '') 
+                const defaultSubject = hasTeachingItems
+                    ? (teachingItems.find(i => i.audience === defaultAudience)?.subject || '')
                     : (subjects[defaultAudience]?.[0]?.value || '');
 
                 // Handles both completely new classes and pre-filled new classes (like G-Meet)
@@ -198,21 +198,21 @@ const ScheduleClassModal: React.FC<ScheduleClassModalProps> = ({ isOpen, onClose
                 const dataToUse = initialData;
 
                 const feeString = dataToUse.fee?.toString() as any || '';
-                
+
                 let customAudience = '';
                 let customSub = '';
 
                 if (!hasTeachingItems) {
-                     const isPredefinedAudience = targetAudienceOptions.some(opt => opt.value === dataToUse.targetAudience);
-                     if (!isPredefinedAudience || dataToUse.targetAudience === 'Other') {
-                         customAudience = dataToUse.targetAudience || '';
-                     }
-                     
-                     const subjectOptionsForAudience = subjects[dataToUse.targetAudience] || [];
-                     const isPredefinedSubject = subjectOptionsForAudience.some(opt => opt.value === dataToUse.subject);
-                     if (!isPredefinedSubject) {
-                         customSub = dataToUse.subject || '';
-                     }
+                    const isPredefinedAudience = targetAudienceOptions.some(opt => opt.value === dataToUse.targetAudience);
+                    if (!isPredefinedAudience || dataToUse.targetAudience === 'Other') {
+                        customAudience = dataToUse.targetAudience || '';
+                    }
+
+                    const subjectOptionsForAudience = subjects[dataToUse.targetAudience] || [];
+                    const isPredefinedSubject = subjectOptionsForAudience.some(opt => opt.value === dataToUse.subject);
+                    if (!isPredefinedSubject) {
+                        customSub = dataToUse.subject || '';
+                    }
                 }
 
                 setClassDetails({
@@ -227,15 +227,15 @@ const ScheduleClassModal: React.FC<ScheduleClassModalProps> = ({ isOpen, onClose
 
                 // Try to match existing class details to a saved location ID
                 const matchedLocation = teachingLocations.find(
-                    loc => loc.instituteName === dataToUse.institute && 
-                           loc.town === dataToUse.town && 
-                           loc.district === dataToUse.district
+                    loc => loc.instituteName === dataToUse.institute &&
+                        loc.town === dataToUse.town &&
+                        loc.district === dataToUse.district
                 );
                 if (matchedLocation) {
                     setSelectedLocationId(matchedLocation.id);
                 } else if (dataToUse.id && (dataToUse.mode === 'Physical' || dataToUse.mode === 'Both')) {
                     // Default to legacy if editing an existing physical class that doesn't match
-                    setSelectedLocationId('legacy_location'); 
+                    setSelectedLocationId('legacy_location');
                 } else {
                     setSelectedLocationId('');
                 }
@@ -243,8 +243,8 @@ const ScheduleClassModal: React.FC<ScheduleClassModalProps> = ({ isOpen, onClose
         }
         // CRITICAL FIX: Removed 'teachers', 'teachingItems', etc. to prevent form reset when background data updates.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isOpen, initialData]); 
-    
+    }, [isOpen, initialData]);
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setClassDetails(prev => {
@@ -271,11 +271,11 @@ const ScheduleClassModal: React.FC<ScheduleClassModalProps> = ({ isOpen, onClose
                 }
             }
             if (name === 'subject') {
-                 if (value !== 'Other') setCustomSubject('');
-                 if (hasTeachingItems) {
+                if (value !== 'Other') setCustomSubject('');
+                if (hasTeachingItems) {
                     newState.medium = '';
                     newState.grade = '';
-                 }
+                }
             }
             return newState;
         });
@@ -286,8 +286,8 @@ const ScheduleClassModal: React.FC<ScheduleClassModalProps> = ({ isOpen, onClose
         setSelectedLocationId(locId);
 
         if (!locId) {
-             // Clear fields if deselected to ensure validation fails or no stale data persists
-             setClassDetails(prev => ({
+            // Clear fields if deselected to ensure validation fails or no stale data persists
+            setClassDetails(prev => ({
                 ...prev,
                 institute: '',
                 district: '',
@@ -295,18 +295,18 @@ const ScheduleClassModal: React.FC<ScheduleClassModalProps> = ({ isOpen, onClose
             }));
             return;
         }
-        
+
         if (locId === 'legacy_location' && initialData) {
-             // Populate fields with legacy data but allow editing
-             setClassDetails(prev => ({
+            // Populate fields with legacy data but allow editing
+            setClassDetails(prev => ({
                 ...prev,
                 institute: initialData.institute || '',
                 district: initialData.district || '',
                 town: initialData.town || ''
             }));
         } else if (locId === 'custom_location') {
-             // Clear fields for new manual entry
-             setClassDetails(prev => ({
+            // Clear fields for new manual entry
+            setClassDetails(prev => ({
                 ...prev,
                 institute: '',
                 district: '',
@@ -340,7 +340,7 @@ const ScheduleClassModal: React.FC<ScheduleClassModalProps> = ({ isOpen, onClose
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
-        
+
         if (isGoogleMeetMode) {
             setIsCreatingMeet(true);
         }
@@ -350,7 +350,7 @@ const ScheduleClassModal: React.FC<ScheduleClassModalProps> = ({ isOpen, onClose
 
         try {
             if (isGoogleMeetMode) {
-                const createMeetUrl = 'https://google-meet-handler-980531128265.us-central1.run.app/createGoogleMeet';
+                const createMeetUrl = `${functionUrls.googleMeetHandler}/createGoogleMeet`;
                 const response = await fetch(createMeetUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -389,7 +389,7 @@ const ScheduleClassModal: React.FC<ScheduleClassModalProps> = ({ isOpen, onClose
             let finalDetails: Partial<IndividualClass> = {};
             if (classDetails.recurrence === 'flexible') {
                 if (flexibleDates.length === 0) throw new Error('Please add at least one date for a flexible class.');
-                const sortedDates = [...flexibleDates].sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+                const sortedDates = [...flexibleDates].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
                 finalDetails = {
                     flexibleDates: sortedDates,
                     // Use first date for main date/time fields for consistency
@@ -398,13 +398,13 @@ const ScheduleClassModal: React.FC<ScheduleClassModalProps> = ({ isOpen, onClose
                     endTime: sortedDates[0].endTime,
                 };
             } else {
-                 const selectedDateTime = new Date(`${classDetails.date}T${classDetails.startTime}`);
-                 const now = new Date();
-                 if ((!initialData?.id || classDetails.status === 'scheduled') && selectedDateTime < now) {
-                     throw new Error('Cannot schedule a class in the past.');
-                 }
+                const selectedDateTime = new Date(`${classDetails.date}T${classDetails.startTime}`);
+                const now = new Date();
+                if ((!initialData?.id || classDetails.status === 'scheduled') && selectedDateTime < now) {
+                    throw new Error('Cannot schedule a class in the past.');
+                }
             }
-            
+
             onSave({
                 ...classDetails,
                 ...finalDetails,
@@ -430,10 +430,10 @@ const ScheduleClassModal: React.FC<ScheduleClassModalProps> = ({ isOpen, onClose
     return (
         <Modal isOpen={isOpen} onClose={onClose} title={modalTitle} size="3xl">
             <form onSubmit={handleSubmit} className="space-y-4">
-                <FormInput label="Class Title" name="title" value={classDetails.title || ''} onChange={handleChange} required placeholder="e.g., A-Level Physics 2025 Theory"/>
-                
+                <FormInput label="Class Title" name="title" value={classDetails.title || ''} onChange={handleChange} required placeholder="e.g., A-Level Physics 2025 Theory" />
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormSelect 
+                    <FormSelect
                         label="Target Audience"
                         name="targetAudience"
                         value={classDetails.targetAudience || ''}
@@ -445,7 +445,7 @@ const ScheduleClassModal: React.FC<ScheduleClassModalProps> = ({ isOpen, onClose
                 </div>
 
                 {!hasTeachingItems && classDetails.targetAudience === 'Other' && (
-                     <FormInput
+                    <FormInput
                         label="Please specify audience"
                         name="customTargetAudience"
                         value={customTargetAudience}
@@ -455,7 +455,7 @@ const ScheduleClassModal: React.FC<ScheduleClassModalProps> = ({ isOpen, onClose
                     />
                 )}
                 {!hasTeachingItems && classDetails.subject === 'Other' && (
-                     <FormInput
+                    <FormInput
                         label="Please specify subject"
                         name="customSubject"
                         value={customSubject}
@@ -467,12 +467,12 @@ const ScheduleClassModal: React.FC<ScheduleClassModalProps> = ({ isOpen, onClose
 
                 {hasTeachingItems && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                         <FormSelect label="Medium" name="medium" value={classDetails.medium || ''} onChange={handleChange} options={[{value: '', label: 'Select Medium'}, ...mediumOptions]} />
-                         <FormSelect label="Grade" name="grade" value={classDetails.grade || ''} onChange={handleChange} options={[{value: '', label: 'Select Grade'}, ...gradeOptions]} />
+                        <FormSelect label="Medium" name="medium" value={classDetails.medium || ''} onChange={handleChange} options={[{ value: '', label: 'Select Medium' }, ...mediumOptions]} />
+                        <FormSelect label="Grade" name="grade" value={classDetails.grade || ''} onChange={handleChange} options={[{ value: '', label: 'Select Grade' }, ...gradeOptions]} />
                     </div>
                 )}
 
-                 <MarkdownEditor
+                <MarkdownEditor
                     key={initialData?.id || `new-class-${isOpen}`}
                     label="Description"
                     id="description"
@@ -482,16 +482,16 @@ const ScheduleClassModal: React.FC<ScheduleClassModalProps> = ({ isOpen, onClose
                     rows={3}
                     placeholder="Briefly describe the class"
                 />
-                <FormSelect label="Recurrence" name="recurrence" value={classDetails.recurrence || 'none'} onChange={handleChange} options={[{value: 'none', label: 'One-time'}, {value: 'weekly', label: 'Weekly'}, {value: 'flexible', label: 'Flexible'}]} required />
-                
+                <FormSelect label="Recurrence" name="recurrence" value={classDetails.recurrence || 'none'} onChange={handleChange} options={[{ value: 'none', label: 'One-time' }, { value: 'weekly', label: 'Weekly' }, { value: 'flexible', label: 'Flexible' }]} required />
+
                 {classDetails.recurrence === 'weekly' && (
                     <div className="p-4 border border-dashed border-light-border dark:border-dark-border rounded-md space-y-4">
                         <FormInput label="Start Date" name="date" type="date" value={classDetails.date || ''} onChange={handleChange} required />
                         <FormInput label="End Date (Optional)" name="endDate" type="date" value={classDetails.endDate || ''} onChange={handleChange} />
-                        <FormSelect label="Payment Option" name="weeklyPaymentOption" value={classDetails.weeklyPaymentOption || 'per_session'} onChange={handleChange} options={[{value: 'per_session', label: 'Per Session'}, {value: 'per_month', label: 'Per Month'}]} />
+                        <FormSelect label="Payment Option" name="weeklyPaymentOption" value={classDetails.weeklyPaymentOption || 'per_session'} onChange={handleChange} options={[{ value: 'per_session', label: 'Per Session' }, { value: 'per_month', label: 'Per Month' }]} />
                     </div>
                 )}
-                
+
                 {classDetails.recurrence === 'flexible' && (
                     <div className="p-4 border border-dashed border-light-border dark:border-dark-border rounded-md space-y-4">
                         <h3 className="font-medium text-light-text dark:text-dark-text">Define Class Sessions</h3>
@@ -499,37 +499,37 @@ const ScheduleClassModal: React.FC<ScheduleClassModalProps> = ({ isOpen, onClose
                             {flexibleDates.map((d, i) => (
                                 <div key={i} className="flex items-center justify-between p-2 bg-light-surface dark:bg-dark-surface rounded-md">
                                     <p className="text-sm">{new Date(d.date).toLocaleDateString()} at {d.startTime} - {d.endTime}</p>
-                                    <button type="button" onClick={() => handleRemoveFlexibleDate(i)} className="p-1 text-red-500 rounded-full hover:bg-red-100 dark:hover:bg-red-900/50"><TrashIcon className="w-4 h-4"/></button>
+                                    <button type="button" onClick={() => handleRemoveFlexibleDate(i)} className="p-1 text-red-500 rounded-full hover:bg-red-100 dark:hover:bg-red-900/50"><TrashIcon className="w-4 h-4" /></button>
                                 </div>
                             ))}
                         </div>
                         <div className="flex flex-col md:flex-row items-end gap-2 pt-2 border-t border-light-border dark:border-dark-border">
-                            <FormInput label="Date" name="new_date" type="date" value={newFlexibleDate.date} onChange={e => setNewFlexibleDate(p => ({...p, date: e.target.value}))} />
-                            <FormInput label="Start" name="new_start" type="time" value={newFlexibleDate.startTime} onChange={e => setNewFlexibleDate(p => ({...p, startTime: e.target.value}))} />
-                            <FormInput label="End" name="new_end" type="time" value={newFlexibleDate.endTime} onChange={e => setNewFlexibleDate(p => ({...p, endTime: e.target.value}))} />
-                            <button type="button" onClick={handleAddFlexibleDate} className="px-4 py-2 bg-primary text-white rounded-md text-sm h-10"><PlusIcon className="w-5 h-5"/></button>
+                            <FormInput label="Date" name="new_date" type="date" value={newFlexibleDate.date} onChange={e => setNewFlexibleDate(p => ({ ...p, date: e.target.value }))} />
+                            <FormInput label="Start" name="new_start" type="time" value={newFlexibleDate.startTime} onChange={e => setNewFlexibleDate(p => ({ ...p, startTime: e.target.value }))} />
+                            <FormInput label="End" name="new_end" type="time" value={newFlexibleDate.endTime} onChange={e => setNewFlexibleDate(p => ({ ...p, endTime: e.target.value }))} />
+                            <button type="button" onClick={handleAddFlexibleDate} className="px-4 py-2 bg-primary text-white rounded-md text-sm h-10"><PlusIcon className="w-5 h-5" /></button>
                         </div>
                     </div>
                 )}
-                
+
                 {classDetails.recurrence !== 'flexible' && (
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {classDetails.recurrence === 'none' && <FormInput label="Date" name="date" type="date" value={classDetails.date || ''} onChange={handleChange} required />}
                         <FormInput label="Start Time" name="startTime" type="time" value={classDetails.startTime || ''} onChange={handleChange} required />
                         <FormInput label="End Time" name="endTime" type="time" value={classDetails.endTime || ''} onChange={handleChange} required />
                     </div>
                 )}
-                
+
                 <div>
                     <FormInput label="Fee (LKR)" name="fee" type="number" value={classDetails.fee as any || ''} onChange={handleChange} required />
                     <p className="text-xs text-light-subtle dark:text-dark-subtle mt-1">Fee is per session for 'Weekly (Per Session)' and 'One-time' classes. For 'Weekly (Per Month)' and 'Flexible', this is the total fee for the period.</p>
                 </div>
-                <FormSelect label="Mode" name="mode" value={classDetails.mode || 'Online'} onChange={handleChange} options={[{value: 'Online', label: 'Online'}, {value: 'Physical', label: 'Physical'}, {value: 'Both', label: 'Online & Physical'}]} required />
-                
+                <FormSelect label="Mode" name="mode" value={classDetails.mode || 'Online'} onChange={handleChange} options={[{ value: 'Online', label: 'Online' }, { value: 'Physical', label: 'Physical' }, { value: 'Both', label: 'Online & Physical' }]} required />
+
                 {(classDetails.mode === 'Physical' || classDetails.mode === 'Both') && !isGoogleMeetMode && (
                     <div className="p-4 border border-light-border dark:border-dark-border rounded-md space-y-4">
                         <h3 className="font-medium text-light-text dark:text-dark-text">Physical Location & Payment</h3>
-                        
+
                         <FormSelect
                             label="Select a Saved Location"
                             name="locationId"
@@ -538,13 +538,13 @@ const ScheduleClassModal: React.FC<ScheduleClassModalProps> = ({ isOpen, onClose
                             options={[{ value: '', label: 'Select a location...' }, ...locationOptions]}
                             required
                         />
-                        
+
                         {locationOptions.length === 0 && (
                             <p className="text-red-500 text-xs bg-red-50 dark:bg-red-900/30 p-2 rounded-md">
                                 You have not added any teaching locations to your profile yet. Please go to your Profile (Edit Profile -&gt; Optional Details) to add Institutes/Locations before scheduling a physical class.
                             </p>
                         )}
-                        
+
                         {/* 
                            If a profile location is selected, show read-only details.
                            If a legacy or custom option is selected, show editable fields.
@@ -557,29 +557,29 @@ const ScheduleClassModal: React.FC<ScheduleClassModalProps> = ({ isOpen, onClose
                                 </div>
                             ) : (
                                 <div className="space-y-4 pt-2">
-                                     <FormInput label="Institute Name" name="institute" value={classDetails.institute || ''} onChange={handleChange} required placeholder="e.g., Apex Hall" />
-                                     <div className="grid grid-cols-2 gap-4">
-                                          <SearchableSelect
-                                              label="District"
-                                              options={sriLankanDistricts.map(d => ({ value: d, label: d }))}
-                                              value={classDetails.district || ''}
-                                              onChange={(val) => setClassDetails(prev => ({...prev, district: val, town: ''}))}
-                                              placeholder="District"
-                                          />
-                                          <SearchableSelect
-                                              label="Town"
-                                              options={classDetails.district ? [{ value: '', label: 'Select a town' }, ...(sriLankanTownsByDistrict[classDetails.district] || []).map(t => ({ value: t, label: t }))] : []}
-                                              value={classDetails.town || ''}
-                                              onChange={(val) => setClassDetails(prev => ({...prev, town: val}))}
-                                              placeholder="Town"
-                                              disabled={!classDetails.district}
-                                          />
-                                     </div>
+                                    <FormInput label="Institute Name" name="institute" value={classDetails.institute || ''} onChange={handleChange} required placeholder="e.g., Apex Hall" />
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <SearchableSelect
+                                            label="District"
+                                            options={sriLankanDistricts.map(d => ({ value: d, label: d }))}
+                                            value={classDetails.district || ''}
+                                            onChange={(val) => setClassDetails(prev => ({ ...prev, district: val, town: '' }))}
+                                            placeholder="District"
+                                        />
+                                        <SearchableSelect
+                                            label="Town"
+                                            options={classDetails.district ? [{ value: '', label: 'Select a town' }, ...(sriLankanTownsByDistrict[classDetails.district] || []).map(t => ({ value: t, label: t }))] : []}
+                                            value={classDetails.town || ''}
+                                            onChange={(val) => setClassDetails(prev => ({ ...prev, town: val }))}
+                                            placeholder="Town"
+                                            disabled={!classDetails.district}
+                                        />
+                                    </div>
                                 </div>
                             )
                         )}
 
-                         <FormSelect
+                        <FormSelect
                             label="Payment Collection Method"
                             name="paymentMethod"
                             value={classDetails.paymentMethod || 'platform'}
@@ -592,55 +592,55 @@ const ScheduleClassModal: React.FC<ScheduleClassModalProps> = ({ isOpen, onClose
                         />
                     </div>
                 )}
-                
+
                 {(!isGoogleMeetMode && (classDetails.mode === 'Online' || classDetails.mode === 'Both')) && (
-                     <div className="p-4 border border-light-border dark:border-dark-border rounded-md space-y-4">
+                    <div className="p-4 border border-light-border dark:border-dark-border rounded-md space-y-4">
                         <h3 className="font-medium text-light-text dark:text-dark-text">Online Details</h3>
-                        <FormInput 
-                            label="Online Joining Link (Zoom, Manual Meet, etc.)" 
-                            name="joiningLink" 
-                            type="url" 
-                            value={classDetails.joiningLink || ''} 
-                            onChange={handleChange} 
-                            placeholder="e.g., https://zoom.us/j/1234567890" 
+                        <FormInput
+                            label="Online Joining Link (Zoom, Manual Meet, etc.)"
+                            name="joiningLink"
+                            type="url"
+                            value={classDetails.joiningLink || ''}
+                            onChange={handleChange}
+                            placeholder="e.g., https://zoom.us/j/1234567890"
                         />
-                        <FormInput 
-                            label="Shared Document Link (Google Drive, etc.)" 
-                            name="documentLink" 
-                            type="url" 
-                            value={classDetails.documentLink || ''} 
-                            onChange={handleChange} 
-                            placeholder="e.g., https://drive.google.com/drive/folders/..." 
+                        <FormInput
+                            label="Shared Document Link (Google Drive, etc.)"
+                            name="documentLink"
+                            type="url"
+                            value={classDetails.documentLink || ''}
+                            onChange={handleChange}
+                            placeholder="e.g., https://drive.google.com/drive/folders/..."
                         />
                     </div>
                 )}
 
                 {isGoogleMeetMode && (
-                     <div className="p-4 border border-light-border dark:border-dark-border rounded-md space-y-4">
-                         <h3 className="font-medium text-light-text dark:text-dark-text">Online Details</h3>
+                    <div className="p-4 border border-light-border dark:border-dark-border rounded-md space-y-4">
+                        <h3 className="font-medium text-light-text dark:text-dark-text">Online Details</h3>
                         <p className="text-sm p-2 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-md">
                             A Google Meet link will be automatically generated and attached to this class upon saving.
                         </p>
-                        <FormInput 
-                            label="Shared Document Link (Google Drive, etc.)" 
-                            name="documentLink" 
-                            type="url" 
-                            value={classDetails.documentLink || ''} 
-                            onChange={handleChange} 
-                            placeholder="e.g., https://drive.google.com/drive/folders/..." 
+                        <FormInput
+                            label="Shared Document Link (Google Drive, etc.)"
+                            name="documentLink"
+                            type="url"
+                            value={classDetails.documentLink || ''}
+                            onChange={handleChange}
+                            placeholder="e.g., https://drive.google.com/drive/folders/..."
                         />
                     </div>
                 )}
-                
+
                 {error && <p className="text-red-500 text-sm text-center">{error}</p>}
 
                 <div className="pt-4 flex justify-end space-x-3">
-                     <button type="button" onClick={onClose} className="inline-flex items-center justify-center px-4 py-2 border border-light-border dark:border-dark-border text-sm font-medium rounded-md shadow-sm text-light-text dark:text-dark-text bg-light-surface dark:bg-dark-surface hover:bg-light-border dark:hover:bg-dark-border/50 transition-colors">
-                        <XIcon className="w-4 h-4 mr-2"/>
+                    <button type="button" onClick={onClose} className="inline-flex items-center justify-center px-4 py-2 border border-light-border dark:border-dark-border text-sm font-medium rounded-md shadow-sm text-light-text dark:text-dark-text bg-light-surface dark:bg-dark-surface hover:bg-light-border dark:hover:bg-dark-border/50 transition-colors">
+                        <XIcon className="w-4 h-4 mr-2" />
                         Cancel
                     </button>
                     <button type="submit" disabled={isCreatingMeet} className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary-dark disabled:opacity-50">
-                        {isCreatingMeet ? <SpinnerIcon className="w-4 h-4 mr-2" /> : <SaveIcon className="w-4 h-4 mr-2"/>}
+                        {isCreatingMeet ? <SpinnerIcon className="w-4 h-4 mr-2" /> : <SaveIcon className="w-4 h-4 mr-2" />}
                         {isCreatingMeet ? 'Saving...' : 'Save Class'}
                     </button>
                 </div>

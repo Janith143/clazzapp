@@ -35,7 +35,7 @@ const ChatWidget: React.FC = () => {
     const [viewState, setViewState] = useState<ChatState>('minimised');
     const [language, setLanguage] = useState<Language>('en');
     const [isExpanded, setIsExpanded] = useState(true);
-    
+
     // Form States
     const [name, setName] = useState('');
     const [phone, setPhone] = useState('');
@@ -120,7 +120,7 @@ const ChatWidget: React.FC = () => {
             currentChatId = uuidv4();
             setChatId(currentChatId);
             sessionStorage.setItem('supportChatId', currentChatId);
-            
+
             await setDoc(doc(db, 'supportChats', currentChatId), {
                 createdAt: new Date().toISOString(),
                 lastUpdated: new Date().toISOString(),
@@ -150,7 +150,7 @@ const ChatWidget: React.FC = () => {
                 timestamp: new Date().toISOString()
             });
 
-            const TELEGRAM_BOT_URL = 'https://telegram-bot-service-980531128265.us-central1.run.app/sendMessageToTelegram'; 
+            const TELEGRAM_BOT_URL = 'https://telegrambot-gde2vv2rxa-el.a.run.app/sendMessageToTelegram';
             await fetch(TELEGRAM_BOT_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -194,8 +194,8 @@ const ChatWidget: React.FC = () => {
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-4 w-4 bg-red-500 border-2 border-white"></span>
                 </span>
-                
-                <button 
+
+                <button
                     onClick={() => setViewState('language_select')}
                     className="flex items-center p-4 bg-gradient-to-tr from-primary to-blue-500 text-white rounded-2xl shadow-xl hover:shadow-primary/40 transition-all duration-300 transform hover:scale-110 active:scale-95"
                     aria-label="Chat Now"
@@ -214,10 +214,10 @@ const ChatWidget: React.FC = () => {
 
     return (
         <div className={`fixed bottom-20 md:bottom-8 right-6 z-[60] bg-white dark:bg-dark-surface rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-slate-200 dark:border-dark-border flex flex-col transition-all duration-500 ease-in-out ${windowClasses}`}>
-            
+
             {/* Window Header */}
-            <div 
-                className="flex items-center justify-between p-4 bg-gradient-to-r from-primary to-primary-dark text-white rounded-t-2xl flex-shrink-0 cursor-pointer shadow-md" 
+            <div
+                className="flex items-center justify-between p-4 bg-gradient-to-r from-primary to-primary-dark text-white rounded-t-2xl flex-shrink-0 cursor-pointer shadow-md"
                 onClick={() => !isExpanded && setIsExpanded(true)}
             >
                 <div className="flex items-center gap-3">
@@ -258,7 +258,7 @@ const ChatWidget: React.FC = () => {
                             <p className="text-center font-bold text-xl text-slate-800 dark:text-white mb-4">{t.welcome}</p>
                             <button onClick={() => setViewState('request_call')} className="group flex items-center gap-4 p-5 bg-white dark:bg-dark-background border border-slate-200 dark:border-dark-border rounded-2xl hover:border-primary hover:shadow-lg transition-all">
                                 <div className="p-3 bg-blue-50 dark:bg-blue-900/20 text-primary rounded-xl group-hover:bg-primary group-hover:text-white transition-all">
-                                    <PhoneIcon className="w-6 h-6"/>
+                                    <PhoneIcon className="w-6 h-6" />
                                 </div>
                                 <div className="text-left">
                                     <p className="font-bold">{t.reqCall}</p>
@@ -267,7 +267,7 @@ const ChatWidget: React.FC = () => {
                             </button>
                             <button onClick={initLiveChat} className="group flex items-center gap-4 p-5 bg-white dark:bg-dark-background border border-slate-200 dark:border-dark-border rounded-2xl hover:border-primary hover:shadow-lg transition-all">
                                 <div className="p-3 bg-green-50 dark:bg-green-900/20 text-green-600 rounded-xl group-hover:bg-green-600 group-hover:text-white transition-all">
-                                    <MessageSquareIcon className="w-6 h-6"/>
+                                    <MessageSquareIcon className="w-6 h-6" />
                                 </div>
                                 <div className="text-left">
                                     <p className="font-bold">{t.liveChat}</p>
@@ -287,17 +287,17 @@ const ChatWidget: React.FC = () => {
                             ) : (
                                 <form onSubmit={handleRequestCallSubmit} className="space-y-4">
                                     <h4 className="font-bold text-center text-lg mb-2">{t.reqCall}</h4>
-                                    <input 
-                                        type="text" placeholder={t.name} value={name} 
-                                        onChange={e => setName(e.target.value)} 
-                                        className="w-full p-3 border rounded-xl dark:bg-dark-background dark:border-dark-border focus:ring-2 focus:ring-primary/20 outline-none transition-all" 
-                                        required 
+                                    <input
+                                        type="text" placeholder={t.name} value={name}
+                                        onChange={e => setName(e.target.value)}
+                                        className="w-full p-3 border rounded-xl dark:bg-dark-background dark:border-dark-border focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                                        required
                                     />
-                                    <input 
-                                        type="tel" placeholder={t.phone} value={phone} 
-                                        onChange={e => setPhone(e.target.value)} 
-                                        className="w-full p-3 border rounded-xl dark:bg-dark-background dark:border-dark-border focus:ring-2 focus:ring-primary/20 outline-none transition-all" 
-                                        required 
+                                    <input
+                                        type="tel" placeholder={t.phone} value={phone}
+                                        onChange={e => setPhone(e.target.value)}
+                                        className="w-full p-3 border rounded-xl dark:bg-dark-background dark:border-dark-border focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+                                        required
                                     />
                                     <button type="submit" className="w-full bg-primary text-white py-3 rounded-xl font-bold shadow-lg shadow-primary/30 hover:bg-primary-dark transition-all transform active:scale-95">{t.submit}</button>
                                 </form>
@@ -315,11 +315,10 @@ const ChatWidget: React.FC = () => {
                                 )}
                                 {messages.map((msg) => (
                                     <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                        <div className={`max-w-[85%] p-3.5 rounded-2xl text-sm shadow-sm ${
-                                            msg.sender === 'user' 
-                                            ? 'bg-primary text-white rounded-tr-none' 
+                                        <div className={`max-w-[85%] p-3.5 rounded-2xl text-sm shadow-sm ${msg.sender === 'user'
+                                            ? 'bg-primary text-white rounded-tr-none'
                                             : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-tl-none border border-slate-100 dark:border-slate-700'
-                                        }`}>
+                                            }`}>
                                             {msg.text}
                                         </div>
                                     </div>
@@ -327,10 +326,10 @@ const ChatWidget: React.FC = () => {
                                 <div ref={messagesEndRef} />
                             </div>
                             <form onSubmit={handleSendMessage} className="flex gap-2 p-2 bg-white dark:bg-dark-background border border-slate-200 dark:border-dark-border rounded-2xl shadow-inner focus-within:border-primary transition-all">
-                                <input 
-                                    type="text" value={inputText} onChange={e => setInputText(e.target.value)} 
+                                <input
+                                    type="text" value={inputText} onChange={e => setInputText(e.target.value)}
                                     placeholder={t.typePlaceholder}
-                                    className="flex-1 bg-transparent px-2 py-1 focus:outline-none text-sm" 
+                                    className="flex-1 bg-transparent px-2 py-1 focus:outline-none text-sm"
                                 />
                                 <button type="submit" disabled={!inputText.trim()} className="p-2.5 bg-primary text-white rounded-xl disabled:opacity-40 hover:scale-105 active:scale-95 transition-all">
                                     <SendIcon className="w-5 h-5" />

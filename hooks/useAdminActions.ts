@@ -498,14 +498,17 @@ export const useAdminActions = (deps: any) => {
 
     const handleSendNotification = useCallback(async (teacherId: string, content: string, target: Notification['target']) => {
         // Fallback to hardcoded if not set yet, for backwards compatibility
-        const FCM_FUNCTION_URL = functionUrls.fcmNotification || 'https://fcm-notifications-980531128265.us-central1.run.app/send-fcm-push';
+        const FCM_FUNCTION_URL = functionUrls.fcmNotification || 'https://asia-south1-clazz2-new.cloudfunctions.net/fcmNotifications/send-fcm-push';
         try {
             const response = await fetch(FCM_FUNCTION_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ teacherId, content, target }),
             });
-            if (!response.ok) throw new Error('Failed to send notification');
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to send notification');
+            }
             addToast('Notification sent successfully!', 'success');
         } catch (e) {
             console.error(e);

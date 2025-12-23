@@ -19,7 +19,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 // Get instances of Firebase services using v9+ modular SDK
-export const db = getFirestore(app, "clazzdb2");
+export const db = getFirestore(app, 'clazzdb2'); // Use named database
 export const auth = getAuth(app);
 // FIX: Correctly initialize storage using the imported getStorage function.
 export const storage = getStorage(app);

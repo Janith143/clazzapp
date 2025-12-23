@@ -14,7 +14,7 @@ interface FirebaseContextType {
 const FirebaseContext = createContext<FirebaseContextType | undefined>(undefined);
 
 export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const { addToast } = useUI();
+    const { addToast, setChatWidgetOpen } = useUI();
     const { currentUser } = useAuth();
     const [fcmToken, setFcmToken] = useState<string | null>(null);
 
@@ -35,30 +35,30 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                     // This prevents 'missing required authentication credential' errors
                     // by ensuring we have a valid registration scope.
                     let registration = await navigator.serviceWorker.getRegistration('/firebase-messaging-sw.js');
-                    
+
                     if (!registration) {
                         // If not found (e.g. first load), wait for ready or try register
                         registration = await navigator.serviceWorker.ready;
                     }
-                    
+
                     const permission = await Notification.requestPermission();
                     if (permission === 'granted') {
                         console.log('Notification permission granted.');
-                        
+
                         try {
-                            const currentToken = await getToken(messaging, { 
-                                vapidKey: "BP91yF-1yA6aV0k-1uG2yE-3lB4mN5oP6qR7sT8uV9w",
-                                serviceWorkerRegistration: registration 
+                            const currentToken = await getToken(messaging, {
+                                vapidKey: "BLk_TH2Pmf_M2_PpNQHazldZWKyZRL_7DsYGt8yToxYB-wXSjCew2JoKb-pxgS8FzwGkmcWz4NttuURRR7VdEu4",
+                                serviceWorkerRegistration: registration
                             });
 
                             if (currentToken) {
                                 console.log('FCM Token:', currentToken);
                                 setFcmToken(currentToken);
-                                
+
                                 if (currentUser?.id) {
                                     const userRef = doc(db, "users", currentUser.id);
                                     const userDoc = await getDoc(userRef);
-                                    
+
                                     if (userDoc.exists()) {
                                         const userData = userDoc.data() as User;
                                         if (!userData.fcmTokens || !userData.fcmTokens.includes(currentToken)) {
@@ -85,15 +85,26 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                     console.log('Message received. ', payload);
                     const title = payload.notification?.title || 'New Message';
                     const body = payload.notification?.body || 'You have a new notification!';
-                    
+
                     addToast(`${title}: ${body}`, 'info');
+
+                    // Automatically open chat widget if it's a chat reply
+                    if (payload.data?.type === 'chat_reply') {
+                        setChatWidgetOpen(true);
+                    }
                 });
 
             } catch (error) {
                 console.error('An error occurred during FCM setup:', error);
+                // NEW: Explicitly log the error stack for better debugging
+                if (error instanceof Error) {
+                    console.error('Error stack:', error.stack);
+                }
             }
         };
 
+        // NEW: Log initial permission state
+        console.log('Initial Notification Permission State:', Notification.permission);
         setupFcm();
 
         return () => {
@@ -103,7 +114,7 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         };
 
     }, [currentUser?.id, addToast]);
-    
+
     const value = {
         fcmToken
     };

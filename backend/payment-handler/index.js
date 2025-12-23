@@ -28,19 +28,43 @@ app.post('/payment-callback', (req, res) => {
     console.log('--- Received WebXPay Callback ---');
     console.log('Raw Body:', req.body);
 
-    const frontendUrl = 'https://clazz.lk';
+    const defaultFrontendUrl = 'https://clazz.lk';
+    let frontendUrl = defaultFrontendUrl;
 
     try {
         const encodedPayment = req.body.payment;
-        const customFields = req.body.custom_fields || req.body.custom_feilds;
+        // custom_fields usually comes as a Base64 string from frontend -> Gateway -> Here
+        // But some gateways might decode it or send it as is. WebXPay documentation says custom_fields is string.
+        const customFieldsRaw = req.body.custom_fields || req.body.custom_feilds;
 
         const orderId = req.body.order_id;
         const msg = req.body.msg;
 
-        if (!encodedPayment || customFields === undefined) {
+        if (!encodedPayment || !customFieldsRaw) {
             console.error('Callback is missing "payment" or "custom_fields" in the body.');
-            return res.redirect(`${frontendUrl}/?payment_status=error&msg=Invalid_callback_from_gateway`);
+            return res.redirect(`${defaultFrontendUrl}/?payment_status=error&msg=Invalid_callback_from_gateway`);
         }
+
+        // Try to decode custom_fields to find frontend_url
+        try {
+            // First decode Base64
+            const decodedCustomFields = Buffer.from(customFieldsRaw, 'base64').toString('utf-8');
+            // Then URL decode if needed (though Base64 usually covers it) - sometimes JSON is URIComponentEncoded before Base64
+            const jsonString = decodeURIComponent(decodedCustomFields);
+            const customFieldsObj = JSON.parse(jsonString);
+
+            if (customFieldsObj && customFieldsObj.frontend_url) {
+                frontendUrl = customFieldsObj.frontend_url;
+                // Basic validation to ensure it's a valid URL string
+                if (!frontendUrl.startsWith('http')) {
+                    frontendUrl = defaultFrontendUrl;
+                }
+            }
+        } catch (e) {
+            console.warn("Retaining default frontend URL. Failed to parse custom_fields for dynamic redirection:", e.message);
+        }
+
+        console.log(`Using Frontend URL: ${frontendUrl}`);
 
         const decodedPayment = Buffer.from(encodedPayment, 'base64').toString('utf8');
         console.log('Decoded Payment String:', decodedPayment);
@@ -57,7 +81,8 @@ app.post('/payment-callback', (req, res) => {
 
         const redirectUrl = new URL(frontendUrl);
         redirectUrl.searchParams.append('status_code', statusCode);
-        redirectUrl.searchParams.append('custom_fields', customFields);
+        // Pass original raw custom_fields back to frontend to be parsed there
+        redirectUrl.searchParams.append('custom_fields', customFieldsRaw);
 
         if (orderId) redirectUrl.searchParams.append('order_id', orderId);
         if (msg) redirectUrl.searchParams.append('msg', msg);

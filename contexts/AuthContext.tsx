@@ -43,10 +43,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
     const { addToast, setModalState } = useUI();
-    const { handleNavigate } = useNavigation();
+    const { handleNavigate, functionUrls } = useNavigation();
 
-    // NOTE: Replace with your actual deployed Cloud Function URL base
-    const cloudFunctionBaseUrl = 'https://us-central1-gen-lang-client-0695487820.cloudfunctions.net/notification-function';
+    // Use dynamic URL from context (defaults to asia-south1 if not loaded)
+    const cloudFunctionBaseUrl = functionUrls.notification;
 
     useEffect(() => {
         // FIX: Replaced useRef with a closure variable to manage the snapshot subscription.

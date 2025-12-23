@@ -18,7 +18,7 @@ interface TeacherClassesTabProps {
 
 const TeacherClassesTab: React.FC<TeacherClassesTabProps> = ({ teacher, canEdit, onScheduleNew, onScheduleFreeSlot, onScheduleGoogleMeet, onEdit, onDelete }) => {
     const { sales, handleTogglePublishState } = useData();
-    const { handleNavigate } = useNavigation();
+    const { handleNavigate, functionUrls } = useNavigation();
 
     const enrollmentCounts = useMemo(() => {
         const counts: { [key: string]: number } = {};
@@ -41,16 +41,16 @@ const TeacherClassesTab: React.FC<TeacherClassesTabProps> = ({ teacher, canEdit,
             });
         return counts;
     }, [sales, teacher.id, teacher.individualClasses]);
-    
+
     const classesToShow = useMemo(() => {
-        return canEdit 
-            ? teacher.individualClasses.filter(c => !c.isDeleted) 
+        return canEdit
+            ? teacher.individualClasses.filter(c => !c.isDeleted)
             : teacher.individualClasses.filter(c => c.isPublished && c.status !== 'finished' && c.status !== 'canceled' && !c.isDeleted);
     }, [canEdit, teacher.individualClasses]);
 
     const handleConnectGoogle = () => {
         // This URL should point to your deployed `googleAuthRedirect` Cloud Function
-        const functionUrl = `https://google-meet-handler-980531128265.us-central1.run.app/googleAuthRedirect?teacherId=${teacher.id}`;
+        const functionUrl = `${functionUrls.googleMeetHandler}/googleAuthRedirect?teacherId=${teacher.id}`;
         window.location.href = functionUrl;
     };
 
@@ -72,7 +72,7 @@ const TeacherClassesTab: React.FC<TeacherClassesTabProps> = ({ teacher, canEdit,
                             <span>Schedule 1-on-1 Slot</span>
                         </button>
                     </div>
-                     {!teacher.googleRefreshToken && (
+                    {!teacher.googleRefreshToken && (
                         <div className="p-4 bg-yellow-50 dark:bg-yellow-900/30 border-l-4 border-yellow-400 rounded-r-md flex flex-col sm:flex-row items-center justify-between gap-4">
                             <p className="text-sm text-yellow-800 dark:text-yellow-200">
                                 To automatically generate Google Meet links, you need to connect your Google account.
@@ -85,27 +85,27 @@ const TeacherClassesTab: React.FC<TeacherClassesTabProps> = ({ teacher, canEdit,
                     )}
                     {teacher.googleRefreshToken && (
                         <div className="p-3 bg-green-50 dark:bg-green-900/30 border-l-4 border-green-400 rounded-r-md flex items-center gap-2">
-                           <CheckCircleIcon className="w-5 h-5 text-green-600 dark:text-green-400"/>
-                           <p className="text-sm font-semibold text-green-800 dark:text-green-200">
+                            <CheckCircleIcon className="w-5 h-5 text-green-600 dark:text-green-400" />
+                            <p className="text-sm font-semibold text-green-800 dark:text-green-200">
                                 Your Google Account is connected. You can now schedule classes with Google Meet.
-                           </p>
+                            </p>
                         </div>
                     )}
                 </div>
             )}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {classesToShow.map(classInfo => (
-                <ClassCard 
-                    key={classInfo.id} 
-                    classInfo={classInfo} 
-                    teacher={teacher} 
-                    viewMode={canEdit ? "teacher" : "public"} 
-                    enrollmentCount={enrollmentCounts[`class_${classInfo.id}`] || 0} 
-                    onView={(c) => handleNavigate({name: 'class_detail', classId: c.id})} 
-                    onEdit={onEdit} 
-                    onDelete={onDelete}
-                    onTogglePublish={(id) => handleTogglePublishState(teacher.id, id, 'class')} 
-                />
+                    <ClassCard
+                        key={classInfo.id}
+                        classInfo={classInfo}
+                        teacher={teacher}
+                        viewMode={canEdit ? "teacher" : "public"}
+                        enrollmentCount={enrollmentCounts[`class_${classInfo.id}`] || 0}
+                        onView={(c) => handleNavigate({ name: 'class_detail', classId: c.id })}
+                        onEdit={onEdit}
+                        onDelete={onDelete}
+                        onTogglePublish={(id) => handleTogglePublishState(teacher.id, id, 'class')}
+                    />
                 ))}
             </div>
         </div>
