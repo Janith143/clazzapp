@@ -65,59 +65,7 @@
     </script>
 
     <link rel="stylesheet" href="https://unpkg.com/draft-js@0.11.7/dist/Draft.css" />
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        'primary': {
-                            light: '#60a5fa', // blue-400
-                            DEFAULT: '#3b82f6', // blue-500
-                            dark: '#2563eb', // blue-600
-                        },
-                        'light-background': '#f8fafc', // slate-50
-                        'light-surface': '#ffffff', // white
-                        'light-text': '#0f172a', // slate-900
-                        'light-subtle': '#64748b', // slate-500
-                        'light-border': '#e2e8f0', // slate-200
-                        'dark-background': '#020617', // slate-950
-                        'dark-surface': '#0f172a', // slate-900
-                        'dark-text': '#e2e8f0', // slate-200
-                        'dark-subtle': '#94a3b8', // slate-400
-                        'dark-border': '#1e293b', // slate-800
-                    },
-                    animation: {
-                        fadeIn: 'fadeIn 0.5s ease-in-out',
-                        slideInUp: 'slideInUp 0.5s ease-in-out',
-                        marquee: 'marquee 40s linear infinite',
-                        shake: 'shake 0.6s cubic-bezier(.36,.07,.19,.97) both',
-                    },
-                    keyframes: {
-                        fadeIn: {
-                            '0%': { opacity: '0' },
-                            '100%': { opacity: '1' },
-                        },
-                        slideInUp: {
-                            '0%': { opacity: '0', transform: 'translateY(20px)' },
-                            '100%': { opacity: '1', transform: 'translateY(0)' },
-                        },
-                        marquee: {
-                            '0%': { transform: 'translateX(0%)' },
-                            '100%': { transform: 'translateX(-50%)' },
-                        },
-                        shake: {
-                            '10%, 90%': { transform: 'translateX(-1px)' },
-                            '20%, 80%': { transform: 'translateX(2px)' },
-                            '30%, 50%, 70%': { transform: 'translateX(-4px)' },
-                            '40%, 60%': { transform: 'translateX(4px)' },
-                        }
-                    }
-                }
-            }
-        }
-    </script>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jsencrypt/3.3.2/jsencrypt.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
@@ -299,17 +247,17 @@
         }
     </style>
     <script>
-            (function () {
-                // This script checks for payment callback or referral query parameters in the main URL.
-                // If found, it moves them into the URL hash to be compatible with the app's SPA router.
-                const searchParams = new URLSearchParams(window.location.search);
-                if (searchParams.has('status_code') || searchParams.get('payment_gateway') === 'marxipg' || searchParams.has('ref') || searchParams.has('teacherRef')) {
-                    const newUrl = window.location.pathname + '#/' + window.location.search;
-                    // Use replace to avoid adding the intermediate URL to the browser history.
-                    // The app will initialize with the correct hash.
-                    window.location.replace(newUrl);
-                }
-            })();
+        (function () {
+            // This script checks for payment callback or referral query parameters in the main URL.
+            // If found, it moves them into the URL hash to be compatible with the app's SPA router.
+            const searchParams = new URLSearchParams(window.location.search);
+            if (searchParams.has('status_code') || searchParams.get('payment_gateway') === 'marxipg' || searchParams.has('ref') || searchParams.has('teacherRef')) {
+                const newUrl = window.location.pathname + '#/' + window.location.search;
+                // Use replace to avoid adding the intermediate URL to the browser history.
+                // The app will initialize with the correct hash.
+                window.location.replace(newUrl);
+            }
+        })();
     </script>
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-98MHPV86X9"></script>
@@ -333,12 +281,11 @@
     "firebase/": "https://esm.sh/firebase@^12.7.0/",
     "jspdf": "https://esm.sh/jspdf@^3.0.4",
     "html2canvas": "https://esm.sh/html2canvas@^1.4.1",
-    "qrcode": "https://esm.sh/qrcode@^1.5.4",
     "draft-js": "https://esm.sh/draft-js@^0.11.7"
   }
 }
 </script>
-    <link rel="stylesheet" href="/index.css">
+
 </head>
 
 <body class="bg-light-background dark:bg-dark-background">

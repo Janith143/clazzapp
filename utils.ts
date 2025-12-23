@@ -124,16 +124,23 @@ export const getOptimizedImageUrl = (url: string, width: number, height?: number
 
     // Google User Content (Drive, Auth Profiles)
     // Supports patterns like lh3.googleusercontent.com/...
+    // Also handles standard Google Drive file links
     if (url.includes('googleusercontent.com') || url.includes('drive-storage')) {
         // Remove existing size params if present (e.g., =s1600)
         const baseUrl = url.split('=')[0];
-        // =s{size}-c forces a crop to exact dimensions if height implies aspect ratio, 
-        // but usually =s{size} scales to width.
-        // If we want a square thumbnail (e.g. profile), we assume width=height
         if (height && width === height) {
             return `${baseUrl}=s${width}-c`; // Square crop
         }
         return `${baseUrl}=s${width}`; // Scale width
+    }
+
+    // Google Drive File URLs
+    if (url.includes('drive.google.com')) {
+        // Transform https://drive.google.com/file/d/{ID}/view... to direct link
+        const fileIdMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+        if (fileIdMatch && fileIdMatch[1]) {
+            return `https://drive.google.com/uc?export=view&id=${fileIdMatch[1]}`;
+        }
     }
 
     // Unsplash
