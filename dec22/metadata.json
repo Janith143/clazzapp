@@ -1,8 +1,0 @@
-{
-  "name": "Copy of Copy of Only front end functionin 10/5- 1",
-  "description": "A full-featured, scalable online platform for connecting students with tuition teachers, featuring profiles, class scheduling, course creation, and more.",
-  "requestFramePermissions": [
-    "camera",
-    "geolocation"
-  ]
-}
