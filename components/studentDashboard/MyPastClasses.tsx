@@ -2,6 +2,7 @@ import React, { useMemo, useState, useRef } from 'react';
 import { IndividualClass, Teacher, User, Course, Lecture } from '../../types.ts';
 import { useAuth } from '../../contexts/AuthContext.tsx';
 import { useData } from '../../contexts/DataContext.tsx';
+import { getOptimizedImageUrl } from '../../utils.ts';
 import { useUI } from '../../contexts/UIContext.tsx';
 import { VideoCameraIcon, PencilIcon } from '../Icons.tsx';
 import HomeworkSubmissionModal from './HomeworkSubmissionModal.tsx';
@@ -19,7 +20,7 @@ const MyPastClasses: React.FC<MyPastClassesProps> = ({ user, isOwnerView = false
         classInfo: IndividualClass | null;
         instanceDate: string | null;
     }>({ isOpen: false, classInfo: null, instanceDate: null });
-    
+
     const [openDropdown, setOpenDropdown] = useState<string | null>(null);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -30,12 +31,12 @@ const MyPastClasses: React.FC<MyPastClassesProps> = ({ user, isOwnerView = false
             return [];
         }
 
-        const userClassSales = sales.filter(s => 
-            s.studentId === user.id && 
-            s.itemType === 'class' && 
+        const userClassSales = sales.filter(s =>
+            s.studentId === user.id &&
+            s.itemType === 'class' &&
             s.status === 'completed'
         );
-        
+
         const instances: { classInfo: IndividualClass; teacher: Teacher, instanceDate: string }[] = [];
         const now = new Date();
 
@@ -72,9 +73,9 @@ const MyPastClasses: React.FC<MyPastClassesProps> = ({ user, isOwnerView = false
                     instanceEndDateTime.setHours(endHours, endMinutes, 59, 999);
 
                     if (instanceEndDateTime < now) {
-                        instances.push({ 
-                            classInfo: classData, 
-                            teacher: teacher, 
+                        instances.push({
+                            classInfo: classData,
+                            teacher: teacher,
                             instanceDate: toYYYYMMDD(currentDate)
                         });
                     }
@@ -85,10 +86,10 @@ const MyPastClasses: React.FC<MyPastClassesProps> = ({ user, isOwnerView = false
             } else { // One-time class
                 const endDateTime = new Date(`${classData.date}T${classData.endTime}`);
                 if (endDateTime < now) {
-                    instances.push({ 
-                        classInfo: classData, 
-                        teacher: teacher, 
-                        instanceDate: classData.date 
+                    instances.push({
+                        classInfo: classData,
+                        teacher: teacher,
+                        instanceDate: classData.date
                     });
                 }
             }
@@ -108,7 +109,7 @@ const MyPastClasses: React.FC<MyPastClassesProps> = ({ user, isOwnerView = false
             durationMinutes: 0,
             isFreePreview: false,
         };
-        
+
         const mockCourseShell: Course = {
             id: `cls_${classInfo.id}`,
             teacherId: teacher.id,
@@ -148,8 +149,8 @@ const MyPastClasses: React.FC<MyPastClassesProps> = ({ user, isOwnerView = false
         }
         handleCloseSubmissionModal();
     };
-    
-     const toggleDropdown = (key: string) => {
+
+    const toggleDropdown = (key: string) => {
         setOpenDropdown(prev => (prev === key ? null : key));
     };
 
@@ -176,7 +177,7 @@ const MyPastClasses: React.FC<MyPastClassesProps> = ({ user, isOwnerView = false
                 return (
                     <div key={`${classInfo.id}-${instanceDate}-${index}`} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-light-surface dark:bg-dark-surface rounded-lg shadow-sm border border-light-border dark:border-dark-border">
                         <div className="flex items-center gap-4">
-                            <img src={teacher.avatar} alt={teacher.name} className="w-12 h-12 rounded-full object-cover"/>
+                            <img src={getOptimizedImageUrl(teacher.avatar, 48, 48)} alt={teacher.name} className="w-12 h-12 rounded-full object-cover" />
                             <div>
                                 <p className="font-bold text-light-text dark:text-dark-text">{classInfo.title}</p>
                                 <p className="text-sm text-light-subtle dark:text-dark-subtle">
@@ -191,27 +192,27 @@ const MyPastClasses: React.FC<MyPastClassesProps> = ({ user, isOwnerView = false
                             <div className="relative">
                                 {recordingUrls && recordingUrls.length > 0 ? (
                                     recordingUrls.length === 1 ? (
-                                        <button 
+                                        <button
                                             onClick={() => handleWatchRecording(recordingUrls[0], classInfo, teacher, instanceDate)}
                                             className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary rounded-md hover:bg-primary-dark transition-colors"
                                         >
-                                            <VideoCameraIcon className="w-5 h-5"/>
+                                            <VideoCameraIcon className="w-5 h-5" />
                                             Watch Recording
                                         </button>
                                     ) : (
                                         <div>
-                                            <button 
+                                            <button
                                                 onClick={() => toggleDropdown(dropdownKey)}
                                                 className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary rounded-md hover:bg-primary-dark transition-colors"
                                             >
-                                                <VideoCameraIcon className="w-5 h-5"/>
+                                                <VideoCameraIcon className="w-5 h-5" />
                                                 Watch Recordings ({recordingUrls.length})
                                             </button>
                                             {openDropdown === dropdownKey && (
                                                 <div className="absolute right-0 mt-2 w-48 bg-light-surface dark:bg-dark-surface rounded-md shadow-lg border border-light-border dark:border-dark-border z-10">
                                                     {recordingUrls.map((url, i) => (
                                                         <button key={i} onClick={() => handleWatchRecording(url, classInfo, teacher, instanceDate)} className="block w-full text-left px-4 py-2 text-sm text-light-text dark:text-dark-text hover:bg-light-border dark:hover:bg-dark-border">
-                                                            Recording Part {i+1}
+                                                            Recording Part {i + 1}
                                                         </button>
                                                     ))}
                                                 </div>
@@ -224,7 +225,7 @@ const MyPastClasses: React.FC<MyPastClassesProps> = ({ user, isOwnerView = false
                                     </div>
                                 )}
                             </div>
-                             <button
+                            <button
                                 onClick={() => handleOpenSubmissionModal(classInfo, instanceDate)}
                                 className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium border border-primary text-primary rounded-md hover:bg-primary/10 transition-colors"
                             >
@@ -235,7 +236,7 @@ const MyPastClasses: React.FC<MyPastClassesProps> = ({ user, isOwnerView = false
                     </div>
                 );
             })}
-             <HomeworkSubmissionModal
+            <HomeworkSubmissionModal
                 isOpen={submissionModalState.isOpen}
                 onClose={handleCloseSubmissionModal}
                 onSave={handleSaveSubmission}

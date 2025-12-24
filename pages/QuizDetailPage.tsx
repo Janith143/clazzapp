@@ -9,7 +9,7 @@ import { useNavigation } from '../contexts/NavigationContext.tsx';
 import { useUI } from '../contexts/UIContext.tsx';
 import { useData, useFetchItem } from '../contexts/DataContext.tsx';
 import ConfirmationModal from '../components/ConfirmationModal.tsx';
-import { getDynamicQuizStatus } from '../utils.ts';
+import { getDynamicQuizStatus, getOptimizedImageUrl } from '../utils.ts';
 import MarkdownDisplay from '../components/MarkdownDisplay.tsx';
 import { useSEO } from '../hooks/useSEO.ts';
 
@@ -31,7 +31,7 @@ const QuizDetailPage: React.FC<QuizDetailPageProps> = ({ quizId, instanceId }) =
     const quiz = useMemo(() => {
         // If an instanceId is provided (from "My Quizzes"), find that specific sale and show the snapshot.
         if (instanceId && currentUser) {
-            const saleForInstance = sales.find(s => 
+            const saleForInstance = sales.find(s =>
                 s.studentId === currentUser.id &&
                 s.itemId === quizId &&
                 s.itemType === 'quiz' &&
@@ -48,8 +48,8 @@ const QuizDetailPage: React.FC<QuizDetailPageProps> = ({ quizId, instanceId }) =
     const isEnrolled = useMemo(() => {
         if (!currentUser || !quiz || !('instanceStartDate' in quiz)) return false;
         if (teacher?.userId === currentUser.id) return true;
-        
-        return sales.some(s => 
+
+        return sales.some(s =>
             s.studentId === currentUser.id &&
             s.itemId === quiz.id &&
             s.itemType === 'quiz' &&
@@ -60,13 +60,13 @@ const QuizDetailPage: React.FC<QuizDetailPageProps> = ({ quizId, instanceId }) =
 
     const userSubmission = useMemo(() => {
         if (!currentUser || !quiz || !('instanceStartDate' in quiz)) return null;
-        return submissions.find(s => 
-            s.studentId === currentUser.id && 
+        return submissions.find(s =>
+            s.studentId === currentUser.id &&
             s.quizId === quiz.id &&
             s.quizInstanceId === quiz.instanceStartDate
         );
     }, [currentUser, submissions, quiz]);
-    
+
     useSEO(
         quiz ? quiz.title : 'Quiz Details',
         quiz ? quiz.description.substring(0, 160) : 'View quiz details on clazz.lk',
@@ -74,8 +74,8 @@ const QuizDetailPage: React.FC<QuizDetailPageProps> = ({ quizId, instanceId }) =
     );
 
     const dynamicStatus = useMemo(() => (quiz && 'questions' in quiz) ? getDynamicQuizStatus(quiz) : 'scheduled', [quiz]);
-    
-    const quizEndDateTime = useMemo(() => 
+
+    const quizEndDateTime = useMemo(() =>
         (quiz && 'durationMinutes' in quiz) ? new Date(new Date(`${quiz.date}T${quiz.startTime}`).getTime() + quiz.durationMinutes * 60000) : new Date(),
         [quiz]
     );
@@ -84,7 +84,7 @@ const QuizDetailPage: React.FC<QuizDetailPageProps> = ({ quizId, instanceId }) =
         if (!quiz || !('questions' in quiz) || dynamicStatus !== 'finished') return [];
 
         const instanceIdToShow = quiz.instanceStartDate;
-        
+
         const quizSubmissions = submissions.filter(s => s.quizId === quiz.id && s.quizInstanceId === instanceIdToShow);
 
         const results: StudentResult[] = quizSubmissions.map(submission => {
@@ -146,10 +146,10 @@ const QuizDetailPage: React.FC<QuizDetailPageProps> = ({ quizId, instanceId }) =
             handleNavigate({ name: 'teacher_profile', teacherId: teacher.id });
         }
     };
-    
+
     const currencyFormatter = new Intl.NumberFormat('en-LK', { style: 'currency', currency: 'LKR' });
     const quizStartDateTime = new Date(`${quiz.date}T${quiz.startTime}`);
-    
+
     const balanceToApply = Math.min(currentUser?.accountBalance || 0, quiz.fee);
     const remainingFee = quiz.fee - balanceToApply;
 
@@ -161,7 +161,7 @@ const QuizDetailPage: React.FC<QuizDetailPageProps> = ({ quizId, instanceId }) =
         if (!isEnrolled && (currentUser?.role === 'teacher' || currentUser?.role === 'admin')) {
             return <button disabled className="w-full bg-gray-500 text-white font-bold py-3 rounded-md cursor-not-allowed">Only students can enroll</button>;
         }
-        
+
         if (userSubmission) {
             if (dynamicStatus !== 'finished') {
                 return <button disabled className="w-full bg-gray-500 text-white font-bold py-3 rounded-md cursor-not-allowed">Submitted</button>;
@@ -182,11 +182,11 @@ const QuizDetailPage: React.FC<QuizDetailPageProps> = ({ quizId, instanceId }) =
             }
             return <button disabled className="w-full bg-gray-500 text-white font-bold py-3 rounded-md cursor-not-allowed">Enrolled</button>;
         }
-        
+
         if (isEnrolled && !userSubmission) {
             return <button onClick={onStartQuiz} className="w-full bg-green-600 text-white font-bold py-3 rounded-md hover:bg-green-700 animate-pulse">Start Quiz Now</button>;
         }
-        
+
         if (!currentUser) {
             return <button onClick={() => setModalState({ name: 'login', preventRedirect: true })} className="w-full bg-primary text-white font-bold py-3 rounded-md hover:bg-primary-dark">Login to Register</button>;
         }
@@ -219,10 +219,10 @@ const QuizDetailPage: React.FC<QuizDetailPageProps> = ({ quizId, instanceId }) =
                         <div className="mt-2 text-light-subtle dark:text-dark-subtle">
                             <MarkdownDisplay content={quiz.description} className="prose-lg" />
                         </div>
-                        
+
                         <div className="mt-6 flex items-center space-x-4">
-                             <button onClick={() => onViewTeacher(teacher)} className="flex items-center space-x-2 group">
-                                <img src={teacher.avatar} alt={teacher.name} className="w-10 h-10 rounded-full"/>
+                            <button onClick={() => onViewTeacher(teacher)} className="flex items-center space-x-2 group">
+                                <img src={getOptimizedImageUrl(teacher.avatar, 40, 40)} alt={teacher.name} className="w-10 h-10 rounded-full" />
                                 <div>
                                     <p className="text-sm text-light-subtle dark:text-dark-subtle">Hosted by</p>
                                     <p className="font-semibold group-hover:underline">{teacher.name}</p>
@@ -265,35 +265,35 @@ const QuizDetailPage: React.FC<QuizDetailPageProps> = ({ quizId, instanceId }) =
                                         {quiz.questions.map((q, index) => {
                                             const submissionAnswer = userSubmission.answers.find(a => a.questionId === q.id);
                                             return (
-                                            <div key={q.id} className="p-4 border border-light-border dark:border-dark-border rounded-md">
-                                                {q.imageUrl && (
-                                                    <div className="mb-4 rounded-lg overflow-hidden">
-                                                        <img src={q.imageUrl} alt="Question visual aid" className="max-h-60 w-auto mx-auto" />
+                                                <div key={q.id} className="p-4 border border-light-border dark:border-dark-border rounded-md">
+                                                    {q.imageUrl && (
+                                                        <div className="mb-4 rounded-lg overflow-hidden">
+                                                            <img src={q.imageUrl} alt="Question visual aid" className="max-h-60 w-auto mx-auto" />
+                                                        </div>
+                                                    )}
+                                                    <p className="font-semibold">{index + 1}. {q.text}</p>
+                                                    <div className="mt-3 space-y-2">
+                                                        {q.answers.map(ans => {
+                                                            const isSelected = submissionAnswer?.selectedAnswerIds.includes(ans.id);
+                                                            const isCorrect = ans.isCorrect;
+                                                            let icon = null;
+                                                            let colorClass = '';
+                                                            if (isSelected && !isCorrect) {
+                                                                icon = <XCircleIcon className="w-5 h-5 text-red-500 mr-2" />;
+                                                                colorClass = 'bg-red-50 dark:bg-red-900/30 border-l-4 border-red-500';
+                                                            } else if (isCorrect) {
+                                                                icon = <CheckCircleIcon className="w-5 h-5 text-green-500 mr-2" />;
+                                                                colorClass = 'bg-green-50 dark:bg-green-900/30 border-l-4 border-green-500';
+                                                            }
+                                                            return (
+                                                                <div key={ans.id} className={`flex items-center p-3 rounded-md ${colorClass}`}>
+                                                                    {icon}
+                                                                    <p className={`${isSelected ? 'font-bold' : ''}`}>{ans.text}</p>
+                                                                </div>
+                                                            );
+                                                        })}
                                                     </div>
-                                                )}
-                                                <p className="font-semibold">{index + 1}. {q.text}</p>
-                                                <div className="mt-3 space-y-2">
-                                                {q.answers.map(ans => {
-                                                    const isSelected = submissionAnswer?.selectedAnswerIds.includes(ans.id);
-                                                    const isCorrect = ans.isCorrect;
-                                                    let icon = null;
-                                                    let colorClass = '';
-                                                    if (isSelected && !isCorrect) {
-                                                        icon = <XCircleIcon className="w-5 h-5 text-red-500 mr-2" />;
-                                                        colorClass = 'bg-red-50 dark:bg-red-900/30 border-l-4 border-red-500';
-                                                    } else if (isCorrect) {
-                                                        icon = <CheckCircleIcon className="w-5 h-5 text-green-500 mr-2" />;
-                                                        colorClass = 'bg-green-50 dark:bg-green-900/30 border-l-4 border-green-500';
-                                                    }
-                                                    return (
-                                                    <div key={ans.id} className={`flex items-center p-3 rounded-md ${colorClass}`}>
-                                                        {icon}
-                                                        <p className={`${isSelected ? 'font-bold' : ''}`}>{ans.text}</p>
-                                                    </div>
-                                                    );
-                                                })}
                                                 </div>
-                                            </div>
                                             );
                                         })}
                                     </div>
@@ -303,9 +303,9 @@ const QuizDetailPage: React.FC<QuizDetailPageProps> = ({ quizId, instanceId }) =
                         )
                     ) : (
                         (dynamicStatus === 'finished') ? (
-                             <Leaderboard results={leaderboardResults} totalQuestions={quiz.questions.length} />
+                            <Leaderboard results={leaderboardResults} totalQuestions={quiz.questions.length} />
                         ) : (
-                             <div className="bg-light-surface dark:bg-dark-surface p-6 rounded-lg shadow-md text-center">
+                            <div className="bg-light-surface dark:bg-dark-surface p-6 rounded-lg shadow-md text-center">
                                 <h2 className="text-2xl font-bold mb-2">Ready to test your knowledge?</h2>
                                 <p className="text-light-subtle dark:text-dark-subtle">
                                     Register and start the quiz before the time runs out. Good luck!
@@ -325,7 +325,7 @@ const QuizDetailPage: React.FC<QuizDetailPageProps> = ({ quizId, instanceId }) =
                             </div>
                         )}
                         <p className="text-3xl font-bold text-primary">{quiz.fee > 0 ? currencyFormatter.format(quiz.fee) : 'Free'}</p>
-                         {currentUser && balanceToApply > 0 && !isEnrolled && quiz.status === 'scheduled' && (
+                        {currentUser && balanceToApply > 0 && !isEnrolled && quiz.status === 'scheduled' && (
                             <div className="mt-4 p-3 text-sm bg-green-50 dark:bg-green-900/50 border border-green-200 dark:border-green-800 rounded-md">
                                 <p className="font-semibold text-green-800 dark:text-green-200">Account Balance Applied!</p>
                                 <div className="flex justify-between text-green-700 dark:text-green-300">

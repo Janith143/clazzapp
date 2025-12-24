@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Modal from '../Modal.tsx';
 import { Teacher } from '../../types.ts';
 import { SaveIcon, CheckCircleIcon } from '../Icons.tsx';
+import { getOptimizedImageUrl } from '../../utils.ts';
 
 interface DefaultCoverImageModalProps {
     isOpen: boolean;
@@ -29,14 +30,14 @@ const DefaultCoverImageModal: React.FC<DefaultCoverImageModalProps> = ({ isOpen,
                 <div className="grid grid-cols-2 gap-4 max-h-96 overflow-y-auto p-2 bg-light-background dark:bg-dark-background rounded-md">
                     {defaultCoverImages.map(img => (
                         <div key={img} className="relative cursor-pointer group" onClick={() => setSelectedImage(img)}>
-                            <img src={img} alt="Default cover" className="w-full h-auto rounded-md" />
+                            <img src={getOptimizedImageUrl(img, 400)} alt="Default cover" className="w-full h-auto rounded-md" />
                             <div className={`absolute inset-0 bg-primary/50 rounded-md border-4 border-primary flex items-center justify-center text-white transition-opacity ${selectedImage === img ? 'opacity-100' : 'opacity-0 group-hover:opacity-50'}`}>
                                 {selectedImage === img && <CheckCircleIcon className="h-12 w-12" />}
                             </div>
                         </div>
                     ))}
                 </div>
-                 <div className="pt-4 flex justify-end">
+                <div className="pt-4 flex justify-end">
                     <button
                         type="button"
                         onClick={handleSave}

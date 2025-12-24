@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { ChevronLeftIcon, ChevronRightIcon } from "./Icons";
+import { getOptimizedImageUrl } from "../utils.ts";
 
 interface ProductImageCarouselProps {
   images: string[];
@@ -11,7 +12,7 @@ const ProductImageCarousel: React.FC<ProductImageCarouselProps> = ({ images }) =
   const nextImage = () => {
     setCurrentIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
   };
-  
+
   const prevImage = () => {
     setCurrentIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
   };
@@ -24,11 +25,10 @@ const ProductImageCarousel: React.FC<ProductImageCarouselProps> = ({ images }) =
         {images.map((img, index) => (
           <img
             key={index}
-            src={img}
+            src={getOptimizedImageUrl(img, 600)}
             alt={`Product image ${index + 1}`}
-            className={`absolute inset-0 w-full h-full object-contain transition-opacity duration-300 ease-in-out ${
-              index === currentIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'
-            }`}
+            className={`absolute inset-0 w-full h-full object-contain transition-opacity duration-300 ease-in-out ${index === currentIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'
+              }`}
           />
         ))}
 
@@ -60,13 +60,12 @@ const ProductImageCarousel: React.FC<ProductImageCarouselProps> = ({ images }) =
             <button
               key={index}
               onClick={() => setCurrentIndex(index)}
-              className={`relative w-16 h-16 rounded-lg overflow-hidden border-2 transition-all duration-300 ease-in-out ${
-                index === currentIndex ? "border-primary" : "border-transparent opacity-60 hover:opacity-100"
-              }`}
+              className={`relative w-16 h-16 rounded-lg overflow-hidden border-2 transition-all duration-300 ease-in-out ${index === currentIndex ? "border-primary" : "border-transparent opacity-60 hover:opacity-100"
+                }`}
               aria-label={`Go to image ${index + 1}`}
             >
               <img
-                src={img}
+                src={getOptimizedImageUrl(img, 100)}
                 alt={`Thumbnail ${index + 1}`}
                 className="object-cover w-full h-full"
               />

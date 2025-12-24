@@ -1,6 +1,7 @@
 import React from 'react';
 import { PaymentMethod } from '../types';
 import { useNavigation } from '../contexts/NavigationContext';
+import { getOptimizedImageUrl } from '../utils';
 
 interface PaymentMethodSelectorProps {
     onSelect: (method: PaymentMethod) => void;
@@ -30,7 +31,7 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({ onSelect 
                         onClick={() => onSelect(method.id)}
                         className="flex items-center p-3 border border-light-border dark:border-dark-border rounded-lg hover:border-primary dark:hover:border-primary hover:bg-primary/5 transition-all text-left group"
                     >
-                        <img src={method.icon} alt={method.label} className="w-10 h-10 object-contain mr-3 bg-white p-1 rounded border border-gray-100" />
+                        <img src={getOptimizedImageUrl(method.icon, 80)} alt={method.label} className="w-10 h-10 object-contain mr-3 bg-white p-1 rounded border border-gray-100" />
                         <div>
                             <p className="font-bold text-sm text-light-text dark:text-dark-text group-hover:text-primary">{method.label}</p>
                             <p className="text-[10px] text-light-subtle dark:text-dark-subtle">Secure encrypted payment</p>

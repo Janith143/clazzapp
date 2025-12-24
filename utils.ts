@@ -84,6 +84,10 @@ export const createSrcSet = (baseUrl: string, sizes: number[]): string => {
     return sizes
         .map(size => {
             let url = baseUrl;
+            // HOTFIX: Replace old bucket URL with new bucket URL
+            if (url.includes('clazz2-9e0a9.firebasestorage.app')) {
+                url = url.replace('clazz2-9e0a9.firebasestorage.app', 'clazz2-new.firebasestorage.app');
+            }
             try {
                 if (url.includes('images.unsplash.com')) {
                     const urlObj = new URL(url);

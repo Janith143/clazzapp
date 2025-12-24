@@ -2,18 +2,19 @@ import React from 'react';
 import Modal from './Modal.tsx';
 // FIX: Import Event type and EventIcon
 import { Course, IndividualClass, Quiz, Teacher, Lecture, Event } from '../types.ts';
+import { getOptimizedImageUrl } from '../utils.ts';
 import { ClockIcon, CalendarIcon, MapPinIcon, OnlineIcon, UserCircleIcon, BookOpenIcon, VideoCameraIcon, ClipboardListIcon, BanknotesIcon, EventIcon } from './Icons.tsx';
 
 interface PurchasedItemDetailModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  // FIX: Update item prop to include Event
-  item: Course | IndividualClass | Quiz | Event;
-  // FIX: Update teacher prop to be a generic person object
-  teacher: Teacher | { name: string; avatar: string; };
+    isOpen: boolean;
+    onClose: () => void;
+    // FIX: Update item prop to include Event
+    item: Course | IndividualClass | Quiz | Event;
+    // FIX: Update teacher prop to be a generic person object
+    teacher: Teacher | { name: string; avatar: string; };
 }
 
-const DetailItem: React.FC<{ icon: React.ReactNode; label: string; value?: string | React.ReactNode;}> = ({ icon, label, value }) => (
+const DetailItem: React.FC<{ icon: React.ReactNode; label: string; value?: string | React.ReactNode; }> = ({ icon, label, value }) => (
     <div className="flex items-start">
         <div className="flex-shrink-0 w-5 h-5 text-light-subtle dark:text-dark-subtle mt-1">{icon}</div>
         <div className="ml-3">
@@ -123,15 +124,15 @@ const PurchasedItemDetailModal: React.FC<PurchasedItemDetailModalProps> = ({ isO
         typeLabel = 'Event Details';
     } else if ('lectures' in item) {
         content = renderCourseDetails(item, currencyFormatter);
-        icon = <BookOpenIcon className="w-6 h-6"/>;
+        icon = <BookOpenIcon className="w-6 h-6" />;
         typeLabel = 'Course Details';
     } else if ('questions' in item) {
         content = renderQuizDetails(item, currencyFormatter);
-        icon = <ClipboardListIcon className="w-6 h-6"/>;
+        icon = <ClipboardListIcon className="w-6 h-6" />;
         typeLabel = 'Quiz Details';
     } else {
         content = renderClassDetails(item, currencyFormatter);
-        icon = <VideoCameraIcon className="w-6 h-6"/>;
+        icon = <VideoCameraIcon className="w-6 h-6" />;
         typeLabel = 'Class Details';
     }
 
@@ -148,9 +149,9 @@ const PurchasedItemDetailModal: React.FC<PurchasedItemDetailModalProps> = ({ isO
                             <h2 className="mt-2 text-2xl font-bold text-light-text dark:text-dark-text">{item.title}</h2>
                         </div>
                         <div className="text-right flex-shrink-0 ml-4">
-                             <img src={teacher.avatar} alt={teacher.name} className="w-12 h-12 rounded-full ml-auto shadow-md"/>
-                             <p className="text-sm font-semibold mt-1 text-light-text dark:text-dark-text">{teacher.name}</p>
-                             <p className="text-xs text-light-subtle dark:text-dark-subtle">Purchased Version</p>
+                            <img src={getOptimizedImageUrl(teacher.avatar, 48, 48)} alt={teacher.name} className="w-12 h-12 rounded-full ml-auto shadow-md" />
+                            <p className="text-sm font-semibold mt-1 text-light-text dark:text-dark-text">{teacher.name}</p>
+                            <p className="text-xs text-light-subtle dark:text-dark-subtle">Purchased Version</p>
                         </div>
                     </div>
                 </div>

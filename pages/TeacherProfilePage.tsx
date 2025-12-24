@@ -17,7 +17,7 @@ import MarkdownDisplay from '../components/MarkdownDisplay';
 import { useSEO } from '../hooks/useSEO';
 import { db } from '../firebase';
 import { collection, query, where, orderBy, onSnapshot, doc, writeBatch, increment, QuerySnapshot, DocumentData } from 'firebase/firestore';
-import { getDynamicClassStatus, getDynamicQuizStatus, calculateTeacherProfileCompletion, getYoutubeVideoId } from '../utils';
+import { getDynamicClassStatus, getDynamicQuizStatus, calculateTeacherProfileCompletion, getYoutubeVideoId, getOptimizedImageUrl } from '../utils';
 import ScheduleFreeSlotModal from '../components/ScheduleFreeSlotModal';
 import Modal from '../components/Modal';
 import { YouTubePlayer } from '../components/YouTubePlayer';
@@ -599,7 +599,7 @@ const TeacherProfilePage: React.FC<TeacherProfilePageProps> = ({ teacherId, slug
                                                     onClick={() => setViewingImage({ url: photo.url_highres || photo.url_thumb, title: `Image ${index + 1}` })}
                                                     className="relative group aspect-square rounded-lg overflow-hidden shadow-sm transition-transform hover:scale-105"
                                                 >
-                                                    <img src={photo.url_thumb} alt={`Showcase image ${index + 1}`} className="w-full h-full object-cover" />
+                                                    <img src={getOptimizedImageUrl(photo.url_thumb, 400)} alt={`Showcase image ${index + 1}`} className="w-full h-full object-cover" />
                                                 </button>
                                             ))}
                                         </div>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Teacher } from '../types';
 import { LogoIcon, PhoneIcon, MailIcon } from './Icons';
+import { getOptimizedImageUrl } from '../utils';
 import QRCodeWithLogo from './QRCodeWithLogo';
 
 interface BusinessCardProps {
@@ -17,12 +18,12 @@ const BusinessCard = React.forwardRef<HTMLDivElement, BusinessCardProps>(({ teac
     teacher.tagline && teacher.tagline.length > 50
       ? '13px'
       : teacher.tagline && teacher.tagline.length > 30
-      ? '14px'
-      : '15px';
+        ? '14px'
+        : '15px';
 
   const smallTextSize =
     (teacher.subjects?.join(', ').length || 0) > 80 ||
-    (teacher.qualifications?.join(', ').length || 0) > 80
+      (teacher.qualifications?.join(', ').length || 0) > 80
       ? '11px'
       : '13px';
 
@@ -72,7 +73,7 @@ const BusinessCard = React.forwardRef<HTMLDivElement, BusinessCardProps>(({ teac
         {/* Profile Image */}
         {teacher.profileImage ? (
           <img
-            src={teacher.profileImage}
+            src={getOptimizedImageUrl(teacher.profileImage, 128, 128)}
             alt={teacher.name}
             crossOrigin="anonymous"
             style={{
@@ -120,10 +121,10 @@ const BusinessCard = React.forwardRef<HTMLDivElement, BusinessCardProps>(({ teac
           }}
         >
           <QRCodeWithLogo
-              data={profileUrl}
-              logoSrc="/Logo3.png"
-              size={88}
-              crossOrigin="anonymous"
+            data={profileUrl}
+            logoSrc="/Logo3.png"
+            size={88}
+            crossOrigin="anonymous"
           />
         </div>
       </div>

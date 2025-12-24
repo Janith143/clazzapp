@@ -1,14 +1,15 @@
 import React from 'react';
 import { StudentResult } from '../types.ts';
 import { ClockIcon } from './Icons.tsx';
+import { getOptimizedImageUrl } from '../utils.ts';
 
 interface LeaderboardProps {
-  results: StudentResult[];
-  totalQuestions: number;
+    results: StudentResult[];
+    totalQuestions: number;
 }
 
 const Leaderboard: React.FC<LeaderboardProps> = ({ results, totalQuestions }) => {
-    
+
     const formatTime = (seconds: number) => {
         const mins = Math.floor(seconds / 60);
         const secs = seconds % 60;
@@ -44,7 +45,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ results, totalQuestions }) =>
                                     <td className="px-4 py-3 whitespace-nowrap">
                                         <div className="flex items-center">
                                             {result.studentAvatar ? (
-                                                <img className="h-10 w-10 rounded-full" src={result.studentAvatar} alt={result.studentName} crossOrigin="anonymous" />
+                                                <img className="h-10 w-10 rounded-full" src={getOptimizedImageUrl(result.studentAvatar, 40, 40)} alt={result.studentName} crossOrigin="anonymous" />
                                             ) : (
                                                 <div className="h-10 w-10 rounded-full bg-primary flex-shrink-0 flex items-center justify-center text-white text-base font-bold">
                                                     <span>
@@ -63,7 +64,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ results, totalQuestions }) =>
                                     </td>
                                     <td className="px-4 py-3 whitespace-nowrap text-right text-sm text-light-subtle dark:text-dark-subtle">
                                         <div className="flex items-center justify-end">
-                                            <ClockIcon className="w-4 h-4 mr-1"/>
+                                            <ClockIcon className="w-4 h-4 mr-1" />
                                             {formatTime(result.timeTakenSeconds)}
                                         </div>
                                     </td>

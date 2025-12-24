@@ -3,7 +3,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { Event, Teacher, TuitionInstitute, Photo, PhotoPrintOption } from '../types.ts';
 import { ChevronLeftIcon, ClockIcon, CalendarIcon, MapPinIcon, OnlineIcon, UserCircleIcon, BanknotesIcon, SpinnerIcon } from '../components/Icons.tsx';
 import Countdown from '../components/Countdown.tsx';
-import { getDynamicEventStatus } from '../utils.ts';
+import { getDynamicEventStatus, getOptimizedImageUrl } from '../utils.ts';
 import { useData } from '../contexts/DataContext.tsx';
 import { useAuth } from '../contexts/AuthContext.tsx';
 import { useNavigation } from '../contexts/NavigationContext.tsx';
@@ -128,7 +128,7 @@ const EventPhotoGallery: React.FC<{ event: Event }> = ({ event }) => {
 
 const MiniTeacherCard: React.FC<{ teacher: Teacher, onClick: () => void }> = ({ teacher, onClick }) => (
     <button onClick={onClick} className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-light-border dark:hover:bg-dark-border transition-colors">
-        <img src={teacher.avatar} alt={teacher.name} className="w-12 h-12 rounded-full object-cover flex-shrink-0" />
+        <img src={getOptimizedImageUrl(teacher.avatar, 48, 48)} alt={teacher.name} className="w-12 h-12 rounded-full object-cover flex-shrink-0" />
         <div className="text-left">
             <p className="font-semibold text-light-text dark:text-dark-text">{teacher.name}</p>
             <p className="text-xs text-light-subtle dark:text-dark-subtle">{teacher.tagline}</p>
@@ -225,7 +225,7 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId }) => {
                 {/* Main Content */}
                 <div className="lg:col-span-2 space-y-8">
                     <div className="bg-light-surface dark:bg-dark-surface rounded-lg shadow-lg overflow-hidden">
-                        <img src={event.flyerImage} alt={event.title} className="w-full h-auto object-cover" crossOrigin="anonymous" />
+                        <img src={getOptimizedImageUrl(event.flyerImage, 800)} alt={event.title} className="w-full h-auto object-cover" crossOrigin="anonymous" />
                     </div>
 
                     <div className="bg-light-surface dark:bg-dark-surface p-6 rounded-lg shadow-md">

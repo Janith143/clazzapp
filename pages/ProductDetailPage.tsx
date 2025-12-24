@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { useData, useFetchItem } from '../contexts/DataContext.tsx';
+import { getOptimizedImageUrl } from '../utils.ts';
 import { useNavigation } from '../contexts/NavigationContext.tsx';
 import { useUI } from '../contexts/UIContext.tsx';
 import { ChevronLeftIcon, ShoppingCartIcon, SpinnerIcon } from '../components/Icons.tsx';
@@ -18,7 +19,7 @@ const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ productId }) => {
     const { addToCart } = useUI();
     const { loading: dataLoading } = useData();
     const { item: fetchedProduct, teacher } = useFetchItem('product', productId);
-    
+
     // Explicitly cast the item to Product since useFetchItem returns a union
     const product = fetchedProduct as Product | null;
 
@@ -27,7 +28,7 @@ const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ productId }) => {
         product ? product.description.substring(0, 160) : 'View product details on clazz.lk',
         product && product.coverImages && product.coverImages.length > 0 ? product.coverImages[0] : undefined
     );
-    
+
     if (dataLoading) {
         return (
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center flex flex-col items-center justify-center">
@@ -36,7 +37,7 @@ const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ productId }) => {
             </div>
         );
     }
-    
+
     if (!product || !teacher || !('type' in product)) {
         return <div>Product not found or has been removed.</div>;
     }
@@ -58,20 +59,20 @@ const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ productId }) => {
 
     return (
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-slideInUp">
-             <div className="mb-4">
+            <div className="mb-4">
                 <button onClick={handleBack} className="flex items-center space-x-2 text-sm font-medium text-primary hover:text-primary-dark transition-colors">
                     <ChevronLeftIcon className="h-5 w-5" />
                     <span>Back</span>
                 </button>
             </div>
-            
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div className="rounded-lg shadow-lg overflow-hidden">
                     {product.coverImages && product.coverImages.length > 0 ? (
                         <ProductImageCarousel images={product.coverImages} />
                     ) : (
                         <div className="flex items-center justify-center h-[400px] bg-gray-100 text-gray-500">
-                        No images available
+                            No images available
                         </div>
                     )}
                 </div>
@@ -80,19 +81,19 @@ const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ productId }) => {
                     <div className="bg-light-surface dark:bg-dark-surface p-6 rounded-lg shadow-md">
                         <h1 className="text-3xl font-bold">{product.title}</h1>
                         <button onClick={() => onViewTeacher(teacher)} className="mt-2 flex items-center space-x-2 group">
-                            <img src={teacher.avatar} alt={teacher.name} className="w-8 h-8 rounded-full"/>
+                            <img src={getOptimizedImageUrl(teacher.avatar, 32, 32)} alt={teacher.name} className="w-8 h-8 rounded-full" />
                             <div>
                                 <p className="text-sm text-light-subtle dark:text-dark-subtle">Created by</p>
                                 <p className="font-semibold group-hover:underline">{teacher.name}</p>
                             </div>
                         </button>
-                        
+
                         <div className="my-6">
                             <p className="text-4xl font-bold text-primary">{currencyFormatter.format(product.price)}</p>
                         </div>
-                        
+
                         <button onClick={handleAddToCart} className="w-full flex items-center justify-center gap-2 bg-primary text-white font-bold py-3 rounded-md hover:bg-primary-dark transition-colors">
-                            <ShoppingCartIcon className="w-5 h-5"/>
+                            <ShoppingCartIcon className="w-5 h-5" />
                             Add to Cart
                         </button>
 

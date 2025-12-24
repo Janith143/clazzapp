@@ -1,6 +1,7 @@
 import React, { useRef, useMemo } from 'react';
 import { useAuth } from '../../contexts/AuthContext.tsx';
 import { useData } from '../../contexts/DataContext.tsx';
+import { getOptimizedImageUrl } from '../../utils.ts';
 import { User } from '../../types.ts';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -31,7 +32,7 @@ const StudentCV: React.FC = () => {
                 const teacher = teachers.find(t => t.id === s.teacherId);
                 return `${s.itemName} (by ${teacher?.name || '...'})`;
             });
-        
+
         const quizResults = submissions
             .filter(s => s.studentId === user.id)
             .map(s => {
@@ -49,7 +50,7 @@ const StudentCV: React.FC = () => {
     if (!user) {
         return <p>Loading user data...</p>;
     }
-    
+
     const handleDownloadPdf = async () => {
         const p1 = page1Ref.current;
         const p2 = page2Ref.current;
@@ -57,12 +58,12 @@ const StudentCV: React.FC = () => {
 
         const pdf = new jsPDF('p', 'mm', 'a4');
         const pdfWidth = pdf.internal.pageSize.getWidth();
-        
+
         const canvas1 = await html2canvas(p1, { scale: 3, useCORS: true, backgroundColor: null });
         const imgData1 = canvas1.toDataURL('image/png');
         const pdfHeight1 = (canvas1.height * pdfWidth) / canvas1.width;
         pdf.addImage(imgData1, 'PNG', 0, 0, pdfWidth, pdfHeight1);
-        
+
         const hasPage2Content = user.projects?.length || user.achievements?.length || cvData?.enrolledCourses.length || cvData?.quizResults.length || user.hobbies?.length || user.certifications?.length || user.references?.length;
 
         if (p2 && hasPage2Content) {
@@ -80,7 +81,7 @@ const StudentCV: React.FC = () => {
 
     return (
         <div className="bg-light-background dark:bg-dark-background p-4 rounded-lg">
-             <style>{`
+            <style>{`
                 .a4-page {
                     width: 210mm;
                     min-height: 297mm;
@@ -94,17 +95,17 @@ const StudentCV: React.FC = () => {
                 .cv-right-column h3 { color: #23395d; }
                 .dark .cv-right-column h3 { color: #a8c0ff; }
              `}</style>
-             <div className="flex justify-center mb-4">
-                 <button onClick={handleDownloadPdf} className="flex items-center space-x-2 px-6 py-2 border border-primary text-primary rounded-md font-semibold hover:bg-primary/10 transition-colors">
-                     <DownloadIcon className="w-5 h-5"/>
-                     <span>Download CV as PDF</span>
-                 </button>
-             </div>
+            <div className="flex justify-center mb-4">
+                <button onClick={handleDownloadPdf} className="flex items-center space-x-2 px-6 py-2 border border-primary text-primary rounded-md font-semibold hover:bg-primary/10 transition-colors">
+                    <DownloadIcon className="w-5 h-5" />
+                    <span>Download CV as PDF</span>
+                </button>
+            </div>
 
             <CVPage ref={page1Ref}>
                 <div className="cv-left-column">
                     {user.avatar && (
-                        <img src={user.avatar} alt="Profile" className="w-[150px] h-[150px] object-cover rounded-full mx-auto mb-6 border-4 border-white/50" crossOrigin="anonymous"/>
+                        <img src={getOptimizedImageUrl(user.avatar, 300, 300)} alt="Profile" className="w-[150px] h-[150px] object-cover rounded-full mx-auto mb-6 border-4 border-white/50" crossOrigin="anonymous" />
                     )}
                     <h2 className="text-2xl font-bold">{user.firstName} {user.lastName}</h2>
                     <p className="text-blue-200">{user.targetAudience}</p>
@@ -129,7 +130,7 @@ const StudentCV: React.FC = () => {
                                 {user.softSkills.map(skill => <p key={skill} className="mt-2 text-blue-100">{skill}</p>)}
                             </div>
                         )}
-                         {user.languages && user.languages.length > 0 && (
+                        {user.languages && user.languages.length > 0 && (
                             <div>
                                 <h3>Languages</h3>
                                 {user.languages.map(lang => <p key={lang} className="mt-2 text-blue-100">{lang}</p>)}
@@ -165,7 +166,7 @@ const StudentCV: React.FC = () => {
                     {user.profileSummary && (
                         <div className="mb-8">
                             <h3>Profile Summary</h3>
-                            <MarkdownDisplay content={user.profileSummary || ''} className="mt-3 text-sm leading-relaxed prose-sm prose-p:my-0"/>
+                            <MarkdownDisplay content={user.profileSummary || ''} className="mt-3 text-sm leading-relaxed prose-sm prose-p:my-0" />
                         </div>
                     )}
                     {user.experience && user.experience.length > 0 && (
@@ -198,7 +199,7 @@ const StudentCV: React.FC = () => {
                     )}
                 </div>
             </CVPage>
-            
+
             {hasPage2Content && (
                 <CVPage ref={page2Ref}>
                     <div className="cv-left-column">
@@ -209,7 +210,7 @@ const StudentCV: React.FC = () => {
                                 {user.email && <p>✉️ {user.email}</p>}
                                 {user.address?.city && <p>🌍 {user.address.city}, {user.address.country}</p>}
                             </div>
-                             {user.technicalSkills && user.technicalSkills.length > 0 && (
+                            {user.technicalSkills && user.technicalSkills.length > 0 && (
                                 <div>
                                     <h3>Technical Skills</h3>
                                     {user.technicalSkills.map(skill => <p key={skill} className="mt-2 text-blue-100">{skill}</p>)}
@@ -221,7 +222,7 @@ const StudentCV: React.FC = () => {
                                     {user.softSkills.map(skill => <p key={skill} className="mt-2 text-blue-100">{skill}</p>)}
                                 </div>
                             )}
-                             {user.languages && user.languages.length > 0 && (
+                            {user.languages && user.languages.length > 0 && (
                                 <div>
                                     <h3>Languages</h3>
                                     {user.languages.map(lang => <p key={lang} className="mt-2 text-blue-100">{lang}</p>)}
@@ -255,7 +256,7 @@ const StudentCV: React.FC = () => {
                     </div>
                     <div className="cv-right-column">
                         {user.projects && user.projects.length > 0 && (
-                             <div className="mb-8">
+                            <div className="mb-8">
                                 <h3>Projects</h3>
                                 <div className="mt-3 space-y-4">
                                     {user.projects.map(proj => (
@@ -268,7 +269,7 @@ const StudentCV: React.FC = () => {
                             </div>
                         )}
                         {user.certifications && user.certifications.length > 0 && (
-                             <div className="mb-8">
+                            <div className="mb-8">
                                 <h3>Certifications & Trainings</h3>
                                 <ul className="mt-3 space-y-2 list-disc list-inside text-sm">
                                     {user.certifications.map(cert => <li key={cert}>{cert}</li>)}
@@ -276,7 +277,7 @@ const StudentCV: React.FC = () => {
                             </div>
                         )}
                         {user.achievements && user.achievements.length > 0 && (
-                             <div className="mb-8">
+                            <div className="mb-8">
                                 <h3>Awards & Achievements</h3>
                                 <ul className="mt-3 space-y-2 list-disc list-inside text-sm">
                                     {user.achievements.map(ach => <li key={ach}>{ach}</li>)}
@@ -284,7 +285,7 @@ const StudentCV: React.FC = () => {
                             </div>
                         )}
                         {cvData && cvData.enrolledCourses.length > 0 && (
-                             <div className="mb-8">
+                            <div className="mb-8">
                                 <h3>Completed Courses on Clazz.lk</h3>
                                 <ul className="mt-3 space-y-2 list-disc list-inside text-sm">
                                     {cvData.enrolledCourses.map(c => <li key={c}>{c}</li>)}
@@ -292,7 +293,7 @@ const StudentCV: React.FC = () => {
                             </div>
                         )}
                         {cvData && cvData.quizResults.length > 0 && (
-                             <div className="mb-8">
+                            <div className="mb-8">
                                 <h3>Quiz Results on Clazz.lk</h3>
                                 <ul className="mt-3 space-y-2 list-disc list-inside text-sm">
                                     {cvData.quizResults.map(r => <li key={r as string}>{r}</li>)}

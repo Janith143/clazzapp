@@ -2,10 +2,11 @@ import React, { useMemo, useState } from 'react';
 import { Sale, User, PhotoCartItem } from '../../types.ts';
 import { useData } from '../../contexts/DataContext.tsx';
 import { ChevronDownIcon } from '../Icons.tsx';
+import { getOptimizedImageUrl } from '../../utils.ts';
 
 const PhotoItem: React.FC<{ item: PhotoCartItem }> = ({ item }) => (
     <div className="flex items-center gap-3 p-2 bg-light-surface dark:bg-dark-surface rounded">
-        <img src={item.photo.url_thumb} alt="thumbnail" className="w-12 h-12 rounded object-cover"/>
+        <img src={getOptimizedImageUrl(item.photo.url_thumb, 100)} alt="thumbnail" className="w-12 h-12 rounded object-cover" />
         <div>
             <p className="font-semibold text-xs">Photo #{item.photo.id.slice(-6)}</p>
             <p className="text-xs text-light-subtle dark:text-dark-subtle">Print ({item.printOption?.size}) x{item.quantity}</p>

@@ -1,5 +1,6 @@
 import React from 'react';
 import { User } from '../../types.ts';
+import { getOptimizedImageUrl } from '../../utils.ts';
 import { LogoIcon } from '../Icons.tsx';
 import QRCodeWithLogo from '../QRCodeWithLogo.tsx';
 
@@ -21,7 +22,7 @@ const StudentIdCard = React.forwardRef<HTMLDivElement, StudentIdCardProps>(({ us
 
             <div className="mt-6 flex items-center space-x-4">
                 {user.avatar ? (
-                    <img src={user.avatar} alt="Profile" className="w-20 h-20 rounded-full object-cover border-2 border-white dark:border-dark-surface" crossOrigin="anonymous" />
+                    <img src={getOptimizedImageUrl(user.avatar, 80, 80)} alt="Profile" className="w-20 h-20 rounded-full object-cover border-2 border-white dark:border-dark-surface" crossOrigin="anonymous" />
                 ) : (
                     <div className="w-20 h-20 rounded-full bg-primary flex items-center justify-center text-white font-bold text-3xl border-2 border-white dark:border-dark-surface">
                         <span>{user.firstName?.charAt(0)}{user.lastName?.charAt(0)}</span>
@@ -32,7 +33,7 @@ const StudentIdCard = React.forwardRef<HTMLDivElement, StudentIdCardProps>(({ us
                     <p className="text-sm text-light-subtle dark:text-dark-subtle font-mono">{user.id}</p>
                 </div>
             </div>
-            
+
             <div className="mt-4 flex justify-center h-32 w-32 mx-auto p-1 bg-white rounded-md shadow-sm">
                 <QRCodeWithLogo
                     data={user.id}

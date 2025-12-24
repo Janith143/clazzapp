@@ -2,11 +2,12 @@ import React from 'react';
 import { User } from '../types.ts';
 import Modal from './Modal.tsx';
 import { MailIcon, PhoneIcon, MapPinIcon } from './Icons.tsx';
+import { getOptimizedImageUrl } from '../utils.tsx';
 
 interface StudentDetailsModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  student: User;
+    isOpen: boolean;
+    onClose: () => void;
+    student: User;
 }
 
 const DetailItem: React.FC<{ icon: React.ReactNode, label: string, value?: string }> = ({ icon, label, value }) => (
@@ -34,9 +35,9 @@ const StudentDetailsModal: React.FC<StudentDetailsModalProps> = ({ isOpen, onClo
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="Student Details">
             <div className="flex flex-col sm:flex-row items-center sm:items-start space-y-4 sm:space-y-0 sm:space-x-6 p-4">
-                 <img 
-                    src={student.avatar} 
-                    alt={`${student.firstName} ${student.lastName}`} 
+                <img
+                    src={getOptimizedImageUrl(student.avatar, 96, 96)}
+                    alt={`${student.firstName} ${student.lastName}`}
                     className="w-24 h-24 rounded-full object-cover flex-shrink-0 border-2 border-primary"
                 />
                 <div className="text-center sm:text-left">
@@ -49,7 +50,7 @@ const StudentDetailsModal: React.FC<StudentDetailsModalProps> = ({ isOpen, onClo
                 <DetailItem icon={<PhoneIcon />} label="Contact Number" value={student.contactNumber} />
                 <DetailItem icon={<MapPinIcon />} label="Address" value={fullAddress} />
             </div>
-             <div className="mt-6 text-center text-xs text-light-subtle dark:text-dark-subtle">
+            <div className="mt-6 text-center text-xs text-light-subtle dark:text-dark-subtle">
                 <p>Please use this information responsibly and in accordance with our privacy policy.</p>
             </div>
         </Modal>

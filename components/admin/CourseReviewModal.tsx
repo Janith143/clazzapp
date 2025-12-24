@@ -2,6 +2,7 @@ import React from 'react';
 import Modal from '../Modal.tsx';
 import { Course, Teacher } from '../../types.ts';
 import { CheckCircleIcon, XCircleIcon, ClockIcon, LinkIcon } from '../Icons.tsx';
+import { getOptimizedImageUrl } from '../../utils.ts';
 import MarkdownDisplay from '../MarkdownDisplay.tsx';
 
 interface CourseReviewModalProps {
@@ -22,7 +23,7 @@ const CourseReviewModal: React.FC<CourseReviewModalProps> = ({ isOpen, onClose, 
             <div className="space-y-6">
                 {/* Header Section */}
                 <div className="flex flex-col sm:flex-row gap-6">
-                    <img src={course.coverImage} alt={course.title} className="w-full sm:w-1/3 h-auto object-cover rounded-lg shadow-md" crossOrigin="anonymous" />
+                    <img src={getOptimizedImageUrl(course.coverImage, 400)} alt={course.title} className="w-full sm:w-1/3 h-auto object-cover rounded-lg shadow-md" crossOrigin="anonymous" />
                     <div className="flex-1">
                         <h2 className="text-2xl font-bold">{course.title}</h2>
                         <p className="text-sm text-light-subtle dark:text-dark-subtle mt-1">by {teacher.name}</p>

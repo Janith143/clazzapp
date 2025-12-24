@@ -3,7 +3,7 @@ import { Teacher, EditableImageType } from '../types';
 import { PencilIcon, StarIcon, UserGroupIcon, PhoneIcon, LinkIcon, LogoIcon } from './Icons';
 import ImageCarousel from './ImageCarousel';
 import StarRating from './StarRating';
-import { getAverageRating, createSrcSet, calculateTeacherProfileCompletion } from '../utils';
+import { getAverageRating, createSrcSet, calculateTeacherProfileCompletion, getOptimizedImageUrl } from '../utils';
 import { useData } from '../contexts/DataContext';
 import ProgressBar from './ProgressBar';
 import QRCodeWithLogo from './QRCodeWithLogo';
@@ -19,10 +19,10 @@ interface ProfileHeaderProps {
     followerCount?: number;
 }
 
-const ProfileHeader = React.forwardRef<HTMLDivElement, ProfileHeaderProps>(({ 
-    teacher, 
-    isOwnProfile, 
-    onEditProfile, 
+const ProfileHeader = React.forwardRef<HTMLDivElement, ProfileHeaderProps>(({
+    teacher,
+    isOwnProfile,
+    onEditProfile,
     onEditImage,
     onRemoveCoverImage,
     coverImageIndex,
@@ -30,8 +30,8 @@ const ProfileHeader = React.forwardRef<HTMLDivElement, ProfileHeaderProps>(({
     followerCount
 }, ref) => {
     const { defaultCoverImages } = useData();
-    
-    const profileUrl = teacher.username 
+
+    const profileUrl = teacher.username
         ? `${window.location.origin}/#/${teacher.username}`
         : `${window.location.origin}/#/?teacherId=${teacher.id}`;
 
@@ -39,25 +39,25 @@ const ProfileHeader = React.forwardRef<HTMLDivElement, ProfileHeaderProps>(({
     const profileImageSrcSet = teacher.profileImage ? createSrcSet(teacher.profileImage, [160, 320]) : undefined;
     const { percentage: profileCompletion } = calculateTeacherProfileCompletion(teacher);
 
-    const customCoverImages = useMemo(() => 
+    const customCoverImages = useMemo(() =>
         (teacher.coverImages || []).filter(img => img && !img.includes('default-cover-images')),
         [teacher.coverImages]
     );
 
-    const coverImagesToShow = useMemo(() => 
-        customCoverImages.length > 0 
-            ? customCoverImages 
+    const coverImagesToShow = useMemo(() =>
+        customCoverImages.length > 0
+            ? customCoverImages
             : (defaultCoverImages || []),
         [customCoverImages, defaultCoverImages]
     );
 
     return (
-        <div 
-            ref={ref} 
+        <div
+            ref={ref}
             className="bg-light-surface dark:bg-dark-surface rounded-lg shadow-2xl mb-8 animate-fadeIn overflow-hidden border border-slate-200 dark:border-slate-700"
         >
             <div className="relative w-full h-64">
-                <ImageCarousel 
+                <ImageCarousel
                     images={coverImagesToShow}
                     isEditable={isOwnProfile}
                     currentIndex={coverImageIndex}
@@ -75,10 +75,10 @@ const ProfileHeader = React.forwardRef<HTMLDivElement, ProfileHeaderProps>(({
                             style={{ width: '10rem', height: '10rem', overflow: 'hidden', borderRadius: '9999px', clipPath: 'circle(50% at 50% 50%)' }}
                         >
                             {teacher.profileImage ? (
-                                <img src={teacher.profileImage} srcSet={profileImageSrcSet} sizes="160px" alt={teacher.name} crossOrigin="anonymous" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                <img src={getOptimizedImageUrl(teacher.profileImage, 160, 160)} srcSet={profileImageSrcSet} sizes="160px" alt={teacher.name} crossOrigin="anonymous" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                             ) : (
                                 <div style={{ width: '100%', height: '100%', backgroundColor: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffffff', fontWeight: 'bold', fontSize: '3rem' }}>
-                                  {teacher.name?.split(' ')[0]?.charAt(0) || ''}{teacher.name?.split(' ')[1]?.charAt(0) || ''}
+                                    {teacher.name?.split(' ')[0]?.charAt(0) || ''}{teacher.name?.split(' ')[1]?.charAt(0) || ''}
                                 </div>
                             )}
                             {isOwnProfile && (
@@ -92,14 +92,14 @@ const ProfileHeader = React.forwardRef<HTMLDivElement, ProfileHeaderProps>(({
                             <h1 className="text-3xl font-bold">{teacher.name}</h1>
                             <p className="text-md text-primary">{teacher.tagline}</p>
                             <div className="mt-2"><StarRating rating={averageRating.average} count={averageRating.count} readOnly={true} /></div>
-                            
+
                             {followerCount !== undefined && (
                                 <div className="mt-3 flex items-center space-x-2 text-sm text-light-text dark:text-dark-text justify-center sm:justify-start">
                                     <UserGroupIcon className="w-5 h-5 text-light-subtle dark:text-dark-subtle" />
                                     <span className="font-semibold">{followerCount}</span><span>Followers</span>
                                 </div>
                             )}
-                            
+
                             {isOwnProfile && (
                                 <div className="mt-4">
                                     <div className="flex justify-between items-center mb-1 text-sm">

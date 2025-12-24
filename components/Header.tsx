@@ -9,6 +9,7 @@ import { UserNotification, Notification, PageState, StaticPageKey, User } from '
 import { db } from '../firebase.ts';
 // FIX: Correcting Firebase import path for v9 modular SDK.
 import { collection, query, where, getDocs, doc, onSnapshot } from 'firebase/firestore';
+import { getOptimizedImageUrl } from '../utils';
 
 const BellIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
@@ -83,7 +84,7 @@ const NotificationsPanel: React.FC<{ userNotifications: UserNotification[], onCl
                             const isRead = userNotif?.isRead || false;
                             return (
                                 <button key={notif.id} onClick={() => handleNotificationClick(notif)} className={`w-full text-left p-3 flex items-start space-x-3 hover:bg-light-border dark:hover:bg-dark-border ${!isRead ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}>
-                                    <img src={notif.teacherAvatar} alt={notif.teacherName} className="w-8 h-8 rounded-full" />
+                                    <img src={getOptimizedImageUrl(notif.teacherAvatar, 32, 32)} alt={notif.teacherName} className="w-8 h-8 rounded-full" />
                                     <div className="flex-1">
                                         <p className="text-sm font-semibold">{notif.teacherName}</p>
                                         <p className="text-xs text-light-subtle dark:text-dark-subtle">{notif.content}</p>
@@ -193,7 +194,7 @@ const MobileMenu: React.FC<{
                         <div className="space-y-4">
                             <div className="flex items-center space-x-3">
                                 {currentUser.avatar ? (
-                                    <img src={currentUser.avatar} alt="avatar" className="w-12 h-12 rounded-full object-cover" />
+                                    <img src={getOptimizedImageUrl(currentUser.avatar, 48, 48)} alt="avatar" className="w-12 h-12 rounded-full object-cover" />
                                 ) : (
                                     <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-white font-bold text-xl">
                                         <span>{currentUser.firstName?.charAt(0)}{currentUser.lastName?.charAt(0)}</span>
@@ -399,7 +400,7 @@ const Header: React.FC = () => {
                                             className="flex items-center space-x-2 p-1 rounded-full hover:bg-light-border dark:hover:bg-dark-border transition-colors"
                                         >
                                             {currentUser.avatar ? (
-                                                <img src={currentUser.avatar} alt={`${currentUser.firstName} ${currentUser.lastName}`} className="w-8 h-8 rounded-full object-cover" />
+                                                <img src={getOptimizedImageUrl(currentUser.avatar, 32, 32)} alt={`${currentUser.firstName} ${currentUser.lastName}`} className="w-8 h-8 rounded-full object-cover" />
                                             ) : (
                                                 <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white font-bold text-sm">
                                                     <span>

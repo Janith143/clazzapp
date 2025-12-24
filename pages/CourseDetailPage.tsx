@@ -4,7 +4,7 @@ import { ChevronLeftIcon, LockClosedIcon, PlayCircleIcon, SpinnerIcon, LinkIcon,
 import StarRating from '../components/StarRating.tsx';
 import ProgressBar from '../components/ProgressBar.tsx';
 import Countdown from '../components/Countdown.tsx';
-import { getAverageRating, createSrcSet } from '../utils.ts';
+import { getAverageRating, createSrcSet, getOptimizedImageUrl } from '../utils.ts';
 import { useData, useFetchItem } from '../contexts/DataContext.tsx';
 import { useAuth } from '../contexts/AuthContext.tsx';
 import { useNavigation } from '../contexts/NavigationContext.tsx';
@@ -25,9 +25,9 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId }) => {
     const { setModalState, setVideoPlayerState, addToast } = useUI();
     const { handleRateCourse, handleEnroll, handleUpdateTeacher, sales, loading: dataLoading } = useData();
     const { item: fetchedCourse, teacher, isOwner, isEnrolled } = useFetchItem('course', courseId);
-    
+
     const course = fetchedCourse as Course | null;
-    
+
     const [isConfirmingEnrollment, setIsConfirmingEnrollment] = useState(false);
     const [showPaymentSelector, setShowPaymentSelector] = useState(false);
     const [editSessionId, setEditSessionId] = useState<string | null>(null);
@@ -43,19 +43,19 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId }) => {
         course ? course.description.substring(0, 160) : 'View course details on clazz.lk',
         course && 'coverImage' in course ? course.coverImage : undefined
     );
-    
+
     const averageRating = useMemo(() => getAverageRating(course && 'ratings' in course ? course.ratings : undefined), [course]);
     const userRating = useMemo(() => (course && 'ratings' in course ? course.ratings : [])?.find(r => r.studentId === currentUser?.id)?.rating || 0, [course, currentUser]);
-    
+
     const completionPercentage = useMemo(() => {
         if (!isEnrolled || !currentUser?.watchHistory || !course || !('lectures' in course) || !currentUser.watchHistory[course.id]) {
             return 0;
         }
         const watchedLectures = currentUser.watchHistory[course.id];
         const watchedCount = Object.keys(watchedLectures).length;
-        
+
         if (courseType === 'live' && course.liveSessions) {
-             return 0; // TODO: Implement session tracking
+            return 0; // TODO: Implement session tracking
         }
 
         const totalLectures = course.lectures.length;
@@ -69,7 +69,7 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId }) => {
             const end = new Date(`${s.date}T${s.endTime}`);
             return end > now;
         });
-        return futureSessions.sort((a,b) => new Date(`${a.date}T${a.startTime}`).getTime() - new Date(`${b.date}T${b.startTime}`).getTime())[0];
+        return futureSessions.sort((a, b) => new Date(`${a.date}T${a.startTime}`).getTime() - new Date(`${b.date}T${b.startTime}`).getTime())[0];
     }, [course, courseType]);
 
     const userPurchases = useMemo(() => {
@@ -117,7 +117,7 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId }) => {
                 const months = Math.max(1, weeks / 4);
                 amount = Math.round(course.fee / months);
                 description = `${course.title} (Month 1)`;
-                metadata = { type: 'month', index: 0 }; 
+                metadata = { type: 'month', index: 0 };
             } else if (course.paymentPlan === 'per_session') {
                 const totalSessions = course.liveSessions?.length || 1;
                 amount = Math.round(course.fee / totalSessions);
@@ -141,8 +141,8 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId }) => {
 
     const handleUnlockClick = (amount: number, description: string, metadata: any) => {
         if (!currentUser) {
-             setModalState({ name: 'login', preventRedirect: true });
-             return;
+            setModalState({ name: 'login', preventRedirect: true });
+            return;
         }
         setPartialPaymentTarget({ amount, description, metadata });
         setIsConfirmingEnrollment(true);
@@ -152,7 +152,7 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId }) => {
         if (partialPaymentTarget) {
             const balanceToApply = Math.min(currentUser?.accountBalance || 0, partialPaymentTarget.amount);
             const remaining = partialPaymentTarget.amount - balanceToApply;
-            
+
             if (remaining > 0) {
                 setShowPaymentSelector(true);
                 setIsConfirmingEnrollment(false);
@@ -197,7 +197,7 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId }) => {
             return;
         }
         const field = linkType === 'join' ? 'joinLink' : 'recordingLink';
-        const updatedSessions = course.liveSessions.map(s => 
+        const updatedSessions = course.liveSessions.map(s =>
             s.id === editSessionId ? { ...s, [field]: linkInput } : s
         );
         try {
@@ -210,52 +210,52 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId }) => {
             addToast("Failed to update link.", "error");
         }
     };
-    
+
     const renderLiveSessionList = () => {
         const now = new Date();
-        const sortedSessions = (course.liveSessions || []).sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        const sortedSessions = (course.liveSessions || []).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
         let groups: { title: string, sessions: LiveSession[], unlockCost: number, isLocked: boolean, metadata: any }[] = [];
         if (course.paymentPlan === 'monthly') {
-             const sessionsPerWeek = course.scheduleConfig?.days?.length || 1;
-             const sessionsPerMonth = sessionsPerWeek * 4;
-             const monthCost = initialPayment.amount; 
-             for (let i = 0; i < sortedSessions.length; i += sessionsPerMonth) {
-                 const chunk = sortedSessions.slice(i, i + sessionsPerMonth);
-                 const monthIndex = i / sessionsPerMonth;
-                 groups.push({
-                     title: `Month ${monthIndex + 1}`,
-                     sessions: chunk,
-                     unlockCost: monthCost,
-                     isLocked: !isBlockUnlocked('month', monthIndex),
-                     metadata: { type: 'month', index: monthIndex }
-                 });
-             }
+            const sessionsPerWeek = course.scheduleConfig?.days?.length || 1;
+            const sessionsPerMonth = sessionsPerWeek * 4;
+            const monthCost = initialPayment.amount;
+            for (let i = 0; i < sortedSessions.length; i += sessionsPerMonth) {
+                const chunk = sortedSessions.slice(i, i + sessionsPerMonth);
+                const monthIndex = i / sessionsPerMonth;
+                groups.push({
+                    title: `Month ${monthIndex + 1}`,
+                    sessions: chunk,
+                    unlockCost: monthCost,
+                    isLocked: !isBlockUnlocked('month', monthIndex),
+                    metadata: { type: 'month', index: monthIndex }
+                });
+            }
         } else if (course.paymentPlan === 'installments_2') {
-             const halfPoint = Math.ceil(sortedSessions.length / 2);
-             const installmentCost = course.fee / 2;
-             groups.push({
-                 title: "Part 1 (First Half)",
-                 sessions: sortedSessions.slice(0, halfPoint),
-                 unlockCost: installmentCost,
-                 isLocked: !isBlockUnlocked('installment', 0),
-                 metadata: { type: 'installment', index: 0 }
-             });
-             groups.push({
-                 title: "Part 2 (Second Half)",
-                 sessions: sortedSessions.slice(halfPoint),
-                 unlockCost: installmentCost,
-                 isLocked: !isBlockUnlocked('installment', 1),
-                 metadata: { type: 'installment', index: 1 }
-             });
+            const halfPoint = Math.ceil(sortedSessions.length / 2);
+            const installmentCost = course.fee / 2;
+            groups.push({
+                title: "Part 1 (First Half)",
+                sessions: sortedSessions.slice(0, halfPoint),
+                unlockCost: installmentCost,
+                isLocked: !isBlockUnlocked('installment', 0),
+                metadata: { type: 'installment', index: 0 }
+            });
+            groups.push({
+                title: "Part 2 (Second Half)",
+                sessions: sortedSessions.slice(halfPoint),
+                unlockCost: installmentCost,
+                isLocked: !isBlockUnlocked('installment', 1),
+                metadata: { type: 'installment', index: 1 }
+            });
         } else if (course.paymentPlan === 'per_session') {
-             const sessionCost = Math.round(course.fee / sortedSessions.length);
-             groups = sortedSessions.map((s, i) => ({
-                 title: `Session ${i + 1}`,
-                 sessions: [s],
-                 unlockCost: sessionCost,
-                 isLocked: !isBlockUnlocked('session', i),
-                 metadata: { type: 'session', index: i }
-             }));
+            const sessionCost = Math.round(course.fee / sortedSessions.length);
+            groups = sortedSessions.map((s, i) => ({
+                title: `Session ${i + 1}`,
+                sessions: [s],
+                unlockCost: sessionCost,
+                isLocked: !isBlockUnlocked('session', i),
+                metadata: { type: 'session', index: i }
+            }));
         } else {
             groups.push({
                 title: "All Sessions",
@@ -266,22 +266,22 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId }) => {
             });
         }
         if (sortedSessions.length === 0) {
-             return (
-                 <div className="text-center py-8 text-light-subtle dark:text-dark-subtle border-2 border-dashed border-light-border dark:border-dark-border rounded-lg">
-                     <p>No live sessions scheduled yet.</p>
-                 </div>
-             );
+            return (
+                <div className="text-center py-8 text-light-subtle dark:text-dark-subtle border-2 border-dashed border-light-border dark:border-dark-border rounded-lg">
+                    <p>No live sessions scheduled yet.</p>
+                </div>
+            );
         }
         return (
-             <div className="space-y-6">
+            <div className="space-y-6">
                 {groups.map((group, groupIndex) => (
                     <div key={groupIndex} className="relative border border-light-border dark:border-dark-border rounded-lg overflow-hidden">
                         <div className="bg-light-background dark:bg-dark-background p-3 border-b border-light-border dark:border-dark-border flex justify-between items-center">
                             <h3 className="font-bold text-light-text dark:text-dark-text">{group.title}</h3>
                             {group.isLocked ? (
-                                <span className="text-xs font-bold text-red-500 flex items-center"><LockClosedIcon className="w-3 h-3 mr-1"/> Locked</span>
+                                <span className="text-xs font-bold text-red-500 flex items-center"><LockClosedIcon className="w-3 h-3 mr-1" /> Locked</span>
                             ) : (
-                                <span className="text-xs font-bold text-green-600 flex items-center"><CheckCircleIcon className="w-3 h-3 mr-1"/> Unlocked</span>
+                                <span className="text-xs font-bold text-green-600 flex items-center"><CheckCircleIcon className="w-3 h-3 mr-1" /> Unlocked</span>
                             )}
                         </div>
                         <div className="relative p-4 space-y-4 bg-light-surface dark:bg-dark-surface">
@@ -290,7 +290,7 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId }) => {
                                     <LockClosedIcon className="w-10 h-10 text-gray-400 mb-2" />
                                     <h4 className="font-bold text-lg text-gray-800 dark:text-gray-200">Content Locked</h4>
                                     <p className="text-sm text-light-subtle dark:text-dark-subtle mb-4">Purchase this section to access class links and recordings.</p>
-                                    <button 
+                                    <button
                                         onClick={() => handleUnlockClick(group.unlockCost, `Unlock ${group.title}`, group.metadata)}
                                         className="px-6 py-2 bg-primary text-white font-bold rounded-full hover:bg-primary-dark transition-colors shadow-md"
                                     >
@@ -301,7 +301,7 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId }) => {
                             {group.sessions.map((session, idx) => {
                                 const startDateTime = new Date(`${session.date}T${session.startTime}`);
                                 const endDateTime = new Date(`${session.date}T${session.endTime}`);
-                                const isLive = now >= new Date(startDateTime.getTime() - 15 * 60000) && now <= endDateTime; 
+                                const isLive = now >= new Date(startDateTime.getTime() - 15 * 60000) && now <= endDateTime;
                                 const isEditing = editSessionId === session.id;
                                 const canAccess = !group.isLocked || isOwner;
                                 return (
@@ -310,8 +310,8 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId }) => {
                                             <div>
                                                 <h4 className="font-bold text-light-text dark:text-dark-text text-sm">{session.title}</h4>
                                                 <div className="flex items-center text-xs text-light-subtle dark:text-dark-subtle mt-1 space-x-3">
-                                                    <span className="flex items-center"><CalendarIcon className="w-3 h-3 mr-1"/>{new Date(session.date).toLocaleDateString()}</span>
-                                                    <span className="flex items-center"><ClockIcon className="w-3 h-3 mr-1"/>{session.startTime} - {session.endTime}</span>
+                                                    <span className="flex items-center"><CalendarIcon className="w-3 h-3 mr-1" />{new Date(session.date).toLocaleDateString()}</span>
+                                                    <span className="flex items-center"><ClockIcon className="w-3 h-3 mr-1" />{session.startTime} - {session.endTime}</span>
                                                 </div>
                                             </div>
                                             {isLive && <span className="px-2 py-0.5 bg-red-600 text-white text-[10px] font-bold rounded animate-pulse">LIVE</span>}
@@ -319,13 +319,13 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId }) => {
                                         {canAccess && !isOwner && (
                                             <div className="mt-2 flex flex-wrap gap-2">
                                                 {isLive && session.joinLink && (
-                                                    <a href={session.joinLink} target="_blank" rel="noopener noreferrer" className="flex items-center px-3 py-1.5 bg-green-600 text-white text-xs rounded hover:bg-green-700"><VideoCameraIcon className="w-3 h-3 mr-1"/> Join Class</a>
+                                                    <a href={session.joinLink} target="_blank" rel="noopener noreferrer" className="flex items-center px-3 py-1.5 bg-green-600 text-white text-xs rounded hover:bg-green-700"><VideoCameraIcon className="w-3 h-3 mr-1" /> Join Class</a>
                                                 )}
                                                 {session.recordingLink && (
-                                                    <a href={session.recordingLink} target="_blank" rel="noopener noreferrer" className="flex items-center px-3 py-1.5 bg-primary text-white text-xs rounded hover:bg-primary-dark"><PlayCircleIcon className="w-3 h-3 mr-1"/> Recording</a>
+                                                    <a href={session.recordingLink} target="_blank" rel="noopener noreferrer" className="flex items-center px-3 py-1.5 bg-primary text-white text-xs rounded hover:bg-primary-dark"><PlayCircleIcon className="w-3 h-3 mr-1" /> Recording</a>
                                                 )}
                                                 {session.resourceLink && (
-                                                    <a href={session.resourceLink} target="_blank" rel="noopener noreferrer" className="flex items-center px-3 py-1.5 border border-primary text-primary text-xs rounded hover:bg-primary/10"><LinkIcon className="w-3 h-3 mr-1"/> Resources</a>
+                                                    <a href={session.resourceLink} target="_blank" rel="noopener noreferrer" className="flex items-center px-3 py-1.5 border border-primary text-primary text-xs rounded hover:bg-primary/10"><LinkIcon className="w-3 h-3 mr-1" /> Resources</a>
                                                 )}
                                             </div>
                                         )}
@@ -334,14 +334,14 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId }) => {
                                                 {isEditing ? (
                                                     <div className="flex items-center gap-2 bg-white dark:bg-gray-800 p-2 rounded border border-primary">
                                                         <input type="text" value={linkInput} onChange={e => setLinkInput(e.target.value)} className="flex-grow p-1 text-xs border rounded bg-transparent text-light-text dark:text-dark-text focus:outline-none" placeholder={linkType === 'join' ? "Zoom/Meet URL" : "Recording URL"} autoFocus />
-                                                        <button onClick={handleSaveLink} className="text-green-600 hover:bg-green-100 p-1 rounded"><SaveIcon className="w-4 h-4"/></button>
-                                                        <button onClick={() => setEditSessionId(null)} className="text-red-500 hover:bg-red-100 p-1 rounded"><XIcon className="w-4 h-4"/></button>
+                                                        <button onClick={handleSaveLink} className="text-green-600 hover:bg-green-100 p-1 rounded"><SaveIcon className="w-4 h-4" /></button>
+                                                        <button onClick={() => setEditSessionId(null)} className="text-red-500 hover:bg-red-100 p-1 rounded"><XIcon className="w-4 h-4" /></button>
                                                     </div>
                                                 ) : (
                                                     <div className="flex flex-col gap-2">
                                                         <div className="flex items-center justify-between text-xs">
                                                             <div className="flex items-center gap-2 overflow-hidden">
-                                                                <VideoCameraIcon className="w-3 h-3 text-green-600"/>
+                                                                <VideoCameraIcon className="w-3 h-3 text-green-600" />
                                                                 <span className="font-semibold">Join Link:</span>
                                                                 {session.joinLink ? <a href={session.joinLink} target="_blank" rel="noopener noreferrer" className="text-blue-500 truncate">{session.joinLink}</a> : <span className="text-gray-400 italic">Not set</span>}
                                                             </div>
@@ -349,7 +349,7 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId }) => {
                                                         </div>
                                                         <div className="flex items-center justify-between text-xs">
                                                             <div className="flex items-center gap-2 overflow-hidden">
-                                                                <PlayCircleIcon className="w-3 h-3 text-red-600"/>
+                                                                <PlayCircleIcon className="w-3 h-3 text-red-600" />
                                                                 <span className="font-semibold">Recording:</span>
                                                                 {session.recordingLink ? <a href={session.recordingLink} target="_blank" rel="noopener noreferrer" className="text-blue-500 truncate">{session.recordingLink}</a> : <span className="text-gray-400 italic">Not set</span>}
                                                             </div>
@@ -368,12 +368,12 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId }) => {
             </div>
         )
     }
-    
+
     const currencyFormatter = new Intl.NumberFormat('en-LK', { style: 'currency', currency: 'LKR' });
-    const totalDurationHours = courseType === 'recorded' 
+    const totalDurationHours = courseType === 'recorded'
         ? course.lectures.reduce((acc, l) => acc + l.durationMinutes, 0) / 60
         : (course.scheduleConfig?.durationMinutes || 60) * (course.liveSessions?.length || 0) / 60;
-    
+
     const balanceToApply = Math.min(currentUser?.accountBalance || 0, initialPayment.amount);
     const remainingFee = initialPayment.amount - balanceToApply;
     const coverImageSrcSet = createSrcSet(course.coverImage, [400, 800]);
@@ -388,7 +388,7 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId }) => {
 
     return (
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-slideInUp">
-             <div className="mb-4">
+            <div className="mb-4">
                 <button onClick={handleBack} className="flex items-center space-x-2 text-sm font-medium text-primary hover:text-primary-dark transition-colors">
                     <ChevronLeftIcon className="h-5 w-5" />
                     <span>Back</span>
@@ -405,8 +405,8 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId }) => {
                             <MarkdownDisplay content={course.description} className="prose-lg" />
                         </div>
                         <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
-                             <button onClick={() => onViewTeacher(teacher)} className="flex items-center space-x-2 group">
-                                <img src={teacher.avatar} alt={teacher.name} className="w-10 h-10 rounded-full"/>
+                            <button onClick={() => onViewTeacher(teacher)} className="flex items-center space-x-2 group">
+                                <img src={teacher.avatar} alt={teacher.name} className="w-10 h-10 rounded-full" />
                                 <div>
                                     <p className="text-sm text-light-subtle dark:text-dark-subtle">Created by</p>
                                     <p className="font-semibold group-hover:underline">{teacher.name}</p>
@@ -460,9 +460,9 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId }) => {
                 </div>
                 <div className="lg:col-span-1">
                     <div className="sticky top-24 bg-light-surface dark:bg-dark-surface rounded-lg shadow-md overflow-hidden">
-                        <img src={course.coverImage} srcSet={coverImageSrcSet} sizes="33vw" alt={course.title} className="w-full h-48 object-cover" crossOrigin="anonymous" />
+                        <img src={getOptimizedImageUrl(course.coverImage, 400)} srcSet={coverImageSrcSet} sizes="33vw" alt={course.title} className="w-full h-48 object-cover" crossOrigin="anonymous" />
                         <div className="p-6">
-                             {courseType === 'live' && nextLiveSession ? (
+                            {courseType === 'live' && nextLiveSession ? (
                                 <div className="mb-6 pb-6 border-b border-light-border dark:border-dark-border">
                                     <h3 className="font-bold text-center text-lg mb-2">Next Session Starts In</h3>
                                     <Countdown targetDate={new Date(`${nextLiveSession.date}T${nextLiveSession.startTime}`)} completionMessage="Class is starting!" />

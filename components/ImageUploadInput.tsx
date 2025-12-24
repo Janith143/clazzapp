@@ -1,6 +1,7 @@
 
 import React, { useRef } from 'react';
 import { UploadIcon, CameraIcon } from './Icons.tsx';
+import { getOptimizedImageUrl } from '../utils.ts';
 
 interface ImageUploadInputProps {
   label: string;
@@ -44,9 +45,11 @@ const ImageUploadInput: React.FC<ImageUploadInputProps> = ({ label, currentImage
     }
   };
 
-  const recommendation = aspectRatio === 'aspect-square' 
-    ? "Recommended: Square image (1:1)" 
+  const recommendation = aspectRatio === 'aspect-square'
+    ? "Recommended: Square image (1:1)"
     : "Recommended: Landscape image (16:9)";
+
+  const optimizedUserInfo = getOptimizedImageUrl(currentImage || '', 400);
 
   return (
     <div>
@@ -66,11 +69,11 @@ const ImageUploadInput: React.FC<ImageUploadInputProps> = ({ label, currentImage
         />
         {currentImage ? (
           <>
-            <img src={currentImage} alt="Preview" className={`w-full h-full object-cover rounded-md`} />
+            <img src={currentImage.startsWith('data:') ? currentImage : optimizedUserInfo} alt="Preview" className={`w-full h-full object-cover rounded-md`} crossOrigin="anonymous" />
             <div className="absolute inset-0 bg-black/50 rounded-md flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity">
               <div className="text-center">
-                  <CameraIcon className="w-8 h-8 mx-auto" />
-                  <p className="text-sm font-semibold mt-1">Change Image</p>
+                <CameraIcon className="w-8 h-8 mx-auto" />
+                <p className="text-sm font-semibold mt-1">Change Image</p>
               </div>
             </div>
           </>

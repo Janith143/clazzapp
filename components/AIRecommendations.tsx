@@ -3,7 +3,7 @@ import { GoogleGenAI } from "@google/genai";
 import { User, Teacher, Course, IndividualClass, Quiz } from '../types';
 import { useData } from '../contexts/DataContext';
 import { useNavigation } from '../contexts/NavigationContext';
-import { getDynamicClassStatus } from '../utils';
+import { getDynamicClassStatus, getOptimizedImageUrl } from '../utils';
 import { BookOpenIcon, UserCircleIcon, VideoCameraIcon } from './Icons';
 
 interface AIRecommendationsProps {
@@ -40,7 +40,7 @@ const RecommendationCard: React.FC<{ item: RecommendedItem }> = ({ item }) => {
                     <span className="ml-1.5 uppercase tracking-wider">Teacher</span>
                 </div>
                 <div className="flex items-center space-x-4">
-                    <img src={teacher.profileImage} alt={teacher.name} className="w-16 h-16 rounded-full object-cover flex-shrink-0 border-2 border-white dark:border-dark-surface" />
+                    <img src={getOptimizedImageUrl(teacher.profileImage, 128, 128)} alt={teacher.name} className="w-16 h-16 rounded-full object-cover flex-shrink-0 border-2 border-white dark:border-dark-surface" />
                     <div className="flex-grow">
                         <h4 className="font-bold text-sm text-light-text dark:text-dark-text group-hover:text-primary transition-colors">{teacher.name}</h4>
                         <p className="text-xs text-light-subtle dark:text-dark-subtle mt-1">{teacher.tagline}</p>
@@ -72,7 +72,7 @@ const RecommendationCard: React.FC<{ item: RecommendedItem }> = ({ item }) => {
 
     return (
         <button onClick={clickHandler} className="w-full h-full text-left bg-light-surface dark:bg-dark-surface rounded-lg shadow-md overflow-hidden group transform hover:-translate-y-1 transition-transform duration-300 flex flex-col">
-            <img src={image} alt={title} className="w-full h-24 object-cover flex-shrink-0" />
+            <img src={getOptimizedImageUrl(image, 400)} alt={title} className="w-full h-24 object-cover flex-shrink-0" />
             <div className="p-4 flex-grow flex flex-col justify-between">
                 <div>
                     <div className="flex items-center text-xs font-semibold text-primary mb-1">

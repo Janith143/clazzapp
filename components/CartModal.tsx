@@ -7,15 +7,16 @@ import { CartItem, Event, BillingDetails, Product, PhotoCartItem, ProductCartIte
 import { TrashIcon, ShoppingCartIcon } from './Icons';
 import FormInput from './FormInput';
 import { useAuth } from '../contexts/AuthContext';
+import { getOptimizedImageUrl } from '../utils';
 
-interface CartModalProps {}
+interface CartModalProps { }
 
 const CartModal: React.FC<CartModalProps> = () => {
     const { modalState, setModalState, cart, removeFromCart, updateCartItemQuantity, clearCart, addToast } = useUI();
     const { tuitionInstitutes, teachers } = useData();
     const { handleNavigate } = useNavigation();
     const { currentUser } = useAuth();
-    
+
     const [step, setStep] = useState<'cart' | 'billing'>('cart');
     const [billingDetails, setBillingDetails] = useState<BillingDetails>({
         billingFirstName: '',
@@ -36,7 +37,7 @@ const CartModal: React.FC<CartModalProps> = () => {
     const isOpen = modalState.name === 'cart';
 
     const hasPhysicalItems = useMemo(() => {
-        return cart.some(item => 
+        return cart.some(item =>
             (item.type === 'product' && (item as ProductCartItem).product.type === 'physical') ||
             item.type === 'photo_print'
         );
@@ -60,7 +61,7 @@ const CartModal: React.FC<CartModalProps> = () => {
     }, [isOpen, step, currentUser]);
 
     const onClose = useCallback(() => {
-        setStep('cart'); 
+        setStep('cart');
         setModalState({ name: 'none' });
     }, [setModalState]);
 
@@ -104,11 +105,11 @@ const CartModal: React.FC<CartModalProps> = () => {
             const event = institute?.events?.find(e => e.id === firstPhotoItem.eventId);
             const discounts = event?.gallery?.bulkDiscounts || [];
             if (discounts.length > 0) {
-                const sortedDiscounts = [...discounts].sort((a,b) => b.quantity - a.quantity);
+                const sortedDiscounts = [...discounts].sort((a, b) => b.quantity - a.quantity);
                 for (const d of sortedDiscounts) {
                     if (photoItems.length >= d.quantity) {
                         const photoSubtotal = photoItems.reduce((acc, item) => {
-                             return acc + (item.price * item.quantity);
+                            return acc + (item.price * item.quantity);
                         }, 0);
                         appliedDiscount = photoSubtotal * (d.discountPercent / 100);
                         break;
@@ -116,14 +117,14 @@ const CartModal: React.FC<CartModalProps> = () => {
                 }
             }
         }
-        
+
         const finalTotal = currentSubtotal - appliedDiscount;
         return { subtotal: currentSubtotal, discount: appliedDiscount, total: finalTotal, groupedBySeller: sellers };
 
     }, [cart, tuitionInstitutes, teachers]);
-    
+
     const currencyFormatter = new Intl.NumberFormat('en-LK', { style: 'currency', currency: 'LKR' });
-    
+
     const handleBillingChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setBillingDetails(prev => ({ ...prev, [e.target.name]: e.target.value }));
     };
@@ -135,7 +136,7 @@ const CartModal: React.FC<CartModalProps> = () => {
     const handleCheckout = (e?: React.FormEvent) => {
         e?.preventDefault();
         if (cart.length === 0) return;
-        
+
         const finalShippingAddress = hasPhysicalItems
             ? (sameAsBilling
                 ? {
@@ -149,7 +150,7 @@ const CartModal: React.FC<CartModalProps> = () => {
             : undefined;
 
         const isPhotoPurchase = cart.some(item => item.type.startsWith('photo'));
-        
+
         if (isPhotoPurchase) {
             const photoCart = cart as PhotoCartItem[];
             const instituteId = photoCart[0]?.instituteId;
@@ -157,7 +158,7 @@ const CartModal: React.FC<CartModalProps> = () => {
                 addToast("Could not process photo order. Missing event information.", "error");
                 return;
             }
-             handleNavigate({
+            handleNavigate({
                 name: 'payment_redirect',
                 payload: {
                     type: 'photo_purchase',
@@ -182,9 +183,9 @@ const CartModal: React.FC<CartModalProps> = () => {
         }
         onClose();
     };
-    
+
     const renderBillingForm = () => (
-         <form onSubmit={handleCheckout} className="space-y-4 text-light-text dark:text-dark-text">
+        <form onSubmit={handleCheckout} className="space-y-4 text-light-text dark:text-dark-text">
             <h3 className="text-lg font-semibold">Billing Information</h3>
             <p className="text-sm text-light-subtle dark:text-dark-subtle -mt-2">
                 Please provide your details for the invoice and payment.
@@ -201,12 +202,12 @@ const CartModal: React.FC<CartModalProps> = () => {
                 <FormInput label="State / Province" name="billingState" value={billingDetails.billingState || ''} onChange={handleBillingChange} required={hasPhysicalItems} />
             </div>
             <FormInput label="Postal Code" name="billingPostalCode" value={billingDetails.billingPostalCode || ''} onChange={handleBillingChange} required={hasPhysicalItems} />
-            
+
             {hasPhysicalItems && (
                 <div className="pt-4 border-t border-light-border dark:border-dark-border">
                     <h3 className="text-lg font-semibold">Shipping Information</h3>
                     <div className="mt-2 flex items-center">
-                        <input type="checkbox" id="sameAsBilling" checked={sameAsBilling} onChange={(e) => setSameAsBilling(e.target.checked)} className="h-4 w-4 text-primary focus:ring-primary border-light-border dark:border-dark-border rounded"/>
+                        <input type="checkbox" id="sameAsBilling" checked={sameAsBilling} onChange={(e) => setSameAsBilling(e.target.checked)} className="h-4 w-4 text-primary focus:ring-primary border-light-border dark:border-dark-border rounded" />
                         <label htmlFor="sameAsBilling" className="ml-2 block text-sm">Shipping address is same as billing</label>
                     </div>
                     {!sameAsBilling && (
@@ -225,9 +226,9 @@ const CartModal: React.FC<CartModalProps> = () => {
 
             <div className="mt-6 pt-4 border-t border-light-border dark:border-dark-border">
                 <div className="space-y-1 text-sm">
-                     <div className="flex justify-between"><span>Subtotal</span><span>{currencyFormatter.format(subtotal)}</span></div>
-                     {discount > 0 && (<div className="flex justify-between text-green-600 dark:text-green-400"><span>Bulk Discount</span><span>- {currencyFormatter.format(discount)}</span></div>)}
-                     <div className="flex justify-between font-bold text-lg pt-2 border-t border-light-border dark:border-dark-border"><span>Total</span><span>{currencyFormatter.format(total)}</span></div>
+                    <div className="flex justify-between"><span>Subtotal</span><span>{currencyFormatter.format(subtotal)}</span></div>
+                    {discount > 0 && (<div className="flex justify-between text-green-600 dark:text-green-400"><span>Bulk Discount</span><span>- {currencyFormatter.format(discount)}</span></div>)}
+                    <div className="flex justify-between font-bold text-lg pt-2 border-t border-light-border dark:border-dark-border"><span>Total</span><span>{currencyFormatter.format(total)}</span></div>
                 </div>
                 <button type="submit" className="mt-4 w-full bg-primary text-white font-bold py-3 rounded-md hover:bg-primary-dark transition-colors">
                     Pay {currencyFormatter.format(total)}
@@ -243,73 +244,74 @@ const CartModal: React.FC<CartModalProps> = () => {
         <Modal isOpen={isOpen} onClose={onClose} title="Your Shopping Cart" size="3xl">
             {cart.length > 0 ? (
                 step === 'cart' ? (
-                     <div className="flex flex-col h-[70vh]">
+                    <div className="flex flex-col h-[70vh]">
                         <div className="flex-grow overflow-y-auto pr-2 space-y-4">
                             {Object.entries(groupedBySeller).map(([sellerId, group]) => {
                                 const sellerGroup = group as { name: string; items: CartItem[] };
                                 return (
-                                <div key={sellerId}>
-                                    <h4 className="font-semibold text-md mb-2">{sellerGroup.name}</h4>
-                                    <div className="space-y-3">
-                                        {sellerGroup.items.map((item) => {
-                                            const isProduct = item.type === 'product';
-                                            const isPhotoPrint = item.type === 'photo_print';
-                                            const productItem = isProduct ? (item as ProductCartItem) : null;
-                                            const photoItem = !isProduct ? (item as PhotoCartItem) : null;
-                                            
-                                            let name = '';
-                                            let image = '';
-                                            let details = '';
-                                            let price = 0;
+                                    <div key={sellerId}>
+                                        <h4 className="font-semibold text-md mb-2">{sellerGroup.name}</h4>
+                                        <div className="space-y-3">
+                                            {sellerGroup.items.map((item) => {
+                                                const isProduct = item.type === 'product';
+                                                const isPhotoPrint = item.type === 'photo_print';
+                                                const productItem = isProduct ? (item as ProductCartItem) : null;
+                                                const photoItem = !isProduct ? (item as PhotoCartItem) : null;
 
-                                            if (isProduct && productItem) {
-                                                name = productItem.product.title;
-                                                image = productItem.product.coverImages?.[0] || 'https://via.placeholder.com/150.png?text=No+Img';
-                                                details = productItem.product.type;
-                                                price = productItem.product.price;
-                                            } else if (photoItem) {
-                                                name = `Photo #${photoItem.photo.id.slice(-6)}`;
-                                                image = photoItem.photo.url_thumb;
-                                                price = photoItem.price;
-                                                if (isPhotoPrint) {
-                                                    details = `Print (${photoItem.printOption?.size})`;
-                                                } else {
-                                                    if (photoItem.type === 'photo_download_highres') {
-                                                        details = 'Download (Full Quality)';
+                                                let name = '';
+                                                let image = '';
+                                                let details = '';
+                                                let price = 0;
+
+                                                if (isProduct && productItem) {
+                                                    name = productItem.product.title;
+                                                    image = getOptimizedImageUrl(productItem.product.coverImages?.[0], 100) || 'https://via.placeholder.com/150.png?text=No+Img';
+                                                    details = productItem.product.type;
+                                                    price = productItem.product.price;
+                                                } else if (photoItem) {
+                                                    name = `Photo #${photoItem.photo.id.slice(-6)}`;
+                                                    image = getOptimizedImageUrl(photoItem.photo.url_thumb, 100);
+                                                    price = photoItem.price;
+                                                    if (isPhotoPrint) {
+                                                        details = `Print (${photoItem.printOption?.size})`;
                                                     } else {
-                                                        details = 'Download (Standard)';
+                                                        if (photoItem.type === 'photo_download_highres') {
+                                                            details = 'Download (Full Quality)';
+                                                        } else {
+                                                            details = 'Download (Standard)';
+                                                        }
                                                     }
                                                 }
-                                            }
-                                            
-                                            return (
-                                                <div key={item.id} className="flex items-center gap-4 p-2 bg-light-background dark:bg-dark-background rounded-md">
-                                                    <img src={image} alt="thumbnail" className="w-16 h-16 rounded-md object-cover"/>
-                                                    <div className="flex-grow">
-                                                        <p className="font-semibold text-sm text-light-text dark:text-dark-text">{name}</p>
-                                                        <p className="text-xs capitalize text-light-subtle dark:text-dark-subtle">{details}</p>
+
+                                                return (
+                                                    <div key={item.id} className="flex items-center gap-4 p-2 bg-light-background dark:bg-dark-background rounded-md">
+                                                        <img src={image} alt="thumbnail" className="w-16 h-16 rounded-md object-cover" />
+                                                        <div className="flex-grow">
+                                                            <p className="font-semibold text-sm text-light-text dark:text-dark-text">{name}</p>
+                                                            <p className="text-xs capitalize text-light-subtle dark:text-dark-subtle">{details}</p>
+                                                        </div>
+                                                        {(isProduct || isPhotoPrint) && (
+                                                            <input
+                                                                type="number"
+                                                                value={item.quantity}
+                                                                onChange={(e) => updateCartItemQuantity(item.id, parseInt(e.target.value, 10))}
+                                                                min="1"
+                                                                className="w-16 p-1 border rounded bg-light-surface dark:bg-dark-surface border-light-border dark:border-dark-border text-light-text dark:text-dark-text"
+                                                            />
+                                                        )}
+                                                        <p className="font-semibold text-sm text-light-text dark:text-dark-text">
+                                                            {currencyFormatter.format(price * item.quantity)}
+                                                        </p>
+                                                        <button onClick={() => removeFromCart(item.id)} className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-full">
+                                                            <TrashIcon className="w-4 h-4" />
+                                                        </button>
                                                     </div>
-                                                    {(isProduct || isPhotoPrint) && (
-                                                        <input 
-                                                            type="number" 
-                                                            value={item.quantity} 
-                                                            onChange={(e) => updateCartItemQuantity(item.id, parseInt(e.target.value, 10))}
-                                                            min="1"
-                                                            className="w-16 p-1 border rounded bg-light-surface dark:bg-dark-surface border-light-border dark:border-dark-border text-light-text dark:text-dark-text"
-                                                        />
-                                                    )}
-                                                    <p className="font-semibold text-sm text-light-text dark:text-dark-text">
-                                                        {currencyFormatter.format(price * item.quantity)}
-                                                    </p>
-                                                    <button onClick={() => removeFromCart(item.id)} className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-full">
-                                                        <TrashIcon className="w-4 h-4" />
-                                                    </button>
-                                                </div>
-                                            );
-                                        })}
+                                                );
+                                            })}
+                                        </div>
                                     </div>
-                                </div>
-                            )})}
+                                )
+                            })}
                         </div>
                         <div className="mt-4 pt-4 border-t border-light-border dark:border-dark-border">
                             <div className="space-y-1 text-sm text-light-text dark:text-dark-text">
@@ -339,7 +341,7 @@ const CartModal: React.FC<CartModalProps> = () => {
                 ) : renderBillingForm()
             ) : (
                 <div className="text-center py-12">
-                    <ShoppingCartIcon className="w-16 h-16 mx-auto text-light-subtle dark:text-dark-subtle"/>
+                    <ShoppingCartIcon className="w-16 h-16 mx-auto text-light-subtle dark:text-dark-subtle" />
                     <p className="mt-4 font-semibold text-light-text dark:text-dark-text">Your cart is empty</p>
                     <p className="mt-1 text-sm text-light-subtle dark:text-dark-subtle">Add items from the store or event galleries to get started.</p>
                 </div>

@@ -3,7 +3,7 @@ import { IndividualClass, Teacher, Course, Lecture, PaymentMethod } from '../typ
 import { ChevronLeftIcon, ClockIcon, CalendarIcon, MapPinIcon, OnlineIcon, UserCircleIcon, LinkIcon, VideoCameraIcon, SpinnerIcon } from '../components/Icons.tsx';
 import Countdown from '../components/Countdown.tsx';
 import StarRating from '../components/StarRating.tsx';
-import { getDynamicClassStatus, getNextSessionDateTime } from '../utils.ts';
+import { getDynamicClassStatus, getNextSessionDateTime, getOptimizedImageUrl } from '../utils.ts';
 import { useData, useFetchItem } from '../contexts/DataContext.tsx';
 import { useAuth } from '../contexts/AuthContext.tsx';
 import { useNavigation } from '../contexts/NavigationContext.tsx';
@@ -36,15 +36,15 @@ const ClassDetailPage: React.FC<ClassDetailPageProps> = ({ classId }) => {
     const [showPaymentSelector, setShowPaymentSelector] = useState(false);
     const [isRecordingsOpen, setIsRecordingsOpen] = useState(false);
     const recordingsRef = useRef<HTMLDivElement>(null);
-    
+
     const dynamicStatus = useMemo(() => (classInfo && 'endTime' in classInfo) ? getDynamicClassStatus(classInfo) : 'scheduled', [classInfo]);
     const nextSessionDateTime = useMemo(() => (classInfo && 'endTime' in classInfo) ? getNextSessionDateTime(classInfo) : null, [classInfo]);
-    
+
     const classEndDateTime = useMemo(() => {
         if (!classInfo || !('endTime' in classInfo)) return new Date();
         const baseDateString = classInfo.recurrence === 'weekly' ? new Date().toISOString().split('T')[0] : classInfo.date;
         const [endHours, endMinutes] = classInfo.endTime.split(':').map(Number);
-        
+
         const [year, month, day] = baseDateString.split('-').map(Number);
         const endDate = new Date(year, month - 1, day, endHours, endMinutes, 0, 0);
 
@@ -64,11 +64,11 @@ const ClassDetailPage: React.FC<ClassDetailPageProps> = ({ classId }) => {
         if (dates.length === 0) {
             return null;
         }
-        
+
         const mostRecentDate = dates.reduce((latest, current) => {
             return new Date(current) > new Date(latest) ? current : latest;
         });
-        
+
         return classInfo.recordingUrls[mostRecentDate] || null;
     }, [classInfo]);
 
@@ -94,7 +94,7 @@ const ClassDetailPage: React.FC<ClassDetailPageProps> = ({ classId }) => {
         const alreadyRatedThisClass = teacher.ratings.some(r => r.studentId === currentUser.id && r.classId === classInfo.id);
         return now > classEndDateTime && now < oneHourAfterEnd && !alreadyRatedThisClass;
     }, [currentUser, isEnrolled, classInfo, teacher, classEndDateTime]);
-    
+
     if (dataLoading) {
         return (
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center flex flex-col items-center justify-center">
@@ -119,7 +119,7 @@ const ClassDetailPage: React.FC<ClassDetailPageProps> = ({ classId }) => {
     const handleConfirmStepOne = () => {
         const balanceToApply = Math.min(currentUser?.accountBalance || 0, classInfo.fee);
         const remaining = classInfo.fee - balanceToApply;
-        
+
         const isManual = classInfo.paymentMethod === 'manual' && classInfo.fee > 0;
 
         if (remaining > 0 && !isManual) {
@@ -150,7 +150,7 @@ const ClassDetailPage: React.FC<ClassDetailPageProps> = ({ classId }) => {
         const mockCourseShell: Course = { id: `cls_${classInfo.id}`, teacherId: teacher.id, title: classInfo.title, lectures: [mockLecture], description: classInfo.description, subject: classInfo.subject, coverImage: teacher.coverImages?.[0] || '', fee: classInfo.fee, currency: 'LKR', type: 'recorded', isPublished: classInfo.isPublished, ratings: [], adminApproval: 'approved' };
         setVideoPlayerState({ isOpen: true, lecture: mockLecture, course: mockCourseShell, isEnrolled: true });
     };
-    
+
     const currencyFormatter = new Intl.NumberFormat('en-LK', { style: 'currency', currency: 'LKR' });
     const isManualPayment = classInfo.paymentMethod === 'manual' && classInfo.fee > 0;
     const balanceToApply = Math.min(currentUser?.accountBalance || 0, classInfo.fee);
@@ -158,14 +158,14 @@ const ClassDetailPage: React.FC<ClassDetailPageProps> = ({ classId }) => {
     const formattedDate = new Date(classInfo.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
     const getModeIcon = (mode: IndividualClass['mode']) => {
-        switch(mode) {
-          case 'Online': return <OnlineIcon className="w-5 h-5" />;
-          case 'Physical': return <MapPinIcon className="w-5 h-5" />;
-          case 'Both': return <div className="flex items-center space-x-1"><OnlineIcon className="w-5 h-5" /><MapPinIcon className="w-5 h-5" /></div>;
-          default: return null;
+        switch (mode) {
+            case 'Online': return <OnlineIcon className="w-5 h-5" />;
+            case 'Physical': return <MapPinIcon className="w-5 h-5" />;
+            case 'Both': return <div className="flex items-center space-x-1"><OnlineIcon className="w-5 h-5" /><MapPinIcon className="w-5 h-5" /></div>;
+            default: return null;
         }
     };
-    
+
     const getButtonText = () => {
         if (dynamicStatus === 'canceled') return 'Class Canceled';
         if (dynamicStatus === 'finished') return 'Class Finished';
@@ -177,7 +177,7 @@ const ClassDetailPage: React.FC<ClassDetailPageProps> = ({ classId }) => {
 
     return (
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-slideInUp">
-             <div className="mb-4">
+            <div className="mb-4">
                 <button onClick={handleBack} className="flex items-center space-x-2 text-sm font-medium text-primary hover:text-primary-dark transition-colors">
                     <ChevronLeftIcon className="h-5 w-5" />
                     <span>Back</span>
@@ -189,9 +189,9 @@ const ClassDetailPage: React.FC<ClassDetailPageProps> = ({ classId }) => {
                         <span className="px-3 py-1 text-sm font-semibold rounded-full bg-primary/10 text-primary-dark dark:text-primary-light uppercase tracking-wider">{classInfo.subject}</span>
                         <h1 className="mt-3 text-3xl md:text-4xl font-bold">{classInfo.title}</h1>
                         <div className="mt-2 text-light-subtle dark:text-dark-subtle"><MarkdownDisplay content={classInfo.description} className="prose-lg" /></div>
-                        <div className="mt-6 flex items-center space-x-4"><button onClick={() => onViewTeacher(teacher)} className="flex items-center space-x-2 group"><img src={teacher.avatar} alt={teacher.name} className="w-10 h-10 rounded-full"/><div><p className="text-sm text-light-subtle dark:text-dark-subtle">Taught by</p><p className="font-semibold group-hover:underline">{teacher.name}</p></div></button></div>
+                        <div className="mt-6 flex items-center space-x-4"><button onClick={() => onViewTeacher(teacher)} className="flex items-center space-x-2 group"><img src={getOptimizedImageUrl(teacher.avatar, 40, 40)} alt={teacher.name} className="w-10 h-10 rounded-full" /><div><p className="text-sm text-light-subtle dark:text-dark-subtle">Taught by</p><p className="font-semibold group-hover:underline">{teacher.name}</p></div></button></div>
                     </div>
-                     {canRate && (
+                    {canRate && (
                         <div className="bg-light-surface dark:bg-dark-surface p-6 rounded-lg shadow-md animate-fadeIn">
                             <h3 className="text-xl font-bold mb-2">How was your class?</h3>
                             <p className="text-sm text-light-subtle dark:text-dark-subtle mb-4">Rate your experience with {teacher.name}. Your feedback is valuable!</p>

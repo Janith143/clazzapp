@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Quiz, User, StudentSubmission, Question } from '../types.ts';
 import { ClockIcon } from '../components/Icons.tsx';
 import ConfirmationModal from '../components/ConfirmationModal.tsx';
+import { getOptimizedImageUrl } from '../utils.ts';
 
 interface QuizTakingPageProps {
     quizData: Quiz;
@@ -16,7 +17,7 @@ const QuizTakingPage: React.FC<QuizTakingPageProps> = ({ quizData, currentUser, 
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [selectedAnswers, setSelectedAnswers] = useState<SelectedAnswers>({});
     const [isConfirming, setIsConfirming] = useState(false);
-    
+
     const handleCloseConfirm = useCallback(() => setIsConfirming(false), []);
 
     const quizEndTime = useMemo(() => new Date(new Date(`${quizData.date}T${quizData.startTime}`).getTime() + quizData.durationMinutes * 60000), [quizData]);
@@ -64,7 +65,7 @@ const QuizTakingPage: React.FC<QuizTakingPageProps> = ({ quizData, currentUser, 
             }
         });
     };
-    
+
     if (quizData.questions.length === 0) {
         return (
             <div className="text-center p-8">
@@ -73,7 +74,7 @@ const QuizTakingPage: React.FC<QuizTakingPageProps> = ({ quizData, currentUser, 
             </div>
         );
     }
-    
+
     const currentQuestion: Question = quizData.questions[currentQuestionIndex];
 
     return (
@@ -99,7 +100,7 @@ const QuizTakingPage: React.FC<QuizTakingPageProps> = ({ quizData, currentUser, 
                         <div>
                             {currentQuestion.imageUrl && (
                                 <div className="mb-6 rounded-lg overflow-hidden">
-                                    <img src={currentQuestion.imageUrl} alt="Question visual aid" className="max-h-80 w-auto mx-auto" />
+                                    <img src={getOptimizedImageUrl(currentQuestion.imageUrl, 800)} alt="Question visual aid" className="max-h-80 w-auto mx-auto" />
                                 </div>
                             )}
                             <p className="text-lg font-semibold mb-6">{currentQuestion.text}</p>
@@ -125,23 +126,23 @@ const QuizTakingPage: React.FC<QuizTakingPageProps> = ({ quizData, currentUser, 
 
                 {/* Navigation */}
                 <div className="mt-8 flex justify-between items-center">
-                    <button 
+                    <button
                         onClick={() => setCurrentQuestionIndex(prev => prev - 1)}
                         disabled={currentQuestionIndex === 0}
                         className="px-6 py-2 text-sm font-medium border border-primary text-primary rounded-md hover:bg-primary/10 transition-colors disabled:opacity-50"
                     >
                         Previous
                     </button>
-                    
+
                     {currentQuestionIndex === quizData.questions.length - 1 ? (
-                        <button 
+                        <button
                             onClick={() => setIsConfirming(true)}
                             className="px-6 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 transition-colors"
                         >
                             Finish Quiz
                         </button>
                     ) : (
-                        <button 
+                        <button
                             onClick={() => setCurrentQuestionIndex(prev => prev + 1)}
                             disabled={currentQuestionIndex === quizData.questions.length - 1}
                             className="px-6 py-2 text-sm font-medium text-white bg-primary rounded-md hover:bg-primary-dark transition-colors disabled:opacity-50"
@@ -151,7 +152,7 @@ const QuizTakingPage: React.FC<QuizTakingPageProps> = ({ quizData, currentUser, 
                     )}
                 </div>
             </div>
-            <ConfirmationModal 
+            <ConfirmationModal
                 isOpen={isConfirming}
                 onClose={handleCloseConfirm}
                 onConfirm={handleConfirmSubmit}

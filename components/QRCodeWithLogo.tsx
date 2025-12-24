@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
+import { getOptimizedImageUrl } from '../utils';
 
 interface QRCodeWithLogoProps {
   data: string;
@@ -87,7 +88,7 @@ const QRCodeWithLogo: React.FC<QRCodeWithLogoProps> = ({
         // Draw logo with white circular background
         const logoImage = new Image();
         logoImage.crossOrigin = "anonymous";
-        logoImage.src = logoSrc;
+        logoImage.src = getOptimizedImageUrl(logoSrc, 200);
         await new Promise((res, rej) => {
           logoImage.onload = res;
           logoImage.onerror = rej;

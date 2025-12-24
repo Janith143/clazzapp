@@ -3,13 +3,14 @@ import Modal from '../Modal';
 import { User, IndividualClass, Sale } from '../../types';
 import { CheckCircleIcon, XCircleIcon, BanknotesIcon } from '../Icons.tsx';
 import { useData } from '../../contexts/DataContext';
+import { getOptimizedImageUrl } from '../../utils';
 
 interface StudentAttendanceModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  student: User;
-  classInfo: IndividualClass;
-  sale: Sale | null;
+    isOpen: boolean;
+    onClose: () => void;
+    student: User;
+    classInfo: IndividualClass;
+    sale: Sale | null;
 }
 
 const StudentAttendanceModal: React.FC<StudentAttendanceModalProps> = ({ isOpen, onClose, student, classInfo, sale }) => {
@@ -45,7 +46,7 @@ const StudentAttendanceModal: React.FC<StudentAttendanceModalProps> = ({ isOpen,
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="Student Attendance">
             <div className="text-center">
-                <img src={student.avatar} alt={student.firstName} className="w-24 h-24 rounded-full mx-auto shadow-lg border-2 border-primary" />
+                <img src={getOptimizedImageUrl(student.avatar, 96, 96)} alt={student.firstName} className="w-24 h-24 rounded-full mx-auto shadow-lg border-2 border-primary" />
                 <h2 className="text-2xl font-bold mt-4">{student.firstName} {student.lastName}</h2>
                 <p className="text-sm text-light-subtle dark:text-dark-subtle">{student.id}</p>
 
@@ -58,12 +59,12 @@ const StudentAttendanceModal: React.FC<StudentAttendanceModalProps> = ({ isOpen,
                     </div>
                     {isPaid && sale && (
                         <div className="text-xs text-green-600 dark:text-green-400 mt-2">
-                           <p>Paid on: {new Date(sale.saleDate).toLocaleDateString()}</p>
-                           <p>Amount: {currencyFormatter.format(sale.totalAmount + sale.amountPaidFromBalance)}</p>
+                            <p>Paid on: {new Date(sale.saleDate).toLocaleDateString()}</p>
+                            <p>Amount: {currencyFormatter.format(sale.totalAmount + sale.amountPaidFromBalance)}</p>
                         </div>
                     )}
                 </div>
-                
+
                 <div className="mt-8 space-y-3">
                     <button
                         onClick={handleMarkAttendance}
@@ -73,7 +74,7 @@ const StudentAttendanceModal: React.FC<StudentAttendanceModalProps> = ({ isOpen,
                         {isLoading ? 'Processing...' : 'Mark Attendance'}
                     </button>
                     {!isPaid && classInfo.paymentMethod === 'manual' && classInfo.fee > 0 && (
-                         <button
+                        <button
                             onClick={handleRecordPayment}
                             disabled={isLoading}
                             className="w-full flex items-center justify-center bg-green-600 text-white font-bold py-3 rounded-md hover:bg-green-700 transition-colors disabled:opacity-50"

@@ -1,6 +1,7 @@
 import React from 'react';
 import { IndividualClass, AttendanceRecord } from '../../types.ts';
 import { CheckCircleIcon, BanknotesIcon, XCircleIcon } from '../Icons.tsx';
+import { getOptimizedImageUrl } from '../../utils';
 
 interface AttendanceSummaryTableProps {
     classInfo: IndividualClass;
@@ -34,11 +35,11 @@ const AttendanceSummaryTable: React.FC<AttendanceSummaryTableProps> = ({ classIn
                     <p className="text-2xl font-bold text-light-text dark:text-dark-text">{totalAttended}</p>
                     <p className="text-sm font-medium text-light-subtle dark:text-dark-subtle">Total Attended</p>
                 </div>
-                 <div className="p-3 bg-green-50 dark:bg-green-900/30 rounded-lg">
+                <div className="p-3 bg-green-50 dark:bg-green-900/30 rounded-lg">
                     <p className="text-2xl font-bold text-green-600">{paidPlatform}</p>
                     <p className="text-sm font-medium text-green-700 dark:text-green-300">Paid (Platform)</p>
                 </div>
-                 <div className="p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
+                <div className="p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
                     <p className="text-2xl font-bold text-blue-600">{paidVenue}</p>
                     <p className="text-sm font-medium text-blue-700 dark:text-blue-300">Paid (Venue)</p>
                 </div>
@@ -61,12 +62,12 @@ const AttendanceSummaryTable: React.FC<AttendanceSummaryTableProps> = ({ classIn
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-light-border dark:divide-dark-border">
-                        {attendance.length > 0 ? [...attendance].sort((a,b) => new Date(b.attendedAt).getTime() - new Date(a.attendedAt).getTime()).map((record, index) => (
+                        {attendance.length > 0 ? [...attendance].sort((a, b) => new Date(b.attendedAt).getTime() - new Date(a.attendedAt).getTime()).map((record, index) => (
                             <tr key={record.studentId} className="text-light-text dark:text-dark-text">
                                 <td className="px-4 py-3">{index + 1}</td>
                                 <td className="px-4 py-3">
                                     <div className="flex items-center">
-                                        <img src={record.studentAvatar} alt={record.studentName} className="w-8 h-8 rounded-full mr-3" />
+                                        <img src={getOptimizedImageUrl(record.studentAvatar, 32, 32)} alt={record.studentName} className="w-8 h-8 rounded-full mr-3" />
                                         <div>
                                             <p className="font-medium text-light-text dark:text-dark-text">{record.studentName}</p>
                                             <p className="text-xs text-light-subtle dark:text-dark-subtle">{record.studentId}</p>
