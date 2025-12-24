@@ -18,71 +18,71 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const { currentUser } = useAuth();
     const [fcmToken, setFcmToken] = useState<string | null>(null);
 
+    const enableNotifications = async () => {
+        if (!('Notification' in window)) {
+            console.log('Notification API not supported in this browser.');
+            return;
+        }
+
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+            console.log('Notification permission granted.');
+            try {
+                const messaging = await messagingPromise;
+                if (!messaging) return;
+
+                let registration: ServiceWorkerRegistration | undefined;
+
+                if ('serviceWorker' in navigator) {
+                    registration = await navigator.serviceWorker.getRegistration('/firebase-messaging-sw.js');
+                    if (!registration) {
+                        registration = await navigator.serviceWorker.ready;
+                    }
+                }
+
+                const currentToken = await getToken(messaging, {
+                    vapidKey: "BLk_TH2Pmf_M2_PpNQHazldZWKyZRL_7DsYGt8yToxYB-wXSjCew2JoKb-pxgS8FzwGkmcWz4NttuURRR7VdEu4",
+                    serviceWorkerRegistration: registration
+                });
+
+                if (currentToken) {
+                    console.log('FCM Token:', currentToken);
+                    setFcmToken(currentToken);
+
+                    if (currentUser?.id) {
+                        const userRef = doc(db, "users", currentUser.id);
+                        const userDoc = await getDoc(userRef);
+
+                        if (userDoc.exists()) {
+                            const userData = userDoc.data() as User;
+                            if (!userData.fcmTokens || !userData.fcmTokens.includes(currentToken)) {
+                                await updateDoc(userRef, {
+                                    fcmTokens: arrayUnion(currentToken)
+                                });
+                                console.log('FCM token saved to user profile.');
+                                addToast('Notifications enabled successfully!', 'success');
+                            }
+                        }
+                    }
+                }
+            } catch (tokenError) {
+                console.error("Error retrieving FCM token:", tokenError);
+                addToast('Failed to enable notifications. Please try again.', 'error');
+            }
+        } else {
+            console.log('Unable to get permission to notify.');
+            addToast('Permission denied. Please enable notifications in browser settings.', 'error');
+        }
+    };
+
     // Setup FCM
     useEffect(() => {
         let unsubscribeOnMessage: (() => void) | undefined;
 
-        const setupFcm = async () => {
+        const setupFcmListener = async () => {
             try {
                 const messaging = await messagingPromise;
-                if (!messaging) {
-                    console.log('Firebase Messaging not available.');
-                    return;
-                }
-
-                if ('serviceWorker' in navigator) {
-                    // Wait specifically for the SW registration
-                    // This prevents 'missing required authentication credential' errors
-                    // by ensuring we have a valid registration scope.
-                    let registration = await navigator.serviceWorker.getRegistration('/firebase-messaging-sw.js');
-
-                    if (!registration) {
-                        // If not found (e.g. first load), wait for ready or try register
-                        registration = await navigator.serviceWorker.ready;
-                    }
-
-                    if ('Notification' in window) {
-                        const permission = await Notification.requestPermission();
-                        if (permission === 'granted') {
-                            console.log('Notification permission granted.');
-
-                            try {
-                                const currentToken = await getToken(messaging, {
-                                    vapidKey: "BLk_TH2Pmf_M2_PpNQHazldZWKyZRL_7DsYGt8yToxYB-wXSjCew2JoKb-pxgS8FzwGkmcWz4NttuURRR7VdEu4",
-                                    serviceWorkerRegistration: registration
-                                });
-
-                                if (currentToken) {
-                                    console.log('FCM Token:', currentToken);
-                                    setFcmToken(currentToken);
-
-                                    if (currentUser?.id) {
-                                        const userRef = doc(db, "users", currentUser.id);
-                                        const userDoc = await getDoc(userRef);
-
-                                        if (userDoc.exists()) {
-                                            const userData = userDoc.data() as User;
-                                            if (!userData.fcmTokens || !userData.fcmTokens.includes(currentToken)) {
-                                                await updateDoc(userRef, {
-                                                    fcmTokens: arrayUnion(currentToken)
-                                                });
-                                                console.log('FCM token saved to user profile.');
-                                            }
-                                        }
-                                    }
-                                } else {
-                                    console.log('No registration token available. Request permission to generate one.');
-                                }
-                            } catch (tokenError) {
-                                console.error("Error retrieving FCM token:", tokenError);
-                            }
-                        } else {
-                            console.log('Unable to get permission to notify.');
-                        }
-                    } else {
-                        console.log('Notification API not supported in this browser.');
-                    }
-                }
+                if (!messaging) return;
 
                 // Handle foreground messages
                 unsubscribeOnMessage = onMessage(messaging, (payload) => {
@@ -92,26 +92,30 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
                     addToast(`${title}: ${body}`, 'info');
 
-                    // Automatically open chat widget if it's a chat reply
                     if (payload.data?.type === 'chat_reply') {
                         setChatWidgetOpen(true);
                     }
                 });
 
-            } catch (error) {
-                console.error('An error occurred during FCM setup:', error);
-                // NEW: Explicitly log the error stack for better debugging
-                if (error instanceof Error) {
-                    console.error('Error stack:', error.stack);
+                // Auto-request permission on non-iOS devices if not yet granted
+                // iOS requires a user gesture, so we skip auto-request there to avoid crashes/issues.
+                const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+
+                if ('Notification' in window) {
+                    if (Notification.permission === 'granted') {
+                        enableNotifications();
+                    } else if (Notification.permission === 'default' && !isIOS) {
+                        // Automatically ask on Desktop/Android
+                        enableNotifications();
+                    }
                 }
+
+            } catch (error) {
+                console.error('An error occurred during FCM listener setup:', error);
             }
         };
 
-        // NEW: Log initial permission state
-        if ('Notification' in window) {
-            console.log('Initial Notification Permission State:', Notification.permission);
-        }
-        setupFcm();
+        setupFcmListener();
 
         return () => {
             if (unsubscribeOnMessage) {
@@ -122,7 +126,8 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }, [currentUser?.id, addToast]);
 
     const value = {
-        fcmToken
+        fcmToken,
+        enableNotifications // Export this function
     };
 
     return (
@@ -132,10 +137,10 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     );
 };
 
-export const useFirebase = (): FirebaseContextType => {
+export const useFirebase = (): FirebaseContextType & { enableNotifications: () => Promise<void> } => {
     const context = useContext(FirebaseContext);
     if (context === undefined) {
         throw new Error('useFirebase must be used within a FirebaseProvider');
     }
-    return context;
+    return context as FirebaseContextType & { enableNotifications: () => Promise<void> };
 };

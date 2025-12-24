@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { Teacher, IndividualClass, Quiz, EditableImageType, ScheduleItem, Notification, Product, Sale, Photo } from '../types';
+import { Teacher, IndividualClass, Quiz, EditableImageType, ScheduleItem, Notification as SystemNotification, Product, Sale, Photo } from '../types';
 import ProfileHeader from '../components/ProfileHeader';
 import ProfileTabs from '../components/ProfileTabs';
 import { DownloadIcon, UserPlusIcon, CheckCircleIcon, SpinnerIcon, XIcon, PlayCircleIcon, ChevronLeftIcon, ChevronRightIcon } from '../components/Icons';
@@ -12,6 +12,7 @@ import ProgressBar from '../components/ProgressBar';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
 import { useUI } from '../contexts/UIContext';
+import { useFirebase } from '../contexts/FirebaseContext';
 import { useNavigation } from '../contexts/NavigationContext';
 import MarkdownDisplay from '../components/MarkdownDisplay';
 import { useSEO } from '../hooks/useSEO';
@@ -42,13 +43,13 @@ const TeacherNotificationsTab: React.FC<{ teacher: Teacher }> = ({ teacher }) =>
     const [content, setContent] = useState('');
     const [target, setTarget] = useState<'all_followers' | 'class'>('all_followers');
     const [selectedClassId, setSelectedClassId] = useState<number | ''>('');
-    const [sentNotifications, setSentNotifications] = useState<Notification[]>([]);
+    const [sentNotifications, setSentNotifications] = useState<SystemNotification[]>([]);
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         const q = query(collection(db, 'notifications'), where('teacherId', '==', teacher.id), orderBy('createdAt', 'desc'));
         const unsubscribe = onSnapshot(q, (querySnapshot: QuerySnapshot<DocumentData>) => {
-            const notifs = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Notification));
+            const notifs = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as SystemNotification));
             setSentNotifications(notifs);
         });
         return () => unsubscribe();
@@ -59,7 +60,7 @@ const TeacherNotificationsTab: React.FC<{ teacher: Teacher }> = ({ teacher }) =>
         if (!content.trim()) return;
         setLoading(true);
 
-        let notificationTarget: Notification['target'];
+        let notificationTarget: SystemNotification['target'];
         if (target === 'class' && selectedClassId) {
             const selectedClass = teacher.individualClasses.find(c => c.id === selectedClassId);
             if (!selectedClass) {
@@ -155,6 +156,7 @@ const TeacherProfilePage: React.FC<TeacherProfilePageProps> = ({ teacherId, slug
     const { sales, teachers, users, handleUpdateTeacher, handleSaveClass, handleSaveQuiz, handleCancelItem, handleRequestWithdrawal, handleSaveBankDetails, handleVerificationUpload, handleVerificationDecision, handleTogglePublishState, handleRemoveCoverImageFromArray, handleFollowToggle, handleDeleteQuizSubmissions, tuitionInstitutes, handleUpdatePhysicalOrderStatus, loading: dataLoading, processMonthlyPayouts } = useData();
     const { openImageUploadModal, addToast } = useUI();
     const { handleNavigate, teacherDashboardMessage, functionUrls, gDriveFetcherApiKey } = useNavigation();
+    const { enableNotifications } = useFirebase();
 
     const teacher = useMemo(() => {
         if (teacherId) return teachers.find(t => t.id === teacherId);
@@ -776,19 +778,35 @@ const TeacherProfilePage: React.FC<TeacherProfilePageProps> = ({ teacherId, slug
                     {/* Overview-only Header Content - These are placed inside the main content column */}
                     {activeTab === 'overview' && (
                         <>
-                            {isOwnProfile && !isMessageDismissed && teacherDashboardMessage && (
-                                <div className="p-4 bg-blue-50 dark:bg-blue-900/30 border-l-4 border-blue-400 rounded-r-md relative animate-fadeIn">
-                                    <button onClick={handleDismissMessage} className="absolute top-2 right-2 p-1 text-blue-400 hover:text-blue-600 dark:hover:text-blue-200">
-                                        <XIcon className="w-5 h-5" />
-                                    </button>
-                                    <div className="pr-8">
-                                        <h4 className="font-bold text-blue-800 dark:text-blue-200 mb-2">Platform Announcement</h4>
-                                        <div className="text-sm text-blue-700 dark:text-blue-300 prose-sm max-w-none">
-                                            <MarkdownDisplay content={teacherDashboardMessage} />
+                            <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-6">
+                                {isOwnProfile && !isMessageDismissed && teacherDashboardMessage ? (
+                                    <div className="flex-grow p-4 bg-blue-50 dark:bg-blue-900/30 border-l-4 border-blue-400 rounded-r-md relative animate-fadeIn">
+                                        <button onClick={handleDismissMessage} className="absolute top-2 right-2 p-1 text-blue-400 hover:text-blue-600 dark:hover:text-blue-200">
+                                            <XIcon className="w-5 h-5" />
+                                        </button>
+                                        <div className="pr-8">
+                                            <h4 className="font-bold text-blue-800 dark:text-blue-200 mb-2">Platform Announcement</h4>
+                                            <div className="text-sm text-blue-700 dark:text-blue-300 prose-sm max-w-none">
+                                                <MarkdownDisplay content={teacherDashboardMessage} />
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            )}
+                                ) : (
+                                    <div />
+                                )}
+
+                                {isOwnProfile && 'Notification' in window && Notification.permission === 'default' && (
+                                    <button
+                                        onClick={() => enableNotifications()}
+                                        className="flex-shrink-0 flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg shadow-md hover:shadow-lg transition-all animate-pulse"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                            <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
+                                        </svg>
+                                        Turn on Notifications
+                                    </button>
+                                )}
+                            </div>
 
                             {canEdit && (
                                 profileCompletion === 100 ? (
