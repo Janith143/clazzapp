@@ -41,42 +41,46 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                         registration = await navigator.serviceWorker.ready;
                     }
 
-                    const permission = await Notification.requestPermission();
-                    if (permission === 'granted') {
-                        console.log('Notification permission granted.');
+                    if ('Notification' in window) {
+                        const permission = await Notification.requestPermission();
+                        if (permission === 'granted') {
+                            console.log('Notification permission granted.');
 
-                        try {
-                            const currentToken = await getToken(messaging, {
-                                vapidKey: "BLk_TH2Pmf_M2_PpNQHazldZWKyZRL_7DsYGt8yToxYB-wXSjCew2JoKb-pxgS8FzwGkmcWz4NttuURRR7VdEu4",
-                                serviceWorkerRegistration: registration
-                            });
+                            try {
+                                const currentToken = await getToken(messaging, {
+                                    vapidKey: "BLk_TH2Pmf_M2_PpNQHazldZWKyZRL_7DsYGt8yToxYB-wXSjCew2JoKb-pxgS8FzwGkmcWz4NttuURRR7VdEu4",
+                                    serviceWorkerRegistration: registration
+                                });
 
-                            if (currentToken) {
-                                console.log('FCM Token:', currentToken);
-                                setFcmToken(currentToken);
+                                if (currentToken) {
+                                    console.log('FCM Token:', currentToken);
+                                    setFcmToken(currentToken);
 
-                                if (currentUser?.id) {
-                                    const userRef = doc(db, "users", currentUser.id);
-                                    const userDoc = await getDoc(userRef);
+                                    if (currentUser?.id) {
+                                        const userRef = doc(db, "users", currentUser.id);
+                                        const userDoc = await getDoc(userRef);
 
-                                    if (userDoc.exists()) {
-                                        const userData = userDoc.data() as User;
-                                        if (!userData.fcmTokens || !userData.fcmTokens.includes(currentToken)) {
-                                            await updateDoc(userRef, {
-                                                fcmTokens: arrayUnion(currentToken)
-                                            });
-                                            console.log('FCM token saved to user profile.');
+                                        if (userDoc.exists()) {
+                                            const userData = userDoc.data() as User;
+                                            if (!userData.fcmTokens || !userData.fcmTokens.includes(currentToken)) {
+                                                await updateDoc(userRef, {
+                                                    fcmTokens: arrayUnion(currentToken)
+                                                });
+                                                console.log('FCM token saved to user profile.');
+                                            }
                                         }
                                     }
+                                } else {
+                                    console.log('No registration token available. Request permission to generate one.');
                                 }
-                            } else {
-                                console.log('No registration token available. Request permission to generate one.');
+                            } catch (tokenError) {
+                                console.error("Error retrieving FCM token:", tokenError);
                             }
-                        } catch (tokenError) {
-                            console.error("Error retrieving FCM token:", tokenError);
+                        } else {
+                            console.log('Unable to get permission to notify.');
                         }
                     } else {
-                        console.log('Unable to get permission to notify.');
+                        console.log('Notification API not supported in this browser.');
                     }
                 }
 
@@ -104,7 +108,9 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         };
 
         // NEW: Log initial permission state
-        console.log('Initial Notification Permission State:', Notification.permission);
+        if ('Notification' in window) {
+            console.log('Initial Notification Permission State:', Notification.permission);
+        }
         setupFcm();
 
         return () => {
