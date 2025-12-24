@@ -13,17 +13,22 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-messaging.onBackgroundMessage((payload) => {
-    console.log('[firebase-messaging-sw.js] Received background message ', payload);
-    const notificationTitle = payload.notification.title;
-    const notificationOptions = {
-        body: payload.notification.body,
-        icon: payload.webpush?.notification?.icon || '/Logo3.png',
-        data: payload.data
-    };
+// messaging.onBackgroundMessage((payload) => {
+//     console.log('[firebase-messaging-sw.js] Received background message ', payload);
+//     // Note: The Firebase SDK automatically handles displaying notifications 
+//     // if the payload contains a 'notification' field. 
+//     // Manually calling showNotification here causes DOUBLE notifications.
+//     // Only use this if you are sending "Data-Only" messages.
 
-    self.registration.showNotification(notificationTitle, notificationOptions);
-});
+//     // const notificationTitle = payload.notification.title;
+//     // const notificationOptions = {
+//     //     body: payload.notification.body,
+//     //     icon: payload.webpush?.notification?.icon || '/Logo3.png',
+//     //     data: payload.data
+//     // };
+
+//     // self.registration.showNotification(notificationTitle, notificationOptions);
+// });
 
 self.addEventListener('notificationclick', (event) => {
     console.log('[firebase-messaging-sw.js] Notification click received.');
