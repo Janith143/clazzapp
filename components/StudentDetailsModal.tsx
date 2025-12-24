@@ -2,7 +2,7 @@ import React from 'react';
 import { User } from '../types.ts';
 import Modal from './Modal.tsx';
 import { MailIcon, PhoneIcon, MapPinIcon } from './Icons.tsx';
-import { getOptimizedImageUrl } from '../utils.tsx';
+import { getOptimizedImageUrl } from '../utils';
 
 interface StudentDetailsModalProps {
     isOpen: boolean;
