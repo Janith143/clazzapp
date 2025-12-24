@@ -87,6 +87,11 @@ export const createSrcSet = (baseUrl: string, sizes: number[]): string => {
             // HOTFIX: Replace old bucket URL with new bucket URL
             if (url.includes('clazz2-9e0a9.firebasestorage.app')) {
                 url = url.replace('clazz2-9e0a9.firebasestorage.app', 'clazz2-new.firebasestorage.app');
+                try {
+                    const urlObj = new URL(url);
+                    urlObj.searchParams.delete('token');
+                    url = urlObj.toString();
+                } catch (e) { }
             }
             try {
                 if (url.includes('images.unsplash.com')) {
@@ -129,6 +134,19 @@ export const getOptimizedImageUrl = (url: string, width: number, height?: number
     // HOTFIX: Replace old bucket URL with new bucket URL
     if (url.includes('clazz2-9e0a9.firebasestorage.app')) {
         url = url.replace('clazz2-9e0a9.firebasestorage.app', 'clazz2-new.firebasestorage.app');
+        // Remove token and alt params as they belong to the old object and will cause 403s on the new bucket
+        // unless the new bucket is public (which we are enabling via storage.rules).
+        try {
+            const urlObj = new URL(url);
+            urlObj.searchParams.delete('token');
+            // We usually want alt=media to download it, but let's keep it safe. 
+            // If we access directly without parameters, it typically serves metadata unless alt=media is present?
+            // Actually, for public files, `alt=media` is still good practice to get the content directly.
+            // But the token MUST go.
+            url = urlObj.toString();
+        } catch (e) {
+            console.warn('Failed to parse URL during hotfix', e);
+        }
     }
 
     // Google User Content (Drive, Auth Profiles)
