@@ -18,21 +18,22 @@ import { useNavigation } from '../contexts/NavigationContext';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useUI } from '../contexts/UIContext';
-import { useSEO } from '../hooks/useSEO';
+import SEOHead from '../components/SEOHead';
 
 const HomePage: React.FC = () => {
     const { teachers, users, tuitionInstitutes } = useData();
     const { currentUser } = useAuth();
     const { handleNavigate, searchQuery, setSearchQuery, homeSlides, homePageCardCounts } = useNavigation();
     const { setModalState } = useUI();
-    
+
     const [now, setNow] = useState(new Date());
     const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery);
 
-    useSEO(
-        'clazz.lk - Online Learning Platform for Sri Lanka',
-        'Connect with the best tutors, enroll in online classes, and excel in your studies.'
-    );
+    // Using SEOHead component instead of useSEO hook
+    // useSEO(
+    //     'clazz.lk - Online Learning Platform for Sri Lanka',
+    //     'Connect with the best tutors, enroll in online classes, and excel in your studies.'
+    // );
 
     // Debounce effect for search input
     useEffect(() => {
@@ -72,7 +73,7 @@ const HomePage: React.FC = () => {
     const onViewAllClasses = (options?: { ongoingOnly?: boolean }) => handleNavigate({ name: 'all_classes', options });
     const onViewAllQuizzes = () => handleNavigate({ name: 'all_quizzes' });
     const onViewAllEvents = () => handleNavigate({ name: 'all_events' });
-    
+
     const onCtaClick = (ctaText: string) => {
         switch (ctaText) {
             case 'Find a Teacher':
@@ -99,7 +100,7 @@ const HomePage: React.FC = () => {
                 break;
         }
     };
-    
+
     const approvedTeachers = useMemo(() => teachers.filter(t => t.registrationStatus === 'approved'), [teachers]);
 
     // --- LIVE & DEFAULT CONTENT ---
@@ -108,7 +109,7 @@ const HomePage: React.FC = () => {
             .flatMap(t => t.individualClasses.map(c => ({ classInfo: c, teacher: t })))
             .filter(({ classInfo }) => classInfo.isPublished && (classInfo.mode === 'Online' || classInfo.mode === 'Both') && getDynamicClassStatus(classInfo) === 'live' && !!classInfo.joiningLink);
     }, [approvedTeachers, now]);
-    
+
     const featuredTeachers = useMemo(() => {
         const userMap = new Map(users.map(u => [u.id, u]));
         return [...approvedTeachers]
@@ -127,7 +128,7 @@ const HomePage: React.FC = () => {
             .sort((a, b) => b.course.ratings.length - a.course.ratings.length)
             .slice(0, homePageCardCounts.courses);
     }, [approvedTeachers, homePageCardCounts.courses]);
-    
+
     const upcomingClasses = useMemo(() => {
         return approvedTeachers
             .flatMap(t => t.individualClasses.map(c => ({ classInfo: c, teacher: t })))
@@ -135,11 +136,11 @@ const HomePage: React.FC = () => {
                 const status = getDynamicClassStatus(item.classInfo, now);
                 const isLive = status === 'live';
                 const nextSession = getNextSessionDateTime(item.classInfo, now);
-                
+
                 // For sorting, live classes should come first.
                 // If it's live, its sortable date is now. If it's scheduled, it's its next session date.
                 const sortDate = isLive ? now : nextSession;
-    
+
                 return {
                     ...item,
                     isLive,
@@ -184,17 +185,17 @@ const HomePage: React.FC = () => {
         const lowerQuery = searchQuery.toLowerCase();
 
         const teachers = approvedTeachers.filter(teacher => {
-            const locations = teacher.teachingLocations 
-                ? teacher.teachingLocations.map(l => `${l.instituteName} ${l.town} ${l.district}`).join(' ') 
+            const locations = teacher.teachingLocations
+                ? teacher.teachingLocations.map(l => `${l.instituteName} ${l.town} ${l.district}`).join(' ')
                 : '';
 
             const searchableContent = [
-                teacher.name, 
-                teacher.tagline, 
+                teacher.name,
+                teacher.tagline,
                 teacher.contact?.location,
                 teacher.id, // Added teacher ID
                 teacher.username, // Added username
-                ...teacher.subjects, 
+                ...teacher.subjects,
                 ...teacher.qualifications,
                 locations
             ].join(' ').toLowerCase();
@@ -206,9 +207,9 @@ const HomePage: React.FC = () => {
             .filter(course => {
                 if (!course.isPublished) return false;
                 const searchableContent = [
-                    course.title, 
-                    course.description, 
-                    course.subject, 
+                    course.title,
+                    course.description,
+                    course.subject,
                     course.teacher.name,
                     course.teacher.id, // Added teacher ID
                     course.teacher.username, // Added username
@@ -223,9 +224,9 @@ const HomePage: React.FC = () => {
                 const status = getDynamicClassStatus(classInfo);
                 if (!classInfo.isPublished || status === 'finished' || status === 'canceled') return false;
                 const searchableContent = [
-                    classInfo.title, 
-                    classInfo.description, 
-                    classInfo.subject, 
+                    classInfo.title,
+                    classInfo.description,
+                    classInfo.subject,
                     classInfo.teacher.name,
                     classInfo.teacher.id, // Added teacher ID
                     classInfo.teacher.username, // Added username
@@ -233,15 +234,15 @@ const HomePage: React.FC = () => {
                 ].join(' ').toLowerCase();
                 return searchableContent.includes(lowerQuery);
             });
-            
+
         const quizzes = approvedTeachers
             .flatMap(teacher => teacher.quizzes.map(quiz => ({ ...quiz, teacher })))
             .filter(quiz => {
                 if (!quiz.isPublished || getDynamicQuizStatus(quiz) !== 'scheduled') return false;
                 const searchableContent = [
-                    quiz.title, 
-                    quiz.description, 
-                    quiz.subject, 
+                    quiz.title,
+                    quiz.description,
+                    quiz.subject,
                     quiz.teacher.name,
                     quiz.teacher.id, // Added teacher ID
                     quiz.teacher.username, // Added username
@@ -249,15 +250,15 @@ const HomePage: React.FC = () => {
                 ].join(' ').toLowerCase();
                 return searchableContent.includes(lowerQuery);
             });
-        
+
         const events = tuitionInstitutes
             .flatMap(ti => (ti.events || []).map(event => ({ ...event, organizer: ti })))
             .filter(event => {
                 if (!event.isPublished || getDynamicEventStatus(event) !== 'scheduled') return false;
                 const searchableContent = [
-                    event.title, 
-                    event.description, 
-                    event.category, 
+                    event.title,
+                    event.description,
+                    event.category,
                     event.venue,
                     event.organizer.name,
                     event.organizer.id, // Added organizer ID
@@ -276,7 +277,7 @@ const HomePage: React.FC = () => {
     const noResultsFound = useMemo(() => searchQuery.trim() !== '' && !hasSearchResults, [searchQuery, hasSearchResults]);
 
 
-    const hasContent = useMemo(() => 
+    const hasContent = useMemo(() =>
         featuredTeachers.length > 0 ||
         popularCourses.length > 0 ||
         upcomingClasses.length > 0 ||
@@ -287,14 +288,15 @@ const HomePage: React.FC = () => {
 
     return (
         <div className="space-y-12">
-            {ongoingClasses.length > 0 && 
-                <OngoingClassesBar 
-                    ongoingClasses={ongoingClasses} 
+            <SEOHead />
+            {ongoingClasses.length > 0 &&
+                <OngoingClassesBar
+                    ongoingClasses={ongoingClasses}
                     onClassClick={(c) => onViewClass(c, undefined)}
                     onBarClick={() => onViewAllClasses({ ongoingOnly: true })}
                 />
             }
-            
+
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="lg:grid lg:grid-cols-3 lg:gap-8 items-start">
                     <div className="lg:col-span-2">
@@ -319,23 +321,23 @@ const HomePage: React.FC = () => {
                     <AIRecommendations currentUser={currentUser} />
                 </div>
             )}
-            
+
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 space-y-16 pb-16">
                 {hasSearchResults ? (
                     <section>
-                         <h2 className="text-3xl font-bold mb-6">Search Results for "{searchQuery}"</h2>
-                         <div className="space-y-12">
+                        <h2 className="text-3xl font-bold mb-6">Search Results for "{searchQuery}"</h2>
+                        <div className="space-y-12">
                             {searchResults.teachers.length > 0 && <div><h3 className="text-2xl font-semibold mb-4">Teachers</h3><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"><>{searchResults.teachers.map(teacher => <TeacherCard key={teacher.id} teacher={teacher} onViewProfile={(id) => handleNavigate({ name: 'teacher_profile', teacherId: id })} />)}</></div></div>}
                             {searchResults.courses.length > 0 && <div><h3 className="text-2xl font-semibold mb-4">Courses</h3><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"><>{searchResults.courses.map(course => <CourseCard key={course.id} course={course} teacher={course.teacher} viewMode="public" onView={onViewCourse} />)}</></div></div>}
                             {searchResults.classes.length > 0 && <div><h3 className="text-2xl font-semibold mb-4">Classes</h3><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"><>{searchResults.classes.map(classInfo => <ClassCard key={classInfo.id} classInfo={classInfo} teacher={classInfo.teacher} viewMode="public" onView={onViewClass} />)}</></div></div>}
                             {searchResults.quizzes.length > 0 && <div><h3 className="text-2xl font-semibold mb-4">Quizzes</h3><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"><>{searchResults.quizzes.map(quiz => <QuizCard key={quiz.id} quiz={quiz} teacher={quiz.teacher} viewMode="public" onView={onViewQuiz} currentUser={currentUser} />)}</></div></div>}
                             {searchResults.events.length > 0 && <div><h3 className="text-2xl font-semibold mb-4">Events</h3><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"><>{searchResults.events.map(event => <EventCard key={event.id} event={event} organizer={event.organizer} onView={onViewEvent} />)}</></div></div>}
-                         </div>
+                        </div>
                     </section>
                 ) : noResultsFound ? (
                     <AISearchSuggestions searchQuery={searchQuery} />
                 ) : (
-                     <>
+                    <>
                         {!hasContent && (
                             <div className="text-center py-16 text-light-subtle dark:text-dark-subtle">
                                 <p className="text-xl font-semibold">No featured content available right now.</p>
@@ -354,7 +356,7 @@ const HomePage: React.FC = () => {
                                 </div>
                             </section>
                         )}
-                        
+
                         {popularCourses.length > 0 && (
                             <section>
                                 <div className="flex justify-between items-center mb-6">
@@ -362,7 +364,7 @@ const HomePage: React.FC = () => {
                                     <button onClick={onViewAllCourses} className="text-sm font-medium text-primary hover:underline">View All</button>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                                    {popularCourses.map(({course, teacher}) => <CourseCard key={course.id} course={course} teacher={teacher} viewMode="public" onView={onViewCourse} />)}
+                                    {popularCourses.map(({ course, teacher }) => <CourseCard key={course.id} course={course} teacher={teacher} viewMode="public" onView={onViewCourse} />)}
                                 </div>
                             </section>
                         )}
@@ -374,7 +376,7 @@ const HomePage: React.FC = () => {
                                     <button onClick={() => onViewAllClasses()} className="text-sm font-medium text-primary hover:underline">View All</button>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                                    {upcomingClasses.map(({classInfo, teacher}) => <ClassCard key={classInfo.id} classInfo={classInfo} teacher={teacher} viewMode="public" onView={onViewClass} />)}
+                                    {upcomingClasses.map(({ classInfo, teacher }) => <ClassCard key={classInfo.id} classInfo={classInfo} teacher={teacher} viewMode="public" onView={onViewClass} />)}
                                 </div>
                             </section>
                         )}
@@ -386,7 +388,7 @@ const HomePage: React.FC = () => {
                                     <button onClick={onViewAllQuizzes} className="text-sm font-medium text-primary hover:underline">View All</button>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                                    {latestQuizzes.map(({quiz, teacher}) => <QuizCard key={quiz.id} quiz={quiz} teacher={teacher} viewMode="public" onView={onViewQuiz} currentUser={currentUser} />)}
+                                    {latestQuizzes.map(({ quiz, teacher }) => <QuizCard key={quiz.id} quiz={quiz} teacher={teacher} viewMode="public" onView={onViewQuiz} currentUser={currentUser} />)}
                                 </div>
                             </section>
                         )}
@@ -398,11 +400,11 @@ const HomePage: React.FC = () => {
                                     <button onClick={onViewAllEvents} className="text-sm font-medium text-primary hover:underline">View All</button>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                                    {upcomingEvents.map(({event, organizer}) => <EventCard key={event.id} event={event} organizer={organizer} onView={onViewEvent} />)}
+                                    {upcomingEvents.map(({ event, organizer }) => <EventCard key={event.id} event={event} organizer={organizer} onView={onViewEvent} />)}
                                 </div>
                             </section>
                         )}
-                     </>
+                    </>
                 )}
             </div>
         </div>

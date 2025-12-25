@@ -18,7 +18,7 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const { currentUser } = useAuth();
     const [fcmToken, setFcmToken] = useState<string | null>(null);
 
-    const enableNotifications = async () => {
+    const enableNotifications = async (silent = false) => {
         if (!('Notification' in window)) {
             console.log('Notification API not supported in this browser.');
             return;
@@ -60,18 +60,18 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                                     fcmTokens: arrayUnion(currentToken)
                                 });
                                 console.log('FCM token saved to user profile.');
-                                addToast('Notifications enabled successfully!', 'success');
+                                if (!silent) addToast('Notifications enabled successfully!', 'success');
                             }
                         }
                     }
                 }
             } catch (tokenError) {
                 console.error("Error retrieving FCM token:", tokenError);
-                addToast('Failed to enable notifications. Please try again.', 'error');
+                if (!silent) addToast('Failed to enable notifications. Please try again.', 'error');
             }
         } else {
             console.log('Unable to get permission to notify.');
-            addToast('Permission denied. Please enable notifications in browser settings.', 'error');
+            if (!silent) addToast('Permission denied. Please enable notifications in browser settings.', 'error');
         }
     };
 
@@ -103,10 +103,13 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
                 if ('Notification' in window) {
                     if (Notification.permission === 'granted') {
-                        enableNotifications();
+                        enableNotifications(true);
                     } else if (Notification.permission === 'default' && !isIOS) {
                         // Automatically ask on Desktop/Android
-                        enableNotifications();
+                        // Pass false to show success toast if they explicitly click 'Allow', 
+                        // but true if we want to avoid spam. 
+                        // Let's use true (silent) for the background check to be safe from loops.
+                        enableNotifications(true);
                     }
                 }
 
@@ -137,10 +140,10 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     );
 };
 
-export const useFirebase = (): FirebaseContextType & { enableNotifications: () => Promise<void> } => {
+export const useFirebase = (): FirebaseContextType & { enableNotifications: (silent?: boolean) => Promise<void> } => {
     const context = useContext(FirebaseContext);
     if (context === undefined) {
         throw new Error('useFirebase must be used within a FirebaseProvider');
     }
-    return context as FirebaseContextType & { enableNotifications: () => Promise<void> };
+    return context as FirebaseContextType & { enableNotifications: (silent?: boolean) => Promise<void> };
 };

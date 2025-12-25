@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext.tsx';
 import { useNavigation } from '../contexts/NavigationContext.tsx';
 import { useData } from '../contexts/DataContext.tsx';
 import ThemeToggle from './ThemeToggle.tsx';
-import { LogoIcon, MenuIcon, XIcon, FacebookIcon, TwitterIcon, LinkedInIcon, InstagramIcon, YouTubeIcon, WhatsAppIcon, ShoppingCartIcon } from './Icons.tsx';
+import { LogoIcon, MenuIcon, XIcon, FacebookIcon, TwitterIcon, LinkedInIcon, InstagramIcon, YouTubeIcon, WhatsAppIcon, ShoppingCartIcon, SearchIcon, UserIcon } from './Icons.tsx';
 import { UserNotification, Notification, PageState, StaticPageKey, User } from '../types.ts';
 import { db } from '../firebase.ts';
 // FIX: Correcting Firebase import path for v9 modular SDK.
@@ -291,12 +291,14 @@ const MobileMenu: React.FC<{
 const Header: React.FC = () => {
     const { theme, toggleTheme, setModalState, cart } = useUI();
     const { currentUser, handleLogout } = useAuth();
-    const { pageState, handleNavigate } = useNavigation();
+    const { pageState, handleNavigate, homePageCardCounts, searchQuery, setSearchQuery } = useNavigation();
     const { teachers, handleMarkAllAsRead } = useData();
 
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [refCode, setRefCode] = useState<string | undefined>(undefined);
     const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+    const [isSearchOpen, setIsSearchOpen] = useState(false);
+    const searchInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
@@ -305,6 +307,12 @@ const Header: React.FC = () => {
             setRefCode(code);
         }
     }, []);
+
+    useEffect(() => {
+        if (isSearchOpen && searchInputRef.current) {
+            searchInputRef.current.focus();
+        }
+    }, [isSearchOpen]);
 
     const unreadCount = useMemo(() => {
         return currentUser?.notifications?.filter(n => !n.isRead).length || 0;
@@ -332,13 +340,13 @@ const Header: React.FC = () => {
     const onRegisterClick = () => setModalState({ name: 'register', refCode });
 
     const navItems = [
-        { name: 'all_teachers', label: 'Teachers' },
-        { name: 'all_courses', label: 'Courses' },
-        { name: 'all_classes', label: 'Classes' },
-        { name: 'all_quizzes', label: 'Quizzes' },
-        { name: 'all_products', label: 'Store' },
-        { name: 'all_events', label: 'Events' },
-    ];
+        { name: 'all_teachers', label: 'Teachers', show: true },
+        { name: 'all_courses', label: 'Courses', show: true },
+        { name: 'all_classes', label: 'Classes', show: true },
+        { name: 'all_quizzes', label: 'Quizzes', show: homePageCardCounts.quizzes > 0 },
+        { name: 'all_products', label: 'Store', show: true },
+        { name: 'all_events', label: 'Events', show: homePageCardCounts.events > 0 },
+    ].filter(item => item.show);
 
     return (
         <>
@@ -351,21 +359,64 @@ const Header: React.FC = () => {
                                 <span className="text-xl font-bold hidden sm:inline">clazz.<span className="text-primary">lk</span></span>
                             </button>
                             <nav className="hidden md:flex items-center space-x-6 ml-10">
-                                {navItems.map(item => (
-                                    <button
-                                        key={item.name}
-                                        onClick={() => handleNavigate({ name: item.name as any })}
-                                        className={`font-medium text-sm transition-colors ${pageState.name === item.name
-                                            ? 'text-primary'
-                                            : 'text-light-subtle dark:text-dark-subtle hover:text-primary dark:hover:text-primary-light'
-                                            }`}
-                                    >
-                                        {item.label}
-                                    </button>
-                                ))}
+                                {navItems.map(item => {
+                                    // SEO: Mapping internal names to mapped paths
+                                    const pathToHash: Record<string, string> = {
+                                        all_teachers: '#/teachers',
+                                        all_courses: '#/courses',
+                                        all_classes: '#/classes',
+                                        all_quizzes: '#/quizzes',
+                                        all_products: '#/store',
+                                        all_events: '#/events'
+                                    };
+                                    const href = pathToHash[item.name] || '#/';
+
+                                    return (
+                                        <a
+                                            key={item.name}
+                                            href={href}
+                                            // Handle navigate manually if needed, but hash change listener in context handles the rest.
+                                            // We keep onClick to allow immediate state updates if necessary, or just rely on hash.
+                                            // For SPA with HashRouter/Custom Hash, just href is enough if listener is robust.
+                                            // However, to be safe and consistent with previous behavior (highlighting), we can keep onClick as backup
+                                            // or let the useEffect in NavigationContext handle state sync.
+                                            // NavigationContext listens to 'hashchange', so simple href click is sufficient!
+                                            className={`font-medium text-sm transition-colors ${pageState.name === item.name
+                                                ? 'text-primary'
+                                                : 'text-light-subtle dark:text-dark-subtle hover:text-primary dark:hover:text-primary-light'
+                                                }`}
+                                        >
+                                            {item.label}
+                                        </a>
+                                    );
+                                })}
                             </nav>
                         </div>
                         <div className="flex items-center space-x-2 sm:space-x-4">
+                            {/* Expandable Search Bar */}
+                            <div className={`relative flex items-center transition-all duration-300 ${isSearchOpen ? 'w-48 sm:w-64' : 'w-10'}`}>
+                                {isSearchOpen && (
+                                    <input
+                                        ref={searchInputRef}
+                                        type="text"
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        onBlur={() => !searchQuery && setIsSearchOpen(false)}
+                                        placeholder="Search..."
+                                        className="w-full pl-3 pr-10 py-1.5 text-sm bg-light-background dark:bg-dark-background border border-light-border dark:border-dark-border rounded-full focus:outline-none focus:ring-1 focus:ring-primary"
+                                    />
+                                )}
+                                <button
+                                    onClick={() => {
+                                        setIsSearchOpen(!isSearchOpen);
+                                        if (!isSearchOpen && searchInputRef.current) setTimeout(() => searchInputRef.current?.focus(), 100);
+                                    }}
+                                    className={`absolute right-0 p-2 rounded-full text-light-subtle dark:text-dark-subtle hover:bg-light-border dark:hover:bg-dark-border ${isSearchOpen ? 'text-primary' : ''}`}
+                                >
+                                    <SearchIcon className="h-5 w-5" />
+                                </button>
+                            </div>
+
                             <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
 
                             {/* Desktop Auth & Notifications */}
@@ -380,17 +431,17 @@ const Header: React.FC = () => {
                                     </div>
                                 )}
 
-                                <div className="relative">
-                                    <button onClick={() => setModalState({ name: 'cart' })} className="p-2 rounded-full text-light-subtle dark:text-dark-subtle hover:bg-light-border dark:hover:bg-dark-border">
-                                        <ShoppingCartIcon className="h-6 w-6" />
-                                        {cart.length > 0 &&
+                                {cart.length > 0 && (
+                                    <div className="relative">
+                                        <button onClick={() => setModalState({ name: 'cart' })} className="p-2 rounded-full text-light-subtle dark:text-dark-subtle hover:bg-light-border dark:hover:bg-dark-border">
+                                            <ShoppingCartIcon className="h-6 w-6" />
                                             <span className="absolute top-0 right-0 flex h-5 w-5">
                                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
                                                 <span className="relative inline-flex rounded-full h-5 w-5 bg-primary text-white text-xs items-center justify-center">{cart.length}</span>
                                             </span>
-                                        }
-                                    </button>
-                                </div>
+                                        </button>
+                                    </div>
+                                )}
 
 
                                 {currentUser ? (
@@ -436,10 +487,10 @@ const Header: React.FC = () => {
                                 )}
                             </div>
 
-                            {/* Mobile Menu Button */}
+                            {/* Mobile Menu Button - CHANGED to Profile Icon */}
                             <div className="md:hidden">
                                 <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 rounded-full text-light-subtle dark:text-dark-subtle hover:bg-light-border dark:hover:bg-dark-border">
-                                    <MenuIcon className="h-6 w-6" />
+                                    <UserIcon className="h-6 w-6" />
                                 </button>
                             </div>
                         </div>

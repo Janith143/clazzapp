@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { HomeSlide } from '../types';
 import { ChevronLeftIcon, ChevronRightIcon } from './Icons';
+import { getOptimizedImageUrl, createSrcSet } from '../utils';
 
 interface HomeSliderProps {
   slides: HomeSlide[];
@@ -33,14 +34,19 @@ const HomeSlider: React.FC<HomeSliderProps> = ({ slides, onCtaClick }) => {
       <img
         src={slides[currentIndex].image}
         alt={slides[currentIndex].title}
-        fetchPriority="high" // Prioritize loading the hero image
-        className="absolute inset-0 w-full h-full object-cover transition-all duration-1000 ease-in-out -z-20"
+        // @ts-ignore - fetchpriority is a valid HTML attribute but React types might not know it yet
+        fetchpriority="high"
+        className="absolute inset-0 w-full h-full object-cover transition-all duration-1000 ease-in-out z-0"
+        width="1920"
+        height="500"
+        srcSet={createSrcSet(slides[currentIndex].image, [400, 800, 1200, 1920])}
+        sizes="(max-width: 640px) 400px, (max-width: 1024px) 1200px, 1920px"
       />
 
       {/* Dark Overlay */}
-      <div className="absolute inset-0 bg-black/50 -z-10" />
+      <div className="absolute inset-0 bg-black/50 z-10" />
 
-      <div className="w-full h-full flex flex-col items-center justify-center text-center text-white p-4 relative z-0">
+      <div className="w-full h-full flex flex-col items-center justify-center text-center text-white p-4 relative z-20">
         <h1 className="text-4xl md:text-6xl font-bold animate-slideInUp" style={{ animationDelay: '100ms' }}>{slides[currentIndex].title}</h1>
         <p className="mt-4 text-lg md:text-xl max-w-2xl animate-slideInUp" style={{ animationDelay: '300ms' }}>{slides[currentIndex].subtitle}</p>
         <button
@@ -52,14 +58,14 @@ const HomeSlider: React.FC<HomeSliderProps> = ({ slides, onCtaClick }) => {
         </button>
       </div>
 
-      <button onClick={goToPrevious} className="absolute top-1/2 -translate-y-1/2 left-5 text-white p-2 bg-black/30 rounded-full hover:bg-black/50 transition-colors z-10">
+      <button onClick={goToPrevious} className="absolute top-1/2 -translate-y-1/2 left-5 text-white p-2 bg-black/30 rounded-full hover:bg-black/50 transition-colors z-30">
         <ChevronLeftIcon className="h-6 w-6" />
       </button>
-      <button onClick={goToNext} className="absolute top-1/2 -translate-y-1/2 right-5 text-white p-2 bg-black/30 rounded-full hover:bg-black/50 transition-colors z-10">
+      <button onClick={goToNext} className="absolute top-1/2 -translate-y-1/2 right-5 text-white p-2 bg-black/30 rounded-full hover:bg-black/50 transition-colors z-30">
         <ChevronRightIcon className="h-6 w-6" />
       </button>
 
-      <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex space-x-2">
+      <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex space-x-2 z-30">
         {slides.map((_, slideIndex) => (
           <button
             key={slideIndex}

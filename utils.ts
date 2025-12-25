@@ -178,6 +178,7 @@ export const getOptimizedImageUrl = (url: string, width: number, height?: number
             if (height) urlObj.searchParams.set('h', height.toString());
             urlObj.searchParams.set('fit', 'crop');
             urlObj.searchParams.set('q', '80'); // Reasonable quality for thumbnails
+            urlObj.searchParams.set('auto', 'format'); // Serve WebP/AVIF if supported
             return urlObj.toString();
         } catch (e) { return url; }
     }

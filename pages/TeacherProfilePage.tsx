@@ -16,6 +16,7 @@ import { useFirebase } from '../contexts/FirebaseContext';
 import { useNavigation } from '../contexts/NavigationContext';
 import MarkdownDisplay from '../components/MarkdownDisplay';
 import { useSEO } from '../hooks/useSEO';
+import SEOHead from '../components/SEOHead';
 import { db } from '../firebase';
 import { collection, query, where, orderBy, onSnapshot, doc, writeBatch, increment, QuerySnapshot, DocumentData } from 'firebase/firestore';
 import { getDynamicClassStatus, getDynamicQuizStatus, calculateTeacherProfileCompletion, getYoutubeVideoId, getOptimizedImageUrl } from '../utils';
@@ -166,11 +167,24 @@ const TeacherProfilePage: React.FC<TeacherProfilePageProps> = ({ teacherId, slug
 
     const { percentage: profileCompletion, missing: missingItems } = calculateTeacherProfileCompletion(teacher);
 
-    useSEO(
-        teacher ? `${teacher.name} | clazz.lk` : 'Teacher Profile | clazz.lk',
-        teacher ? teacher.tagline || teacher.bio.substring(0, 160) : 'View teacher profile on clazz.lk',
-        teacher ? teacher.profileImage : undefined
-    );
+    // useSEO(
+    //     teacher ? `${teacher.name} | clazz.lk` : 'Teacher Profile | clazz.lk',
+    //     teacher ? teacher.tagline || teacher.bio.substring(0, 160) : 'View teacher profile on clazz.lk',
+    //     teacher ? teacher.profileImage : undefined
+    // );
+
+    const structuredData = useMemo(() => {
+        if (!teacher) return null;
+        return {
+            "@context": "https://schema.org",
+            "@type": "Person",
+            "name": teacher.name,
+            "description": teacher.bio,
+            "image": teacher.profileImage,
+            "jobTitle": "Teacher",
+            "url": window.location.href
+        };
+    }, [teacher]);
 
     const isOwnProfile = currentUser?.id === teacher?.userId;
     const isAdminView = currentUser?.role === 'admin';
@@ -765,6 +779,12 @@ const TeacherProfilePage: React.FC<TeacherProfilePageProps> = ({ teacherId, slug
 
     return (
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <SEOHead
+                title={teacher ? `${teacher.name} | clazz.lk` : 'Teacher Profile'}
+                description={teacher ? teacher.tagline || teacher.bio.substring(0, 160) : 'View teacher profile.'}
+                image={teacher ? teacher.profileImage : undefined}
+                structuredData={structuredData}
+            />
             <div className="flex flex-col md:flex-row gap-8">
                 {/* Sidebar Navigation */}
                 <div className="md:w-64 flex-shrink-0 relative z-20">

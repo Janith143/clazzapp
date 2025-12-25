@@ -12,6 +12,7 @@ import { useUI } from '../contexts/UIContext.tsx';
 import ConfirmationModal from '../components/ConfirmationModal.tsx';
 import MarkdownDisplay from '../components/MarkdownDisplay.tsx';
 import { useSEO } from '../hooks/useSEO.ts';
+import SEOHead from '../components/SEOHead.tsx';
 import Modal from '../components/Modal.tsx';
 import PaymentMethodSelector from '../components/PaymentMethodSelector.tsx';
 
@@ -38,11 +39,47 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId }) => {
 
     const courseType = course ? (course.type || 'recorded') : 'recorded';
 
-    useSEO(
-        course ? course.title : 'Course Details',
-        course ? course.description.substring(0, 160) : 'View course details on clazz.lk',
-        course && 'coverImage' in course ? course.coverImage : undefined
-    );
+    // useSEO(
+    //     course ? course.title : 'Course Details',
+    //     course ? course.description.substring(0, 160) : 'View course details on clazz.lk',
+    //     course && 'coverImage' in course ? course.coverImage : undefined
+    // );
+
+    const totalDurationHoursForSchema = useMemo(() => {
+        if (!course || !('lectures' in course)) return 0;
+        return course.type === 'recorded'
+            ? course.lectures.reduce((acc, l) => acc + l.durationMinutes, 0) / 60
+            : (course.scheduleConfig?.durationMinutes || 60) * (course.liveSessions?.length || 0) / 60;
+    }, [course]);
+
+    const structuredData = useMemo(() => {
+        if (!course || !teacher) return null;
+        return {
+            "@context": "https://schema.org",
+            "@type": "Course",
+            "name": course.title,
+            "description": course.description,
+            "provider": {
+                "@type": "Person",
+                "name": teacher.name,
+                "image": teacher.avatar
+            },
+            "hasCourseInstance": {
+                "@type": "CourseInstance",
+                "courseMode": course.type === "live" ? "Live" : "Online",
+                "courseWorkload": `PT${Math.round(totalDurationHoursForSchema)}H`
+            },
+            "offers": {
+                "@type": "Offer",
+                "price": course.fee,
+                "priceCurrency": "LKR",
+                "category": "Paid"
+            }
+        };
+    }, [course, teacher, totalDurationHoursForSchema]);
+
+    // SEOHead is used inside return, but we can't put it there easily without wrapping lots of stuff or using a fragment at top level.
+    // Actually, we can put it in the main div.
 
     const averageRating = useMemo(() => getAverageRating(course && 'ratings' in course ? course.ratings : undefined), [course]);
     const userRating = useMemo(() => (course && 'ratings' in course ? course.ratings : [])?.find(r => r.studentId === currentUser?.id)?.rating || 0, [course, currentUser]);
@@ -388,6 +425,12 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId }) => {
 
     return (
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-slideInUp">
+            <SEOHead
+                title={course ? course.title : 'Course Details'}
+                description={course ? course.description.substring(0, 160) : 'View course details on clazz.lk'}
+                image={course && 'coverImage' in course ? course.coverImage : undefined}
+                structuredData={structuredData}
+            />
             <div className="mb-4">
                 <button onClick={handleBack} className="flex items-center space-x-2 text-sm font-medium text-primary hover:text-primary-dark transition-colors">
                     <ChevronLeftIcon className="h-5 w-5" />

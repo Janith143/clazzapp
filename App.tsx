@@ -21,7 +21,7 @@ import PrePurchaseVerificationModal from './components/PrePurchaseVerificationMo
 import ScrollToTopButton from './components/ScrollToTopButton';
 import CartModal from './components/CartModal';
 import MobileWelcomeGate from './components/MobileWelcomeGate';
-import ChatWidget from './components/ChatWidget';
+import LazyChatWidget from './components/LazyChatWidget';
 import ChristmasAnimation from './components/ChristmasAnimation';
 import Modal from './components/Modal'; // Import standard Modal for notification popup
 
@@ -479,7 +479,7 @@ function AppContent() {
         </Suspense>
       </main>
       <Footer />
-      <ChatWidget />
+      <LazyChatWidget />
 
       {renderModal()}
       {imageUploadModal.isOpen && <ImageUploadModal />}
@@ -497,19 +497,23 @@ function AppContent() {
   );
 }
 
+import { HelmetProvider } from 'react-helmet-async';
+
 function App() {
   return (
-    <NavigationProvider>
-      <UIProvider>
-        <AuthProvider>
-          <DataProvider>
-            <FirebaseProvider>
-              <AppContent />
-            </FirebaseProvider>
-          </DataProvider>
-        </AuthProvider>
-      </UIProvider>
-    </NavigationProvider>
+    <HelmetProvider>
+      <NavigationProvider>
+        <UIProvider>
+          <AuthProvider>
+            <DataProvider>
+              <FirebaseProvider>
+                <AppContent />
+              </FirebaseProvider>
+            </DataProvider>
+          </AuthProvider>
+        </UIProvider>
+      </NavigationProvider>
+    </HelmetProvider>
   );
 }
 
