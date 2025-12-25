@@ -17,17 +17,12 @@ export default defineConfig(({ mode }) => {
         output: {
           manualChunks(id) {
             if (id.includes('node_modules')) {
-              // Isolate Firebase as it is huge and independent
+              // Only split Firebase because it is large and independent.
+              // We let Vite/Rollup handle React and other libs automatically to prevent 
+              // "React is undefined" errors caused by circular dependencies or load order.
               if (id.includes('firebase')) {
                 return 'vendor-firebase';
               }
-              // Isolate React Core for caching stability
-              if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/') || id.includes('node_modules/react-router-dom/')) {
-                return 'vendor-react';
-              }
-              // Keeping everything else in a single 'vendor' chunk avoids initialization order issues 
-              // with libraries that depend on React (like draft-js, headless-ui, etc.)
-              return 'vendor';
             }
           }
         }
