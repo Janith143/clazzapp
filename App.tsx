@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { DataProvider, useData } from './contexts/DataContext';
 import { UIProvider, useUI } from './contexts/UIContext';
@@ -26,35 +26,37 @@ import ChristmasAnimation from './components/ChristmasAnimation';
 import Modal from './components/Modal'; // Import standard Modal for notification popup
 
 // Pages
-import HomePage from './pages/HomePage';
-import AllTeachersPage from './pages/AllTeachersPage';
-import AllCoursesPage from './pages/AllCoursesPage';
-import AllClassesPage from './pages/AllClassesPage';
-import AllQuizzesPage from './pages/AllQuizzesPage';
-import AllExamsPage from './pages/AllExamsPage';
-import AllEventsPage from './pages/AllEventsPage';
-import AllProductsPage from './pages/AllProductsPage';
-import TeacherProfilePage from './pages/TeacherProfilePage';
-import StudentDashboard from './pages/StudentDashboard';
-import AdminDashboard from './pages/AdminDashboard';
-import EditProfilePage from './pages/EditProfilePage';
-import CourseEditorPage from './pages/CourseEditorPage';
-import CourseDetailPage from './pages/CourseDetailPage';
-import ClassDetailPage from './pages/ClassDetailPage';
-import QuizDetailPage from './pages/QuizDetailPage';
-import EventDetailPage from './pages/EventDetailPage';
-import ProductDetailPage from './pages/ProductDetailPage';
-import QuizEditorPage from './pages/QuizEditorPage';
-import QuizTakingPage from './pages/QuizTakingPage';
-import PaymentRedirectPage from './pages/PaymentRedirectPage';
-import StaticPage from './pages/StaticPage';
-import GiftVoucherPage from './pages/GiftVoucherPage';
-import ReferralDashboardPage from './pages/ReferralDashboardPage';
-import TuitionInstituteDashboard from './pages/TuitionInstituteDashboard';
-import AttendanceScannerPage from './pages/AttendanceScannerPage';
-import TeacherReferralLandingPage from './pages/TeacherReferralLandingPage';
-import SubscriptionSuccessPage from './pages/SubscriptionSuccessPage';
-import { Quiz, Sale, PageState, Notification } from './types';
+// Lazy Loaded Pages for Performance
+const HomePage = React.lazy(() => import('./pages/HomePage'));
+const AllTeachersPage = React.lazy(() => import('./pages/AllTeachersPage'));
+const AllCoursesPage = React.lazy(() => import('./pages/AllCoursesPage'));
+const AllClassesPage = React.lazy(() => import('./pages/AllClassesPage'));
+const AllQuizzesPage = React.lazy(() => import('./pages/AllQuizzesPage'));
+const AllExamsPage = React.lazy(() => import('./pages/AllExamsPage'));
+const AllEventsPage = React.lazy(() => import('./pages/AllEventsPage'));
+const AllProductsPage = React.lazy(() => import('./pages/AllProductsPage'));
+const TeacherProfilePage = React.lazy(() => import('./pages/TeacherProfilePage'));
+const StudentDashboard = React.lazy(() => import('./pages/StudentDashboard'));
+const AdminDashboard = React.lazy(() => import('./pages/AdminDashboard'));
+const EditProfilePage = React.lazy(() => import('./pages/EditProfilePage'));
+const CourseEditorPage = React.lazy(() => import('./pages/CourseEditorPage'));
+const CourseDetailPage = React.lazy(() => import('./pages/CourseDetailPage'));
+const ClassDetailPage = React.lazy(() => import('./pages/ClassDetailPage'));
+const QuizDetailPage = React.lazy(() => import('./pages/QuizDetailPage'));
+const EventDetailPage = React.lazy(() => import('./pages/EventDetailPage'));
+const ProductDetailPage = React.lazy(() => import('./pages/ProductDetailPage'));
+const QuizEditorPage = React.lazy(() => import('./pages/QuizEditorPage'));
+const QuizTakingPage = React.lazy(() => import('./pages/QuizTakingPage'));
+const PaymentRedirectPage = React.lazy(() => import('./pages/PaymentRedirectPage'));
+const StaticPage = React.lazy(() => import('./pages/StaticPage'));
+const GiftVoucherPage = React.lazy(() => import('./pages/GiftVoucherPage'));
+const ReferralDashboardPage = React.lazy(() => import('./pages/ReferralDashboardPage'));
+const TuitionInstituteDashboard = React.lazy(() => import('./pages/TuitionInstituteDashboard'));
+const AttendanceScannerPage = React.lazy(() => import('./pages/AttendanceScannerPage'));
+const TeacherReferralLandingPage = React.lazy(() => import('./pages/TeacherReferralLandingPage'));
+const SubscriptionSuccessPage = React.lazy(() => import('./pages/SubscriptionSuccessPage'));
+
+import { Quiz, Sale, PageState, Notification as AppNotification } from './types'; // Aliased Notification to avoid conflict
 import { SpinnerIcon, CheckCircleIcon } from './components/Icons';
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from './firebase';
@@ -145,7 +147,7 @@ function AppContent() {
           const notifSnap = await getDoc(notifRef);
 
           if (notifSnap.exists()) {
-            const data = notifSnap.data() as Notification;
+            const data = notifSnap.data() as AppNotification;
             setNotificationPopup({
               isOpen: true,
               title: `Message from ${data.teacherName}`,
@@ -471,7 +473,11 @@ function AppContent() {
         <MobileWelcomeGate onLogin={handleGateLogin} onBrowse={handleGateBrowse} />
       )}
       <Header />
-      <main className="flex-grow pb-20 md:pb-0">{renderPage()}</main>
+      <main className="flex-grow pb-20 md:pb-0">
+        <Suspense fallback={<div className="flex justify-center items-center h-screen"><SpinnerIcon className="w-10 h-10 text-primary animate-spin" /></div>}>
+          {renderPage()}
+        </Suspense>
+      </main>
       <Footer />
       <ChatWidget />
 

@@ -11,6 +11,27 @@ export default defineConfig(({ mode }) => {
     },
     build: {
       target: 'es2015',
+      outDir: 'dist',
+      assetsDir: 'assets',
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              if (id.includes('firebase')) {
+                return 'vendor-firebase';
+              }
+              if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) {
+                return 'vendor-react';
+              }
+              if (id.includes('framer-motion') || id.includes('chart.js') || id.includes('recharts')) {
+                return 'vendor-ui';
+              }
+              return 'vendor-other';
+            }
+          }
+        }
+      },
+      chunkSizeWarningLimit: 1000
     },
     plugins: [react()],
     define: {
