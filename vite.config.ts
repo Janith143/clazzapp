@@ -17,16 +17,17 @@ export default defineConfig(({ mode }) => {
         output: {
           manualChunks(id) {
             if (id.includes('node_modules')) {
+              // Isolate Firebase as it is huge and independent
               if (id.includes('firebase')) {
                 return 'vendor-firebase';
               }
-              if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) {
+              // Isolate React Core for caching stability
+              if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/') || id.includes('node_modules/react-router-dom/')) {
                 return 'vendor-react';
               }
-              if (id.includes('framer-motion') || id.includes('chart.js') || id.includes('recharts')) {
-                return 'vendor-ui';
-              }
-              return 'vendor-other';
+              // Keeping everything else in a single 'vendor' chunk avoids initialization order issues 
+              // with libraries that depend on React (like draft-js, headless-ui, etc.)
+              return 'vendor';
             }
           }
         }

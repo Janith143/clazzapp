@@ -143,17 +143,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [institutesLoaded, setInstitutesLoaded] = useState(false);
 
 
+    // 1. Fetch Public Data (Allowed for everyone)
     useEffect(() => {
-        const unsubUsers = onSnapshot(collection(db, 'users'), (snapshot: QuerySnapshot) => {
-            setUsers(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as User)));
-        }, (error) => console.error("Error fetching users:", error));
-
         const unsubTeachers = onSnapshot(collection(db, 'teachers'), (snapshot: QuerySnapshot) => {
             setTeachers(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Teacher)));
             setTeachersLoaded(true);
         }, (error) => {
             console.error("Error fetching teachers:", error);
-            setTeachersLoaded(true); // Ensure loading completes even on error
+            setTeachersLoaded(true);
         });
 
         const unsubInstitutes = onSnapshot(collection(db, 'tuitionInstitutes'), (snapshot: QuerySnapshot) => {
@@ -161,25 +158,48 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setInstitutesLoaded(true);
         }, (error) => {
             console.error("Error fetching tuitionInstitutes:", error);
-            setInstitutesLoaded(true); // Ensure loading completes even on error
+            setInstitutesLoaded(true);
         });
 
         const unsubKnownInstitutes = onSnapshot(collection(db, 'knownInstitutes'), (snapshot: QuerySnapshot) => {
             setKnownInstitutes(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as KnownInstitute)));
         }, (error) => console.error("Error fetching knownInstitutes:", error));
 
-        const unsubSales = onSnapshot(collection(db, 'sales'), (snapshot: QuerySnapshot) => setSales(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Sale))), (error) => console.error("Error fetching sales:", error));
-        const unsubVouchers = onSnapshot(collection(db, 'vouchers'), (snapshot: QuerySnapshot) => setVouchers(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Voucher))), (error) => console.error("Error fetching vouchers:", error));
-        const unsubTopUps = onSnapshot(collection(db, 'topUpRequests'), (snapshot: QuerySnapshot) => setTopUpRequests(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as TopUpRequest))), (error) => console.error("Error fetching topUpRequests:", error));
-        const unsubSubmissions = onSnapshot(collection(db, 'submissions'), (snapshot: QuerySnapshot) => setSubmissions(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as StudentSubmission))), (error) => console.error("Error fetching submissions:", error));
         const unsubConfig = onSnapshot(doc(db, 'settings', 'appConfig'), (docSnap: DocumentSnapshot) => {
             setDefaultCoverImages(docSnap.exists() ? (docSnap.data() as any).defaultCoverImages || [] : []);
         }, (error) => console.error("Error fetching clientAppConfig:", error));
 
         return () => {
-            unsubUsers(); unsubTeachers(); unsubInstitutes(); unsubKnownInstitutes(); unsubSales(); unsubVouchers(); unsubTopUps(); unsubSubmissions(); unsubConfig();
+            unsubTeachers(); unsubInstitutes(); unsubKnownInstitutes(); unsubConfig();
         };
     }, []);
+
+    // 2. Fetch Protected/Global Data (Only when logged in)
+    // Note: In a larger app, we should also filter these by userId, but for now we defer loading to login.
+    useEffect(() => {
+        if (!currentUser) {
+            // Optional: Clear sensitive data on logout
+            setUsers([]);
+            setSales([]);
+            setVouchers([]);
+            setTopUpRequests([]);
+            setSubmissions([]);
+            return;
+        }
+
+        const unsubUsers = onSnapshot(collection(db, 'users'), (snapshot: QuerySnapshot) => {
+            setUsers(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as User)));
+        }, (error) => console.error("Error fetching users:", error));
+
+        const unsubSales = onSnapshot(collection(db, 'sales'), (snapshot: QuerySnapshot) => setSales(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Sale))), (error) => console.error("Error fetching sales:", error));
+        const unsubVouchers = onSnapshot(collection(db, 'vouchers'), (snapshot: QuerySnapshot) => setVouchers(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Voucher))), (error) => console.error("Error fetching vouchers:", error));
+        const unsubTopUps = onSnapshot(collection(db, 'topUpRequests'), (snapshot: QuerySnapshot) => setTopUpRequests(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as TopUpRequest))), (error) => console.error("Error fetching topUpRequests:", error));
+        const unsubSubmissions = onSnapshot(collection(db, 'submissions'), (snapshot: QuerySnapshot) => setSubmissions(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as StudentSubmission))), (error) => console.error("Error fetching submissions:", error));
+
+        return () => {
+            unsubUsers(); unsubSales(); unsubVouchers(); unsubTopUps(); unsubSubmissions();
+        };
+    }, [currentUser]);
 
     useEffect(() => {
         if (teachersLoaded && institutesLoaded) {

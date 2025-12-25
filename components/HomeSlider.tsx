@@ -29,28 +29,34 @@ const HomeSlider: React.FC<HomeSliderProps> = ({ slides, onCtaClick }) => {
 
   return (
     <div className="relative h-[500px] w-full m-auto group">
-      <div
-        style={{ backgroundImage: `url(${slides[currentIndex].image})` }}
-        className="w-full h-full bg-center bg-cover duration-1000 ease-in-out transition-all"
-      >
-        <div className="w-full h-full bg-black/50 flex flex-col items-center justify-center text-center text-white p-4">
-            <h1 className="text-4xl md:text-6xl font-bold animate-slideInUp" style={{animationDelay: '100ms'}}>{slides[currentIndex].title}</h1>
-            <p className="mt-4 text-lg md:text-xl max-w-2xl animate-slideInUp" style={{animationDelay: '300ms'}}>{slides[currentIndex].subtitle}</p>
-            <button
-                onClick={() => onCtaClick(slides[currentIndex].ctaText)}
-                className="mt-8 px-8 py-3 bg-primary text-white font-semibold rounded-md hover:bg-primary-dark transition-transform hover:scale-105 animate-slideInUp"
-                style={{animationDelay: '500ms'}}
-            >
-                {slides[currentIndex].ctaText}
-            </button>
-        </div>
+      {/* LCP Optimization: Use standard img tag instead of background-image */}
+      <img
+        src={slides[currentIndex].image}
+        alt={slides[currentIndex].title}
+        fetchPriority="high" // Prioritize loading the hero image
+        className="absolute inset-0 w-full h-full object-cover transition-all duration-1000 ease-in-out -z-20"
+      />
+
+      {/* Dark Overlay */}
+      <div className="absolute inset-0 bg-black/50 -z-10" />
+
+      <div className="w-full h-full flex flex-col items-center justify-center text-center text-white p-4 relative z-0">
+        <h1 className="text-4xl md:text-6xl font-bold animate-slideInUp" style={{ animationDelay: '100ms' }}>{slides[currentIndex].title}</h1>
+        <p className="mt-4 text-lg md:text-xl max-w-2xl animate-slideInUp" style={{ animationDelay: '300ms' }}>{slides[currentIndex].subtitle}</p>
+        <button
+          onClick={() => onCtaClick(slides[currentIndex].ctaText)}
+          className="mt-8 px-8 py-3 bg-primary text-white font-semibold rounded-md hover:bg-primary-dark transition-transform hover:scale-105 animate-slideInUp"
+          style={{ animationDelay: '500ms' }}
+        >
+          {slides[currentIndex].ctaText}
+        </button>
       </div>
-      
+
       <button onClick={goToPrevious} className="absolute top-1/2 -translate-y-1/2 left-5 text-white p-2 bg-black/30 rounded-full hover:bg-black/50 transition-colors z-10">
-        <ChevronLeftIcon className="h-6 w-6"/>
+        <ChevronLeftIcon className="h-6 w-6" />
       </button>
       <button onClick={goToNext} className="absolute top-1/2 -translate-y-1/2 right-5 text-white p-2 bg-black/30 rounded-full hover:bg-black/50 transition-colors z-10">
-        <ChevronRightIcon className="h-6 w-6"/>
+        <ChevronRightIcon className="h-6 w-6" />
       </button>
 
       <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex space-x-2">
@@ -58,9 +64,8 @@ const HomeSlider: React.FC<HomeSliderProps> = ({ slides, onCtaClick }) => {
           <button
             key={slideIndex}
             onClick={() => setCurrentIndex(slideIndex)}
-            className={`h-2 rounded-full transition-all duration-300 ${
-              currentIndex === slideIndex ? 'w-6 bg-white' : 'w-2 bg-white/50'
-            }`}
+            className={`h-2 rounded-full transition-all duration-300 ${currentIndex === slideIndex ? 'w-6 bg-white' : 'w-2 bg-white/50'
+              }`}
             aria-label={`Go to slide ${slideIndex + 1}`}
           />
         ))}
