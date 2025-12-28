@@ -4,9 +4,11 @@ import { Course, Teacher } from '../types';
 import { PencilIcon, TrashIcon, UserGroupIcon, EyeIcon, EyeSlashIcon, ClockIcon, ShareIcon, ExternalLinkIcon } from './Icons';
 import StarRating from './StarRating';
 import ProgressBar from './ProgressBar';
-import { getAverageRating, createSrcSet, extractAndTruncate, getOptimizedImageUrl } from '../utils';
+import { slugify } from '../utils/slug';
+
 import { useNavigation } from '../contexts/NavigationContext';
 import { useUI } from '../contexts/UIContext';
+import { getAverageRating, getOptimizedImageUrl, createSrcSet, extractAndTruncate } from '../utils';
 
 interface CourseCardProps {
     course: Course;
@@ -35,7 +37,7 @@ const CourseCard: React.FC<CourseCardProps> = ({ course, teacher, viewMode, enro
 
     const handleShare = (e: React.MouseEvent) => {
         e.stopPropagation();
-        const url = `${window.location.origin}/#/?courseId=${course.id}`;
+        const url = `${window.location.origin}/#/courses/${slugify(course.title)}`;
         navigator.clipboard.writeText(url).then(() => {
             addToast('Course link copied to clipboard!', 'success');
         }).catch(() => {

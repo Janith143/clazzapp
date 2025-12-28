@@ -30,10 +30,15 @@ export type PageState =
   | { name: 'teacher_profile'; teacherId: string }
   | { name: 'teacher_profile_slug'; slug: string }
   | { name: 'course_detail'; courseId: string }
+  | { name: 'course_detail_slug'; slug: string }
   | { name: 'class_detail'; classId: number }
+  | { name: 'class_detail_slug'; slug: string }
   | { name: 'quiz_detail'; quizId: string; instanceId?: string }
+  | { name: 'quiz_detail_slug'; slug: string; instanceId?: string }
   | { name: 'event_detail'; eventId: string }
+  | { name: 'event_detail_slug'; slug: string }
   | { name: 'product_detail'; productId: string }
+  | { name: 'product_detail_slug'; slug: string }
   | { name: 'student_dashboard', initialTab?: DashboardTab }
   | { name: 'admin_dashboard' }
   | { name: 'admin_view_student_dashboard'; userId: string }

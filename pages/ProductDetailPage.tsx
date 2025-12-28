@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useData, useFetchItem } from '../contexts/DataContext.tsx';
 import { getOptimizedImageUrl } from '../utils.ts';
 import { useNavigation } from '../contexts/NavigationContext.tsx';
@@ -10,15 +10,30 @@ import { useSEO } from '../hooks/useSEO.ts';
 import { ProductCartItem, Product, Teacher } from '../types.ts';
 import ProductImageCarousel from "../components/ProductImageCarousel.tsx";
 
+import { slugify } from '../utils/slug.ts';
+
 interface ProductDetailPageProps {
-    productId: string;
+    productId?: string;
+    slug?: string;
 }
 
-const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ productId }) => {
+const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ productId, slug }) => {
     const { handleBack, handleNavigate } = useNavigation();
     const { addToCart } = useUI();
-    const { loading: dataLoading } = useData();
-    const { item: fetchedProduct, teacher } = useFetchItem('product', productId);
+    const { teachers, loading: dataLoading } = useData();
+
+    const resolvedProductId = useMemo(() => {
+        if (productId) return productId;
+        if (slug && teachers.length > 0) {
+            for (const t of teachers) {
+                const found = (t.products || []).find(p => slugify(p.title) === slug);
+                if (found) return found.id;
+            }
+        }
+        return '';
+    }, [productId, slug, teachers]);
+
+    const { item: fetchedProduct, teacher } = useFetchItem('product', resolvedProductId);
 
     // Explicitly cast the item to Product since useFetchItem returns a union
     const product = fetchedProduct as Product | null;

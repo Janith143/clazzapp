@@ -247,19 +247,7 @@
             background-color: #334155;
         }
     </style>
-    <script>
-        (function () {
-            // This script checks for payment callback or referral query parameters in the main URL.
-            // If found, it moves them into the URL hash to be compatible with the app's SPA router.
-            const searchParams = new URLSearchParams(window.location.search);
-            if (searchParams.has('status_code') || searchParams.get('payment_gateway') === 'marxipg' || searchParams.has('ref') || searchParams.has('teacherRef')) {
-                const newUrl = window.location.pathname + '#/' + window.location.search;
-                // Use replace to avoid adding the intermediate URL to the browser history.
-                // The app will initialize with the correct hash.
-                window.location.replace(newUrl);
-            }
-        })();
-    </script>
+    <!-- Redirect script removed: handled by NavigationContext -->
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-98MHPV86X9"></script>
     <script>

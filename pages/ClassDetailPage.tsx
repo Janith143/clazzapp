@@ -14,17 +14,31 @@ import { useSEO } from '../hooks/useSEO.ts';
 import Modal from '../components/Modal.tsx';
 import PaymentMethodSelector from '../components/PaymentMethodSelector.tsx';
 
+import { slugify } from '../utils/slug.ts';
+
 interface ClassDetailPageProps {
-    classId: number;
+    classId?: number;
+    slug?: string;
 }
 
-
-const ClassDetailPage: React.FC<ClassDetailPageProps> = ({ classId }) => {
+const ClassDetailPage: React.FC<ClassDetailPageProps> = ({ classId, slug }) => {
     const { currentUser } = useAuth();
     const { handleBack, handleNavigate } = useNavigation();
     const { setModalState, setVideoPlayerState } = useUI();
-    const { handleRateTeacher, handleEnroll, loading: dataLoading } = useData();
-    const { item: classInfo, teacher, isEnrolled } = useFetchItem('class', classId);
+    const { handleRateTeacher, handleEnroll, loading: dataLoading, teachers } = useData();
+
+    const resolvedClassId = useMemo(() => {
+        if (classId) return classId;
+        if (slug && teachers.length > 0) {
+            for (const t of teachers) {
+                const found = t.individualClasses.find(c => slugify(c.title) === slug);
+                if (found) return found.id;
+            }
+        }
+        return 0; // Return 0 or undefined as fallback
+    }, [classId, slug, teachers]);
+
+    const { item: classInfo, teacher, isEnrolled } = useFetchItem('class', resolvedClassId || 0);
 
     useSEO(
         classInfo ? classInfo.title : 'Class Details',

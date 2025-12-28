@@ -32,8 +32,8 @@ const ProfileHeader = React.forwardRef<HTMLDivElement, ProfileHeaderProps>(({
     const { defaultCoverImages } = useData();
 
     const profileUrl = teacher.username
-        ? `${window.location.origin}/#/${teacher.username}`
-        : `${window.location.origin}/#/?teacherId=${teacher.id}`;
+        ? `${window.location.origin}/${teacher.username}`
+        : `${window.location.origin}/?teacherId=${teacher.id}`;
 
     const averageRating = getAverageRating(teacher.ratings);
     const profileImageSrcSet = teacher.profileImage ? createSrcSet(teacher.profileImage, [160, 320]) : undefined;

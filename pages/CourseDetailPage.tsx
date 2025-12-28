@@ -4,28 +4,42 @@ import { ChevronLeftIcon, LockClosedIcon, PlayCircleIcon, SpinnerIcon, LinkIcon,
 import StarRating from '../components/StarRating.tsx';
 import ProgressBar from '../components/ProgressBar.tsx';
 import Countdown from '../components/Countdown.tsx';
-import { getAverageRating, createSrcSet, getOptimizedImageUrl } from '../utils.ts';
-import { useData, useFetchItem } from '../contexts/DataContext.tsx';
+import { slugify } from '../utils/slug.ts';
 import { useAuth } from '../contexts/AuthContext.tsx';
 import { useNavigation } from '../contexts/NavigationContext.tsx';
 import { useUI } from '../contexts/UIContext.tsx';
-import ConfirmationModal from '../components/ConfirmationModal.tsx';
-import MarkdownDisplay from '../components/MarkdownDisplay.tsx';
+import { useData, useFetchItem } from '../contexts/DataContext.tsx';
 import { useSEO } from '../hooks/useSEO.ts';
+import { getAverageRating, getOptimizedImageUrl, createSrcSet } from '../utils.ts';
 import SEOHead from '../components/SEOHead.tsx';
+import MarkdownDisplay from '../components/MarkdownDisplay.tsx';
+import ConfirmationModal from '../components/ConfirmationModal.tsx';
 import Modal from '../components/Modal.tsx';
 import PaymentMethodSelector from '../components/PaymentMethodSelector.tsx';
 
 interface CourseDetailPageProps {
-    courseId: string;
+    courseId?: string;
+    slug?: string;
 }
 
-const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId }) => {
+const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId, slug }) => {
     const { currentUser } = useAuth();
     const { handleBack, handleNavigate } = useNavigation();
     const { setModalState, setVideoPlayerState, addToast } = useUI();
-    const { handleRateCourse, handleEnroll, handleUpdateTeacher, sales, loading: dataLoading } = useData();
-    const { item: fetchedCourse, teacher, isOwner, isEnrolled } = useFetchItem('course', courseId);
+    const { handleRateCourse, handleEnroll, handleUpdateTeacher, sales, teachers, loading: dataLoading } = useData();
+
+    const resolvedCourseId = useMemo(() => {
+        if (courseId) return courseId;
+        if (slug && teachers.length > 0) {
+            for (const t of teachers) {
+                const found = t.courses.find(c => slugify(c.title) === slug);
+                if (found) return found.id;
+            }
+        }
+        return '';
+    }, [courseId, slug, teachers]);
+
+    const { item: fetchedCourse, teacher, isOwner, isEnrolled } = useFetchItem('course', resolvedCourseId);
 
     const course = fetchedCourse as Course | null;
 

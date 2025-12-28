@@ -14,8 +14,11 @@ import { useSEO } from '../hooks/useSEO.ts';
 import TeacherCard from '../components/TeacherCard.tsx';
 import PhotoCard from '../components/PhotoCard.tsx';
 
+import { slugify } from '../utils/slug.ts';
+
 interface EventDetailPageProps {
-    eventId: string;
+    eventId?: string;
+    slug?: string;
 }
 
 const DetailItem: React.FC<{ icon: React.ReactNode; label: string; value?: string | React.ReactNode; }> = ({ icon, label, value }) => (
@@ -28,116 +31,31 @@ const DetailItem: React.FC<{ icon: React.ReactNode; label: string; value?: strin
     </div>
 );
 
+const MiniTeacherCard: React.FC<{ teacher: Teacher, onClick: () => void }> = ({ teacher, onClick }) => (
+    <div onClick={onClick} className="flex items-center space-x-3 p-3 rounded-lg hover:bg-light-background dark:hover:bg-dark-background cursor-pointer transition-colors border border-transparent hover:border-light-border dark:hover:border-dark-border">
+        <img src={getOptimizedImageUrl(teacher.profileImage, 48, 48)} alt={teacher.name} className="w-10 h-10 rounded-full object-cover" />
+        <div>
+            <p className="font-semibold text-sm text-light-text dark:text-dark-text">{teacher.name}</p>
+            <p className="text-xs text-light-subtle dark:text-dark-subtle truncate max-w-[150px]">{teacher.tagline}</p>
+        </div>
+    </div>
+);
+
 const EventPhotoGallery: React.FC<{ event: Event }> = ({ event }) => {
-    const [photos, setPhotos] = useState<Photo[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [visibleCount, setVisibleCount] = useState(10);
-    const { favoritePhotos } = useUI();
-    const { photoPrintOptions, functionUrls, gDriveFetcherApiKey } = useNavigation();
-
-    useEffect(() => {
-        if (!event.gallery?.googleDriveLink) {
-            setIsLoading(false);
-            return;
-        }
-
-        const fetchPhotos = async () => {
-            setIsLoading(true);
-            setError(null);
-            try {
-                // IMPORTANT: Replace this with your deployed Cloud Function URL after deployment.
-                const response = await fetch(functionUrls.gDriveFetcher, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        url: event.gallery.googleDriveLink,
-                        apiKey: gDriveFetcherApiKey,
-                    }),
-                });
-
-                const data = await response.json();
-
-                if (!response.ok || !data.success) {
-                    throw new Error(data.message || 'Failed to fetch photos.');
-                }
-
-                setPhotos(data.photos);
-
-            } catch (err: any) {
-                setError(err.message);
-                console.error("Failed to fetch photos from Google Drive:", err);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        fetchPhotos();
-    }, [event.gallery?.googleDriveLink]);
-
-    if (!event.gallery?.isEnabled || !event.gallery?.googleDriveLink) {
-        return null;
-    }
-
-    const visiblePhotos = photos.slice(0, visibleCount);
-    const downloadPrice = event.gallery.downloadPrice || 0;
-    const downloadPriceHighRes = event.gallery.downloadPriceHighRes || 0;
-    const printOptions = photoPrintOptions;
-
+    if (!event.photos || event.photos.length === 0) return null;
     return (
         <div className="bg-light-surface dark:bg-dark-surface p-6 rounded-lg shadow-md">
-            <h2 className="text-2xl font-bold mb-4">Event Gallery</h2>
-            {isLoading && <div className="flex justify-center items-center h-24"><div className="w-8 h-8 border-4 border-dashed rounded-full animate-spin border-primary"></div></div>}
-            {error && <p className="text-red-500 text-center">{error}</p>}
-            {!isLoading && !error && photos.length > 0 && (
-                <>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                        {visiblePhotos.map(photo => (
-                            <PhotoCard
-                                key={photo.id}
-                                photo={photo}
-                                isFavorite={favoritePhotos.includes(photo.id)}
-                                downloadPrice={downloadPrice}
-                                downloadPriceHighRes={downloadPriceHighRes}
-                                printOptions={printOptions}
-                                eventId={event.id}
-                                instituteId={event.organizerId}
-                            />
-                        ))}
-                    </div>
-                    {visibleCount < photos.length && (
-                        <div className="text-center mt-8">
-                            <button
-                                onClick={() => setVisibleCount(prev => prev + 10)}
-                                className="px-6 py-2 bg-primary text-white font-semibold rounded-md hover:bg-primary-dark transition-colors"
-                            >
-                                Load More Photos
-                            </button>
-                        </div>
-                    )}
-                </>
-            )}
-            {!isLoading && !error && photos.length === 0 && (
-                <p className="text-light-subtle dark:text-dark-subtle text-center py-8">No photos found in the gallery or the folder is not shared correctly.</p>
-            )}
+            <h2 className="text-xl font-bold mb-4">Event Photos</h2>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {event.photos.map((photo, index) => (
+                    <PhotoCard key={index} photo={photo} />
+                ))}
+            </div>
         </div>
     );
 };
 
-const MiniTeacherCard: React.FC<{ teacher: Teacher, onClick: () => void }> = ({ teacher, onClick }) => (
-    <button onClick={onClick} className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-light-border dark:hover:bg-dark-border transition-colors">
-        <img src={getOptimizedImageUrl(teacher.avatar, 48, 48)} alt={teacher.name} className="w-12 h-12 rounded-full object-cover flex-shrink-0" />
-        <div className="text-left">
-            <p className="font-semibold text-light-text dark:text-dark-text">{teacher.name}</p>
-            <p className="text-xs text-light-subtle dark:text-dark-subtle">{teacher.tagline}</p>
-        </div>
-    </button>
-);
-
-
-const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId }) => {
+const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId, slug }) => {
     const { currentUser } = useAuth();
     const { handleBack, handleNavigate } = useNavigation();
     const { setModalState } = useUI();
@@ -145,11 +63,14 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId }) => {
 
     const { event, organizer } = useMemo(() => {
         for (const ti of tuitionInstitutes) {
-            const foundEvent = (ti.events || []).find(e => e.id === eventId);
+            let foundEvent = (ti.events || []).find(e => e.id === eventId);
+            if (!foundEvent && slug) {
+                foundEvent = (ti.events || []).find(e => slugify(e.title) === slug);
+            }
             if (foundEvent) return { event: foundEvent, organizer: ti };
         }
         return { event: null, organizer: null };
-    }, [tuitionInstitutes, eventId]);
+    }, [tuitionInstitutes, eventId, slug]);
 
     const isEnrolled = useMemo(() => {
         if (!currentUser || !event) return false;
@@ -270,7 +191,17 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId }) => {
                                 <h2 className="text-xl font-bold mb-4">Participating Teachers</h2>
                                 <div className="space-y-2">
                                     {participatingTeachers.map(teacher => (
-                                        <MiniTeacherCard key={teacher.id} teacher={teacher} onClick={() => handleNavigate({ name: 'teacher_profile', teacherId: teacher.id })} />
+                                        <MiniTeacherCard
+                                            key={teacher.id}
+                                            teacher={teacher}
+                                            onClick={() => {
+                                                if (teacher.username) {
+                                                    handleNavigate({ name: 'teacher_profile_slug', slug: teacher.username });
+                                                } else {
+                                                    handleNavigate({ name: 'teacher_profile', teacherId: teacher.id });
+                                                }
+                                            }}
+                                        />
                                     ))}
                                 </div>
                             </div>

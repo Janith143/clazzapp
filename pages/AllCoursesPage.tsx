@@ -6,58 +6,61 @@ import SearchBar from '../components/SearchBar.tsx';
 import { useNavigation } from '../contexts/NavigationContext.tsx';
 import { useData } from '../contexts/DataContext.tsx';
 import { getAverageRating } from '../utils.ts';
+import { slugify } from '../utils/slug.ts';
 import { useSEO } from '../hooks/useSEO.ts';
 import { targetAudienceOptions } from '../data/mockData.ts';
+
+const ITEMS_PER_PAGE = 9;
 
 const courseSortOptions = [
   { value: 'newest', label: 'Newest First' },
   { value: 'rating_desc', label: 'Highest Rated' },
-  { value: 'title_asc', label: 'Title (A-Z)' },
-  { value: 'title_desc', label: 'Title (Z-A)' },
-  { value: 'fee_high', label: 'Fee: High to Low' },
-  { value: 'fee_low', label: 'Fee: Low to High' },
+  { value: 'title_asc', label: 'Title: A-Z' },
+  { value: 'title_desc', label: 'Title: Z-A' },
+  { value: 'fee_low', label: 'Price: Low to High' },
+  { value: 'fee_high', label: 'Price: High to Low' },
 ];
-const ITEMS_PER_PAGE = 9;
 
 const AllCoursesPage: React.FC = () => {
   const { teachers } = useData();
   const { handleNavigate, allSubjects, subjects } = useNavigation();
-  const [visibleCount, setVisibleCount] = useState(ITEMS_PER_PAGE);
-  const [sortOption, setSortOption] = useState('newest');
+
   const [searchQuery, setSearchQuery] = useState('');
-  const [subjectFilter, setSubjectFilter] = useState('all');
   const [audienceFilter, setAudienceFilter] = useState('all');
-  const loader = useRef(null);
+  const [subjectFilter, setSubjectFilter] = useState('all');
+  const [sortOption, setSortOption] = useState<string>('newest');
+  const [visibleCount, setVisibleCount] = useState(ITEMS_PER_PAGE);
   const isLoadingMore = useRef(false);
+  const loader = useRef(null);
 
   useSEO(
     'All Courses | clazz.lk',
     'Explore our comprehensive list of online courses to enhance your knowledge.'
   );
 
-  const onViewCourse = (course: any, teacher: any) => handleNavigate({ name: 'course_detail', courseId: course.id });
+  const onViewCourse = (course: any, teacher: any) => handleNavigate({ name: 'course_detail_slug', slug: slugify(course.title) });
   const onBack = () => handleNavigate({ name: 'home' });
-  
+
   const approvedTeachers = useMemo(() => teachers.filter(t => t.registrationStatus === 'approved'), [teachers]);
-  
+
   // Calculate unique subjects and max price from all courses
   const { maxPrice } = useMemo(() => {
     const allCourses = approvedTeachers.flatMap(teacher => teacher.courses);
     let max = 0;
 
     allCourses.forEach(course => {
-        if (course.fee > max) {
-            max = course.fee;
-        }
+      if (course.fee > max) {
+        max = course.fee;
+      }
     });
 
     return {
-        maxPrice: Math.ceil(max / 1000) * 1000 // Round up to nearest 1000
+      maxPrice: Math.ceil(max / 1000) * 1000 // Round up to nearest 1000
     };
   }, [approvedTeachers]);
 
   const [priceFilter, setPriceFilter] = useState(maxPrice);
-  
+
   // Effect to update the price filter's max value when the data changes
   useEffect(() => {
     setPriceFilter(maxPrice);
@@ -69,13 +72,13 @@ const AllCoursesPage: React.FC = () => {
   }, [audienceFilter, allSubjects, subjects]);
 
   const handleAudienceChange = (value: string) => {
-      setAudienceFilter(value);
-      setSubjectFilter('all'); // Reset subject when audience changes to ensure valid selection
+    setAudienceFilter(value);
+    setSubjectFilter('all'); // Reset subject when audience changes to ensure valid selection
   };
 
   const filteredAndSortedCourses = useMemo(() => {
-    const allCourses = approvedTeachers.flatMap(teacher => 
-        teacher.courses.map(course => ({ ...course, teacher }))
+    const allCourses = approvedTeachers.flatMap(teacher =>
+      teacher.courses.map(course => ({ ...course, teacher }))
     );
 
     const filtered = allCourses.filter(item => {
@@ -84,52 +87,52 @@ const AllCoursesPage: React.FC = () => {
 
       // Search query filter
       if (searchQuery.trim()) {
-          const lowerQuery = searchQuery.toLowerCase();
-          const searchableContent = [
-              item.title,
-              item.description,
-              item.subject,
-              item.teacher.name,
-              item.teacher.id, // Enable searching by Teacher ID
-              item.teacher.username, // Enable searching by username
-              item.teacher.contact?.location
-          ].filter(Boolean).join(' ').toLowerCase();
-          if (!searchableContent.includes(lowerQuery)) return false;
+        const lowerQuery = searchQuery.toLowerCase();
+        const searchableContent = [
+          item.title,
+          item.description,
+          item.subject,
+          item.teacher.name,
+          item.teacher.id, // Enable searching by Teacher ID
+          item.teacher.username, // Enable searching by username
+          item.teacher.contact?.location
+        ].filter(Boolean).join(' ').toLowerCase();
+        if (!searchableContent.includes(lowerQuery)) return false;
       }
-      
+
       // Audience filter (inferred via subject if applicable)
       if (audienceFilter !== 'all') {
-          // Check if the course's subject belongs to the selected audience's subject list
-          const validSubjects = subjects[audienceFilter]?.map(s => s.value);
-          if (!validSubjects || !validSubjects.includes(item.subject)) {
-              return false;
-          }
+        // Check if the course's subject belongs to the selected audience's subject list
+        const validSubjects = subjects[audienceFilter]?.map(s => s.value);
+        if (!validSubjects || !validSubjects.includes(item.subject)) {
+          return false;
+        }
       }
 
       // Subject filter
       if (subjectFilter !== 'all' && item.subject !== subjectFilter) {
-          return false;
+        return false;
       }
 
       // Price filter
       if (item.fee > priceFilter) {
-          return false;
+        return false;
       }
-      
+
       return true;
     });
 
     return [...filtered].sort((a, b) => {
-        switch(sortOption) {
-            case 'newest': return b.id.localeCompare(a.id);
-            case 'rating_desc': return getAverageRating(b.ratings).average - getAverageRating(a.ratings).average;
-            case 'title_desc': return b.title.localeCompare(a.title);
-            case 'fee_high': return b.fee - a.fee;
-            case 'fee_low': return a.fee - b.fee;
-            case 'title_asc':
-            default:
-                return a.title.localeCompare(b.title);
-        }
+      switch (sortOption) {
+        case 'newest': return b.id.localeCompare(a.id);
+        case 'rating_desc': return getAverageRating(b.ratings).average - getAverageRating(a.ratings).average;
+        case 'title_desc': return b.title.localeCompare(a.title);
+        case 'fee_high': return b.fee - a.fee;
+        case 'fee_low': return a.fee - b.fee;
+        case 'title_asc':
+        default:
+          return a.title.localeCompare(b.title);
+      }
     });
   }, [approvedTeachers, searchQuery, sortOption, subjectFilter, priceFilter, audienceFilter, subjects]);
 
@@ -140,12 +143,12 @@ const AllCoursesPage: React.FC = () => {
   const paginatedCourses = useMemo(() => {
     return filteredAndSortedCourses.slice(0, visibleCount);
   }, [filteredAndSortedCourses, visibleCount]);
-  
+
   const handleObserver = useCallback((entries: IntersectionObserverEntry[]) => {
     const target = entries[0];
     if (target.isIntersecting && !isLoadingMore.current) {
-        isLoadingMore.current = true;
-        setVisibleCount(prev => prev + ITEMS_PER_PAGE);
+      isLoadingMore.current = true;
+      setVisibleCount(prev => prev + ITEMS_PER_PAGE);
     }
   }, []);
 
@@ -155,21 +158,21 @@ const AllCoursesPage: React.FC = () => {
 
   useEffect(() => {
     const observer = new IntersectionObserver(handleObserver, {
-        root: null,
-        rootMargin: "200px",
-        threshold: 0
+      root: null,
+      rootMargin: "200px",
+      threshold: 0
     });
     const currentLoader = loader.current;
     if (currentLoader) {
-        observer.observe(currentLoader);
+      observer.observe(currentLoader);
     }
     return () => {
-        if (currentLoader) {
-            observer.unobserve(currentLoader);
-        }
+      if (currentLoader) {
+        observer.unobserve(currentLoader);
+      }
     };
   }, [handleObserver, paginatedCourses]); // Added paginatedCourses to dependencies
-  
+
   const currencyFormatter = new Intl.NumberFormat('en-LK', { style: 'currency', currency: 'LKR', minimumFractionDigits: 0 });
 
   return (
@@ -180,7 +183,7 @@ const AllCoursesPage: React.FC = () => {
           <span>Back to Home</span>
         </button>
       </div>
-      
+
       <div className="text-center mb-8">
         <h1 className="text-4xl font-bold">Explore All Courses</h1>
         <p className="mt-2 text-lg text-light-subtle dark:text-dark-subtle">Deepen your knowledge with structured courses from top educators.</p>
@@ -188,74 +191,74 @@ const AllCoursesPage: React.FC = () => {
 
       <div className="sticky top-16 z-20 py-4 bg-light-background/80 dark:bg-dark-background/80 backdrop-blur-sm -mx-4 sm:px-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 mb-8">
         <div className="max-w-5xl mx-auto space-y-4">
-            <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {/* 1. Audience */}
-                <div>
-                    <label htmlFor="filter-audience" className="block text-sm font-medium text-light-text dark:text-dark-text mb-1">Audience</label>
-                    <select
-                        id="filter-audience"
-                        value={audienceFilter}
-                        onChange={(e) => handleAudienceChange(e.target.value)}
-                        className="w-full px-3 py-2 border border-light-border dark:border-dark-border text-light-text dark:text-dark-text bg-light-surface dark:bg-dark-surface rounded-md focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
-                    >
-                        <option value="all">All Audiences</option>
-                        {targetAudienceOptions.map(opt => (
-                            <option key={opt.value} value={opt.value}>{opt.label}</option>
-                        ))}
-                    </select>
-                </div>
-
-                {/* 2. Subject */}
-                 <div>
-                    <label htmlFor="filter-subject" className="block text-sm font-medium text-light-text dark:text-dark-text mb-1">Subject</label>
-                    <select
-                      id="filter-subject"
-                      value={subjectFilter}
-                      onChange={(e) => setSubjectFilter(e.target.value)}
-                      className="w-full px-3 py-2 border border-light-border dark:border-dark-border text-light-text dark:text-dark-text bg-light-surface dark:bg-dark-surface rounded-md focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
-                    >
-                      <option value="all">All Subjects</option>
-                      {availableSubjects.map(subject => <option key={subject.value} value={subject.value}>{subject.label}</option>)}
-                    </select>
-                </div>
-
-                {/* 3. Sort */}
-                <div>
-                    <label htmlFor="sort-courses" className="block text-sm font-medium text-light-text dark:text-dark-text mb-1">Sort by</label>
-                    <select
-                      id="sort-courses"
-                      value={sortOption}
-                      onChange={(e) => setSortOption(e.target.value)}
-                      className="w-full px-3 py-2 border border-light-border dark:border-dark-border text-light-text dark:text-dark-text bg-light-surface dark:bg-dark-surface rounded-md focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
-                    >
-                      {courseSortOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
-                    </select>
-                </div>
-
-                {/* 4. Price */}
-                 <div className="">
-                     <label htmlFor="filter-price" className="block text-sm font-medium text-light-text dark:text-dark-text mb-1">Max Price: <span className="font-bold text-primary">{currencyFormatter.format(priceFilter)}</span></label>
-                     <input
-                        id="filter-price"
-                        type="range"
-                        min="0"
-                        max={maxPrice}
-                        step={500}
-                        value={priceFilter}
-                        onChange={(e) => setPriceFilter(Number(e.target.value))}
-                        className="w-full h-2 bg-light-border dark:bg-dark-border rounded-lg appearance-none cursor-pointer accent-primary"
-                    />
-                </div>
+          <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {/* 1. Audience */}
+            <div>
+              <label htmlFor="filter-audience" className="block text-sm font-medium text-light-text dark:text-dark-text mb-1">Audience</label>
+              <select
+                id="filter-audience"
+                value={audienceFilter}
+                onChange={(e) => handleAudienceChange(e.target.value)}
+                className="w-full px-3 py-2 border border-light-border dark:border-dark-border text-light-text dark:text-dark-text bg-light-surface dark:bg-dark-surface rounded-md focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
+              >
+                <option value="all">All Audiences</option>
+                {targetAudienceOptions.map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
             </div>
+
+            {/* 2. Subject */}
+            <div>
+              <label htmlFor="filter-subject" className="block text-sm font-medium text-light-text dark:text-dark-text mb-1">Subject</label>
+              <select
+                id="filter-subject"
+                value={subjectFilter}
+                onChange={(e) => setSubjectFilter(e.target.value)}
+                className="w-full px-3 py-2 border border-light-border dark:border-dark-border text-light-text dark:text-dark-text bg-light-surface dark:bg-dark-surface rounded-md focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
+              >
+                <option value="all">All Subjects</option>
+                {availableSubjects.map(subject => <option key={subject.value} value={subject.value}>{subject.label}</option>)}
+              </select>
+            </div>
+
+            {/* 3. Sort */}
+            <div>
+              <label htmlFor="sort-courses" className="block text-sm font-medium text-light-text dark:text-dark-text mb-1">Sort by</label>
+              <select
+                id="sort-courses"
+                value={sortOption}
+                onChange={(e) => setSortOption(e.target.value)}
+                className="w-full px-3 py-2 border border-light-border dark:border-dark-border text-light-text dark:text-dark-text bg-light-surface dark:bg-dark-surface rounded-md focus:outline-none focus:ring-primary focus:border-primary sm:text-sm"
+              >
+                {courseSortOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+              </select>
+            </div>
+
+            {/* 4. Price */}
+            <div className="">
+              <label htmlFor="filter-price" className="block text-sm font-medium text-light-text dark:text-dark-text mb-1">Max Price: <span className="font-bold text-primary">{currencyFormatter.format(priceFilter)}</span></label>
+              <input
+                id="filter-price"
+                type="range"
+                min="0"
+                max={maxPrice}
+                step={500}
+                value={priceFilter}
+                onChange={(e) => setPriceFilter(Number(e.target.value))}
+                className="w-full h-2 bg-light-border dark:bg-dark-border rounded-lg appearance-none cursor-pointer accent-primary"
+              />
+            </div>
+          </div>
         </div>
       </div>
-      
+
       {paginatedCourses.length > 0 ? (
         <>
           <p className="text-sm text-light-subtle dark:text-dark-subtle mb-6">Showing {paginatedCourses.length} of {filteredAndSortedCourses.length} courses.</p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {paginatedCourses.map(({teacher, ...course}) => (
+            {paginatedCourses.map(({ teacher, ...course }) => (
               <CourseCard
                 key={course.id}
                 course={course}
@@ -267,7 +270,7 @@ const AllCoursesPage: React.FC = () => {
           </div>
           {paginatedCourses.length < filteredAndSortedCourses.length && (
             <div ref={loader} className="flex justify-center items-center h-20">
-                <div className="w-8 h-8 border-4 border-dashed rounded-full animate-spin border-primary"></div>
+              <div className="w-8 h-8 border-4 border-dashed rounded-full animate-spin border-primary"></div>
             </div>
           )}
         </>

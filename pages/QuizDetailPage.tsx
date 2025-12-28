@@ -13,17 +13,32 @@ import { getDynamicQuizStatus, getOptimizedImageUrl } from '../utils.ts';
 import MarkdownDisplay from '../components/MarkdownDisplay.tsx';
 import { useSEO } from '../hooks/useSEO.ts';
 
+import { slugify } from '../utils/slug.ts';
+
 interface QuizDetailPageProps {
-    quizId: string;
+    quizId?: string;
     instanceId?: string;
+    slug?: string;
 }
 
-const QuizDetailPage: React.FC<QuizDetailPageProps> = ({ quizId, instanceId }) => {
+const QuizDetailPage: React.FC<QuizDetailPageProps> = ({ quizId, instanceId, slug }) => {
     const { currentUser } = useAuth();
     const { handleBack, handleNavigate } = useNavigation();
     const { setModalState } = useUI();
-    const { submissions, users, handleEnroll, sales, loading: dataLoading } = useData();
-    const { item: liveQuiz, teacher } = useFetchItem('quiz', quizId);
+    const { submissions, users, handleEnroll, sales, teachers, loading: dataLoading } = useData();
+
+    const resolvedQuizId = useMemo(() => {
+        if (quizId) return quizId;
+        if (slug && teachers.length > 0) {
+            for (const t of teachers) {
+                const found = t.quizzes.find(q => slugify(q.title) === slug);
+                if (found) return found.id;
+            }
+        }
+        return '';
+    }, [quizId, slug, teachers]);
+
+    const { item: liveQuiz, teacher } = useFetchItem('quiz', resolvedQuizId);
 
     const [isReviewVisible, setIsReviewVisible] = useState(false);
     const [isConfirmingEnrollment, setIsConfirmingEnrollment] = useState(false);

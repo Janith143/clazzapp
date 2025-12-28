@@ -4,6 +4,7 @@ import { Quiz, Teacher, User, StudentSubmission } from '../types.ts';
 import { ClockIcon, CalendarIcon, PencilIcon, TrashIcon, TrophyIcon, UserGroupIcon, EyeIcon, EyeSlashIcon, ShareIcon, ExternalLinkIcon } from './Icons.tsx';
 import StarRating from './StarRating.tsx';
 import { getAverageRating, getDynamicQuizStatus, getOptimizedImageUrl } from '../utils.ts';
+import { slugify } from '../utils/slug.ts';
 import { useNavigation } from '../contexts/NavigationContext.tsx';
 import { useUI } from '../contexts/UIContext.tsx';
 
@@ -11,8 +12,8 @@ interface QuizCardProps {
     quiz: Quiz;
     teacher: Teacher;
     viewMode: 'public' | 'teacher';
-    currentUser: User | null;
-    enrollmentCount?: { newEnrollments: number; totalEnrollments: number };
+    currentUser?: User | null;
+    enrollmentCount?: { totalEnrollments: number, newEnrollments: number };
     onView: (quiz: Quiz) => void;
     onEdit?: (quiz: Quiz) => void;
     onManage?: (quiz: Quiz) => void;
@@ -48,7 +49,7 @@ const QuizCard: React.FC<QuizCardProps> = ({ quiz, teacher, viewMode, currentUse
 
     const handleShare = (e: React.MouseEvent) => {
         e.stopPropagation();
-        const url = `${window.location.origin}/#/?quizId=${quiz.id}`;
+        const url = `${window.location.origin}/#/quizzes/${slugify(quiz.title)}`;
         navigator.clipboard.writeText(url).then(() => {
             addToast('Quiz link copied to clipboard!', 'success');
         }).catch(() => {

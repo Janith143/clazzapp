@@ -255,8 +255,11 @@ function AppContent() {
         return;
       }
 
-      const hash = window.location.hash;
-      const queryPart = hash.includes('?') ? hash.substring(hash.indexOf('?')) : '';
+      let queryPart = window.location.search;
+      if (!queryPart && window.location.hash.includes('?')) {
+        queryPart = window.location.hash.substring(window.location.hash.indexOf('?'));
+      }
+
       if (!queryPart) {
         return;
       }
@@ -348,10 +351,15 @@ function AppContent() {
       case 'referral_dashboard': return <ReferralDashboardPage />;
       case 'teacher_referral_landing': return <TeacherReferralLandingPage refCode={pageState.refCode} level={pageState.level} />;
       case 'course_detail': return <CourseDetailPage courseId={pageState.courseId} />;
+      case 'course_detail_slug': return <CourseDetailPage slug={pageState.slug} />;
       case 'class_detail': return <ClassDetailPage classId={pageState.classId} />;
+      case 'class_detail_slug': return <ClassDetailPage slug={pageState.slug} />;
       case 'quiz_detail': return <QuizDetailPage quizId={pageState.quizId} instanceId={pageState.instanceId} />;
+      case 'quiz_detail_slug': return <QuizDetailPage slug={pageState.slug} instanceId={pageState.instanceId} />;
       case 'event_detail': return <EventDetailPage eventId={pageState.eventId} />;
+      case 'event_detail_slug': return <EventDetailPage slug={pageState.slug} />;
       case 'product_detail': return <ProductDetailPage productId={pageState.productId} />;
+      case 'product_detail_slug': return <ProductDetailPage slug={pageState.slug} />;
       case 'student_dashboard': return <StudentDashboard />;
       case 'admin_dashboard': return <AdminDashboard />;
       case 'admin_view_student_dashboard': return <StudentDashboard userId={pageState.userId} isAdminView={true} />;

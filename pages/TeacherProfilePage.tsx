@@ -23,7 +23,9 @@ import { getDynamicClassStatus, getDynamicQuizStatus, calculateTeacherProfileCom
 import ScheduleFreeSlotModal from '../components/ScheduleFreeSlotModal';
 import Modal from '../components/Modal';
 import { YouTubePlayer } from '../components/YouTubePlayer';
+import { slugify } from '../utils/slug';
 import ImageViewerModal from '../components/ImageViewerModal';
+import NotFoundState from '../components/NotFoundState';
 
 
 // Tab Components
@@ -546,11 +548,11 @@ const TeacherProfilePage: React.FC<TeacherProfilePageProps> = ({ teacherId, slug
     }
 
     if (!teacher) {
-        const canView = false; // or some logic to check if profile should be visible
-        return canView ? null : <div>This teacher's profile is not public or does not exist.</div>;
+        const canView = false;
+        return canView ? null : <NotFoundState />;
     }
     const canView = teacher.registrationStatus === 'approved' || (currentUser && (currentUser.id === teacher.userId || currentUser.role === 'admin'));
-    if (!canView) return <div>This teacher's profile is not public.</div>;
+    if (!canView) return <NotFoundState title="Profile Private" message="This teacher's profile is currently not public." />;
 
     const renderTabContent = () => {
         switch (activeTab) {
@@ -767,7 +769,7 @@ const TeacherProfilePage: React.FC<TeacherProfilePageProps> = ({ teacherId, slug
                             <span className="font-semibold">{weekStart.toLocaleDateString()} - {weekEnd.toLocaleDateString()}</span>
                             <button onClick={() => setCurrentWeekOffset(prev => prev + 1)} className="px-4 py-2 text-sm font-medium border border-light-border dark:border-dark-border rounded-md hover:bg-light-border dark:hover:bg-dark-border transition-colors">Next Week &gt;</button>
                         </div>
-                        <TimeTable schedule={scheduleForWeek} onItemClick={(item) => handleNavigate(item.type === 'class' ? { name: 'class_detail', classId: item.id as number } : { name: 'quiz_detail', quizId: item.id as string })} />
+                        <TimeTable schedule={scheduleForWeek} onItemClick={(item) => handleNavigate(item.type === 'class' ? { name: 'class_detail_slug', slug: slugify(item.title || '') } : { name: 'quiz_detail_slug', slug: slugify(item.title || '') })} />
                     </div>
                 );
             case 'contact':

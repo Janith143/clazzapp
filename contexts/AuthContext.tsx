@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect, useCallback, useRef } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback, useRef, useMemo } from 'react';
 import { User, GoogleUserInfo, FirebaseUser } from '../types.ts';
 import { useUI } from './UIContext.tsx';
 import { useNavigation } from './NavigationContext.tsx';
@@ -374,7 +374,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         addToast("You've been logged out.", 'info');
     }, [handleNavigate, addToast]);
 
-    const value: AuthContextType = {
+    const value: AuthContextType = useMemo(() => ({
         currentUser,
         loading,
         handleLogin,
@@ -389,7 +389,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         linkPhoneNumber,
         verifyPhoneNumberLink,
         updateUserAuthEmail,
-    };
+    }), [
+        currentUser, loading, handleLogin, handleGoogleSignIn, handleRegister, handleLogout,
+        handleLoginSuccess, handleResendVerificationEmail, handlePasswordReset, sendPhoneNumberOtp,
+        verifyPhoneNumberOtp, linkPhoneNumber, verifyPhoneNumberLink, updateUserAuthEmail
+    ]);
 
     return (
         <AuthContext.Provider value={value}>

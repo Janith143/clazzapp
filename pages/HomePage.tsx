@@ -14,6 +14,7 @@ import AISearchSuggestions from '../components/AISearchSuggestions';
 // FIX: Import the 'MyExamsSection' component to resolve the "Cannot find name" error.
 import MyExamsSection from '../components/MyExamsSection';
 import { getDynamicClassStatus, getDynamicQuizStatus, getDynamicEventStatus, getNextSessionDateTime } from '../utils';
+import { slugify } from '../utils/slug';
 import { useNavigation } from '../contexts/NavigationContext';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -64,10 +65,10 @@ const HomePage: React.FC = () => {
         return () => clearInterval(intervalId); // Cleanup on component unmount
     }, []);
 
-    const onViewCourse = (course: any, teacher: any) => handleNavigate({ name: 'course_detail', courseId: course.id });
-    const onViewClass = (classInfo: any, teacher: any) => handleNavigate({ name: 'class_detail', classId: classInfo.id });
-    const onViewQuiz = (quiz: any) => handleNavigate({ name: 'quiz_detail', quizId: quiz.id });
-    const onViewEvent = (event: any) => handleNavigate({ name: 'event_detail', eventId: event.id });
+    const onViewCourse = (course: any, teacher: any) => handleNavigate({ name: 'course_detail_slug', slug: slugify(course.title) });
+    const onViewClass = (classInfo: any, teacher: any) => handleNavigate({ name: 'class_detail_slug', slug: slugify(classInfo.title) });
+    const onViewQuiz = (quiz: any) => handleNavigate({ name: 'quiz_detail_slug', slug: slugify(quiz.title) });
+    const onViewEvent = (event: any) => handleNavigate({ name: 'event_detail_slug', slug: slugify(event.title) });
     const onViewAllTeachers = () => handleNavigate({ name: 'all_teachers' });
     const onViewAllCourses = () => handleNavigate({ name: 'all_courses' });
     const onViewAllClasses = (options?: { ongoingOnly?: boolean }) => handleNavigate({ name: 'all_classes', options });

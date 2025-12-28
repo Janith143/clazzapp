@@ -129,6 +129,33 @@ const TeacherCard: React.FC<TeacherCardProps> = ({ teacher, onViewProfile }) => 
                         </div>
                     </>
                 )}
+                <button
+                    onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        // Share URL logic: favored username, fallback to ID
+                        const slug = teacher.username || teacher.id; // Or maybe just teacher.username if we want to force vanity? stick to robust.
+                        // Actually, if we use vanity URL: clazz.lk/{username}
+                        // If no username: clazz.lk/teacher/{id}??
+                        // The user objective was "Vanity Teacher URLs ... app.clazz.lk/#/{teacher.name} -> clazz.lk/{teacher.name}".
+                        // Use window.location.origin + '/' + teacher.username (if exists)
+                        let url = window.location.origin + '/';
+                        if (teacher.username) {
+                            url += teacher.username;
+                        } else {
+                            url += 'teacher/' + teacher.id;
+                        }
+
+                        navigator.clipboard.writeText(url);
+                        alert("Link copied: " + url);
+                    }}
+                    className="absolute top-2 right-2 p-2 bg-white/80 dark:bg-black/50 rounded-full hover:bg-white dark:hover:bg-black/70 transition-colors text-gray-700 dark:text-gray-200 z-20 opacity-0 group-hover:opacity-100"
+                    title="Share Profile"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
+                        <path d="M13 4.5a2.5 2.5 0 11.702 1.737L6.97 9.604a2.51 2.51 0 010 .792l6.733 3.367a2.5 2.5 0 11-.671 1.341l-6.733-3.367a2.5 2.5 0 110-3.508l6.733-3.367A2.5 2.5 0 0113 4.5z" />
+                    </svg>
+                </button>
             </div>
 
             <div className="flex-grow flex flex-col items-center text-center p-4 pb-6 relative">

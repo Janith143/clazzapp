@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { Teacher, IndividualClass, Quiz } from '../../types.ts';
+import { slugify } from '../../utils/slug.ts';
 import { useData } from '../../contexts/DataContext.tsx';
 import { useNavigation } from '../../contexts/NavigationContext.tsx';
 import ClassCard from '../ClassCard.tsx';
@@ -79,7 +80,7 @@ const TeacherClassesTab: React.FC<TeacherClassesTabProps> = ({ teacher, canEdit,
                             </p>
                             <button onClick={handleConnectGoogle} className="flex-shrink-0 flex items-center space-x-2 px-4 py-2 text-sm font-medium text-white bg-gray-700 rounded-md hover:bg-gray-800 dark:bg-gray-600 dark:hover:bg-gray-700 transition-colors">
                                 <GoogleIcon className="w-5 h-5" />
-                                <span>Connect Google Account</span>
+                                <span className="text-center">Connect Google Account</span>
                             </button>
                         </div>
                     )}
@@ -101,7 +102,7 @@ const TeacherClassesTab: React.FC<TeacherClassesTabProps> = ({ teacher, canEdit,
                         teacher={teacher}
                         viewMode={canEdit ? "teacher" : "public"}
                         enrollmentCount={enrollmentCounts[`class_${classInfo.id}`] || 0}
-                        onView={(c) => handleNavigate({ name: 'class_detail', classId: c.id })}
+                        onView={(c) => handleNavigate({ name: 'class_detail_slug', slug: slugify(c.title) })}
                         onEdit={onEdit}
                         onDelete={onDelete}
                         onTogglePublish={(id) => handleTogglePublishState(teacher.id, id, 'class')}

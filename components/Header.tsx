@@ -9,7 +9,8 @@ import { UserNotification, Notification, PageState, StaticPageKey, User } from '
 import { db } from '../firebase.ts';
 // FIX: Correcting Firebase import path for v9 modular SDK.
 import { collection, query, where, getDocs, doc, onSnapshot } from 'firebase/firestore';
-import { getOptimizedImageUrl } from '../utils';
+import { getOptimizedImageUrl } from '../utils.ts';
+import { slugify } from '../utils/slug.ts';
 
 const BellIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
@@ -361,26 +362,24 @@ const Header: React.FC = () => {
                             <nav className="hidden md:flex items-center space-x-6 ml-10">
                                 {navItems.map(item => {
                                     // SEO: Mapping internal names to mapped paths
-                                    const pathToHash: Record<string, string> = {
-                                        all_teachers: '#/teachers',
-                                        all_courses: '#/courses',
-                                        all_classes: '#/classes',
-                                        all_quizzes: '#/quizzes',
-                                        all_products: '#/store',
-                                        all_events: '#/events'
+                                    const pathToPath: Record<string, string> = {
+                                        all_teachers: '/teachers',
+                                        all_courses: '/courses',
+                                        all_classes: '/classes',
+                                        all_quizzes: '/quizzes',
+                                        all_products: '/store',
+                                        all_events: '/events'
                                     };
-                                    const href = pathToHash[item.name] || '#/';
+                                    const href = pathToPath[item.name] || '/';
 
                                     return (
                                         <a
                                             key={item.name}
                                             href={href}
-                                            // Handle navigate manually if needed, but hash change listener in context handles the rest.
-                                            // We keep onClick to allow immediate state updates if necessary, or just rely on hash.
-                                            // For SPA with HashRouter/Custom Hash, just href is enough if listener is robust.
-                                            // However, to be safe and consistent with previous behavior (highlighting), we can keep onClick as backup
-                                            // or let the useEffect in NavigationContext handle state sync.
-                                            // NavigationContext listens to 'hashchange', so simple href click is sufficient!
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                handleNavigate({ name: item.name });
+                                            }}
                                             className={`font-medium text-sm transition-colors ${pageState.name === item.name
                                                 ? 'text-primary'
                                                 : 'text-light-subtle dark:text-dark-subtle hover:text-primary dark:hover:text-primary-light'

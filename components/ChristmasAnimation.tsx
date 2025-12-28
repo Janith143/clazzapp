@@ -1,61 +1,92 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect, useState } from 'react';
 
-const ChristmasAnimation: React.FC = () => {
-    const symbols = ['❄️', '🎄', '🎅', '🎁', '🔔', '⛄', '🌟', '🍪', '🦌', '🕯️'];
+const NewYearAnimation: React.FC = () => {
+  const colors = ['#FFD700', '#E5E4E2', '#FFFFFF']; // gold, silver, white
 
-    // Generate stable random values with lower frequency (fewer items, longer delays)
-    const items = useMemo(() => {
-        // Reduced from 10 to 6 items to lower frequency
-        return Array.from({ length: 6 }).map((_, i) => ({
-            id: i,
-            symbol: symbols[i % symbols.length],
-            left: Math.floor(Math.random() * 95), // 0% to 95% width
-            duration: 15 + Math.random() * 15,    // Increased: 15s to 30s fall time (slower)
-            delay: Math.random() * 15,            // Increased: 0s to 15s start delay (more spread out)
-            size: 1.5 + Math.random(),            // 1.5rem to 2.5rem size
-            rotationDir: Math.random() > 0.5 ? 1 : -1 // Rotate left or right
-        }));
-    }, []);
+  const items = useMemo(() => {
+    return Array.from({ length: 5 }).map((_, i) => ({
+      id: i,
+      left: Math.random() * 98,
+      size: 6 + Math.random() * 4,           // small particles
+      duration: 22 + Math.random() * 15,     // very slow
+      delay: Math.random() * 12,
+      color: colors[i % colors.length],
+      drift: Math.random() * 40 - 20
+    }));
+  }, []);
 
-    return (
-        <div className="fixed inset-0 pointer-events-none z-[60] overflow-hidden" aria-hidden="true">
-            <style>{`
-         @keyframes christmas-fall {
-           0% { 
-             top: -10%; 
-             transform: translateX(0px) rotate(0deg); 
-             opacity: 0;
-           }
-           10% {
-             opacity: 1;
-           }
-           100% { 
-             top: 110%; 
-             transform: translateX(50px) rotate(360deg); 
-             opacity: 0.5;
-           }
-         }
-       `}</style>
-            {items.map((item) => (
-                <div
-                    key={item.id}
-                    className="absolute top-[-10%]"
-                    style={{
-                        left: `${item.left}%`,
-                        fontSize: `${item.size}rem`,
-                        animationName: 'christmas-fall',
-                        animationDuration: `${item.duration}s`,
-                        animationDelay: `${item.delay}s`,
-                        animationTimingFunction: 'linear',
-                        animationIterationCount: 'infinite',
-                        transform: `scale(${item.rotationDir})`
-                    }}
-                >
-                    {item.symbol}
-                </div>
-            ))}
+  // 🎯 Countdown logic
+  const [timeLeft, setTimeLeft] = useState('');
+
+  useEffect(() => {
+    const target = new Date('2026-01-01T00:00:00');
+
+    const timer = setInterval(() => {
+      const now = new Date();
+      const diff = target.getTime() - now.getTime();
+
+      if (diff <= 0) {
+        setTimeLeft('Happy New Year 🎆');
+        clearInterval(timer);
+        return;
+      }
+
+      const h = Math.floor(diff / (1000 * 60 * 60));
+      const m = Math.floor((diff / (1000 * 60)) % 60);
+      const s = Math.floor((diff / 1000) % 60);
+
+      setTimeLeft(`2026 in ${h.toString().padStart(2, '0')}:${m
+        .toString()
+        .padStart(2, '0')}:${s.toString().padStart(2, '0')}`);
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <>
+      {/* Confetti */}
+      <div className="fixed inset-0 pointer-events-none z-[60] overflow-hidden">
+        <style>{`
+          @keyframes confetti-fall {
+            0% {
+              top: -10%;
+              opacity: 0;
+              transform: translateX(0) rotate(0deg);
+            }
+            15% { opacity: 0.8; }
+            100% {
+              top: 110%;
+              opacity: 0.3;
+              transform: translateX(var(--drift)) rotate(180deg);
+            }
+          }
+        `}</style>
+
+        {items.map((item) => (
+          <span
+            key={item.id}
+            className="absolute rounded-sm"
+            style={{
+              left: `${item.left}%`,
+              width: `${item.size}px`,
+              height: `${item.size}px`,
+              backgroundColor: item.color,
+              animation: `confetti-fall ${item.duration}s linear ${item.delay}s infinite`,
+              '--drift': `${item.drift}px`
+            } as React.CSSProperties}
+          />
+        ))}
+      </div>
+
+      {/* Small countdown badge */}
+      <div className="fixed bottom-4 right-4 z-[61] pointer-events-none">
+        <div className="backdrop-blur-md bg-black/40 text-white text-sm px-3 py-1.5 rounded-full shadow-md">
+          {timeLeft}
         </div>
-    );
+      </div>
+    </>
+  );
 };
 
-export default ChristmasAnimation;
+export default NewYearAnimation;

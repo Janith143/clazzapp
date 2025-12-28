@@ -2,6 +2,7 @@ import React from 'react';
 import { Teacher, TuitionInstitute } from '../../types.ts';
 import EventCard from '../EventCard.tsx';
 import { useNavigation } from '../../contexts/NavigationContext.tsx';
+import { slugify } from '../../utils/slug.ts';
 
 interface TeacherEventsTabProps {
     teacher: Teacher;
@@ -19,16 +20,16 @@ const TeacherEventsTab: React.FC<TeacherEventsTabProps> = ({ teacher, events }) 
             </div>
         );
     }
-    
+
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {events.map(({ event, organizer }) => (
-              <EventCard 
-                key={event.id} 
-                event={event} 
-                organizer={organizer} 
-                onView={(e) => handleNavigate({ name: 'event_detail', eventId: e.id })} 
-              />
+                <EventCard
+                    key={event.id}
+                    event={event}
+                    organizer={organizer}
+                    onView={(e) => handleNavigate({ name: 'event_detail_slug', slug: slugify(e.title) })}
+                />
             ))}
         </div>
     );

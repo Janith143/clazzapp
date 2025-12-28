@@ -5,6 +5,7 @@ import { homeSlides as mockHomeSlides, mockSocialMediaLinks, defaultSubjectsByAu
 import { staticPageContent as mockStaticPageContent } from '../data/staticContent';
 import { db } from '../firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
+import { matchPath } from '../utils/routeMatcher';
 
 const defaultAppConfig = {
     genAiKey: 'AIzaSyB7BZfezyOj30ga7-dqKPQSVW6EbTMZiiQ',
@@ -128,12 +129,15 @@ export interface NavigationContextType {
 const NavigationContext = createContext<NavigationContextType | undefined>(undefined);
 
 const getPageStateFromURL = (): PageState => {
-    const hash = window.location.hash.substring(1); // e.g., "/?teacherId=123" or "/teachers"
+    // 1. Support legacy Hash URLs (Redirect Logic)
+    if (window.location.hash.length > 2) {
+        // We handle this inside useEffect to trigger a replaceState
+    }
 
-    const [pathPart, queryPart] = hash.split('?');
-    const params = new URLSearchParams(queryPart || '');
-    const path = pathPart || '/';
+    const { pathname, search } = window.location;
+    const params = new URLSearchParams(search);
 
+    // --- Query Parameter Routing (Legacy / Fallbacks / functional links) ---
     if (params.has('teacherId')) return { name: 'teacher_profile', teacherId: params.get('teacherId')! };
     if (params.has('courseId')) return { name: 'course_detail', courseId: params.get('courseId')! };
     if (params.has('classId')) return { name: 'class_detail', classId: Number(params.get('classId')!) };
@@ -145,46 +149,75 @@ const getPageStateFromURL = (): PageState => {
     if (params.has('page')) return { name: 'static', pageKey: params.get('page')! as StaticPageKey };
     if (params.has('teacherRef')) return { name: 'teacher_referral_landing', refCode: params.get('teacherRef')!, level: params.get('level') || undefined };
 
+    // --- Path Based Routing ---
 
-    // path based for cleaner non-detail URLs
-    const pathSegments = path.split('/').filter(Boolean);
+    // Static Routes
+    if (pathname === '/' || pathname === '') return { name: 'home' };
+    if (pathname === '/teachers') return { name: 'all_teachers' };
+    if (pathname === '/courses') return { name: 'all_courses' };
+    if (pathname === '/classes') return { name: 'all_classes' };
+    if (pathname === '/quizzes') return { name: 'all_quizzes' };
+    if (pathname === '/exams') return { name: 'all_exams' };
+    if (pathname === '/events') return { name: 'all_events' };
+    if (pathname === '/store') return { name: 'all_products' };
+    if (pathname === '/gift-voucher') return { name: 'gift_voucher' };
+    if (pathname === '/referrals') return { name: 'referral_dashboard' };
+    if (pathname === '/dashboard') return { name: 'student_dashboard' };
+    if (pathname === '/admin') return { name: 'admin_dashboard' };
+    if (pathname === '/institute/dashboard') return { name: 'ti_dashboard' };
 
+    // Dynamic Routes
+    let match;
+
+    match = matchPath(pathname, '/teacher/:slug');
+    if (match) return { name: 'teacher_profile_slug', slug: match.slug };
+
+    match = matchPath(pathname, '/courses/:slug');
+    if (match) return { name: 'course_detail_slug', slug: match.slug };
+
+    match = matchPath(pathname, '/classes/:slug');
+    if (match) return { name: 'class_detail_slug', slug: match.slug };
+
+    match = matchPath(pathname, '/quizzes/:slug');
+    if (match) return { name: 'quiz_detail_slug', slug: match.slug, instanceId: params.get('instanceId') || undefined };
+
+    match = matchPath(pathname, '/events/:slug');
+    if (match) return { name: 'event_detail_slug', slug: match.slug };
+
+    match = matchPath(pathname, '/store/:slug');
+    if (match) return { name: 'product_detail_slug', slug: match.slug };
+
+
+    // Fallback for simple slug at root: /janith
+    const pathSegments = pathname.split('/').filter(Boolean);
     const reservedPaths = ['admin', 'teachers', 'courses', 'classes', 'quizzes', 'exams', 'events', 'store', 'gift-voucher', 'referrals', 'dashboard', 'institute'];
-    if (pathSegments.length === 1 && pathSegments[0] && !reservedPaths.includes(pathSegments[0])) {
+    if (pathSegments.length === 1 && !reservedPaths.includes(pathSegments[0])) {
         return { name: 'teacher_profile_slug', slug: pathSegments[0] };
     }
 
-    if (pathSegments[0] === 'admin' && pathSegments[1] === 'institute' && pathSegments[2]) {
-        return { name: 'admin_ti_dashboard', instituteId: pathSegments[2] };
-    }
-    if (pathSegments[0] === 'admin' && pathSegments[1] === 'student' && pathSegments[2]) {
-        return { name: 'admin_view_student_dashboard', userId: pathSegments[2] };
-    }
-    if (path === '/teachers') return { name: 'all_teachers' };
-    if (path === '/courses') return { name: 'all_courses' };
-    if (path === '/classes') return { name: 'all_classes' };
-    if (path === '/quizzes') return { name: 'all_quizzes' };
-    if (path === '/exams') return { name: 'all_exams' };
-    if (path === '/events') return { name: 'all_events' };
-    if (path === '/store') return { name: 'all_products' };
-    if (path === '/gift-voucher') return { name: 'gift_voucher' };
-    if (path === '/referrals') return { name: 'referral_dashboard' };
-    if (path === '/dashboard') return { name: 'student_dashboard' };
-    if (path === '/admin') return { name: 'admin_dashboard' };
-    if (path === '/institute/dashboard') return { name: 'ti_dashboard' };
+
+    match = matchPath(pathname, '/admin/institute/:instituteId');
+    if (match) return { name: 'admin_ti_dashboard', instituteId: match.instituteId };
+
+    match = matchPath(pathname, '/admin/student/:userId');
+    if (match) return { name: 'admin_view_student_dashboard', userId: match.userId };
+
 
     return { name: 'home' };
 };
 
-const getURLHashFromPageState = (page: PageState): string => {
+const getURLPathFromPageState = (page: PageState): string => {
     let path: string;
     switch (page.name) {
         case 'home': path = '/'; break;
-        case 'teacher_profile_slug': path = `/${page.slug}`; break;
-        case 'teacher_profile': path = `/?teacherId=${page.teacherId}`; break;
+        case 'teacher_profile_slug': path = `/${page.slug}`; break; // Top level vanity: /janith
+        case 'teacher_profile': path = `/?teacherId=${page.teacherId}`; break; // Keep query for ID lookup
         case 'course_detail': path = `/?courseId=${page.courseId}`; break;
+        case 'course_detail_slug': path = `/courses/${page.slug}`; break;
         case 'class_detail': path = `/?classId=${page.classId}`; break;
+        case 'class_detail_slug': path = `/classes/${page.slug}`; break;
         case 'product_detail': path = `/?productId=${page.productId}`; break;
+        case 'product_detail_slug': path = `/store/${page.slug}`; break;
         case 'quiz_detail':
             let quizPath = `/?quizId=${page.quizId}`;
             if (page.instanceId) {
@@ -192,7 +225,15 @@ const getURLHashFromPageState = (page: PageState): string => {
             }
             path = quizPath;
             break;
+        case 'quiz_detail_slug':
+            let quizSlugPath = `/quizzes/${page.slug}`;
+            if (page.instanceId) {
+                quizSlugPath += `?instanceId=${page.instanceId}`;
+            }
+            path = quizSlugPath;
+            break;
         case 'event_detail': path = `/?eventId=${page.eventId}`; break;
+        case 'event_detail_slug': path = `/events/${page.slug}`; break;
         case 'quiz_taking': path = `/?takeQuiz=${page.quizId}`; break;
         case 'attendance_scanner': path = `/?scanAttendance=${page.classId}`; break;
         case 'static': path = `/?page=${page.pageKey}`; break;
@@ -223,11 +264,12 @@ const getURLHashFromPageState = (page: PageState): string => {
         case 'voucher_success':
         case 'topup_success':
         case 'subscription_success':
-            return window.location.hash || '#/';
+            // These pages don't have dedicated URLs yet, stay on current URL or root
+            return window.location.pathname + window.location.search;
 
         default: path = '/'; break;
     }
-    return `#${path}`;
+    return path;
 };
 
 
@@ -256,11 +298,30 @@ export const NavigationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
 
     useEffect(() => {
-        const handleHashChange = () => {
+        // --- Popstate Handler (Browser Back/Forward) ---
+        const handlePopState = () => {
             setPageState(getPageStateFromURL());
         };
 
-        window.addEventListener('hashchange', handleHashChange);
+        window.addEventListener('popstate', handlePopState);
+
+        // --- Legacy Hash Redirect ---
+        // If query params or hash exists, we might need to clean it up or migrate
+        if (window.location.hash) {
+            // Logic to migrate /#/teacher to /teacher if needed, or just let the getPageState handle it
+            // For now, getPageState extracts params from hash if present in logic, but we moved to Path.
+            // If user comes with #, we should probably redirect to path equivalent.
+            const hash = window.location.hash.substring(1); // /teachers
+            if (hash && hash !== '/') {
+                // Simple migration: Just strip the # and replace state
+                // Note: This matches simple paths. Complex query params in hash need more logic.
+                // For safety one-time migration:
+                const newPath = hash.startsWith('/') ? hash : '/' + hash;
+                window.history.replaceState(null, '', newPath);
+                setPageState(getPageStateFromURL());
+            }
+        }
+
 
         // Listener 1: Site Content (appConfig)
         const unsubAppConfig = onSnapshot(doc(db, 'settings', 'appConfig'), (docSnap) => {
@@ -321,7 +382,7 @@ export const NavigationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         });
 
         return () => {
-            window.removeEventListener('hashchange', handleHashChange);
+            window.removeEventListener('popstate', handlePopState);
             unsubAppConfig();
             unsubClientConfig();
         };
@@ -340,16 +401,18 @@ export const NavigationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     const handleNavigate = useCallback((page: PageState, options?: { quizFinish?: boolean }) => {
         window.scrollTo(0, 0);
 
-        const newHash = getURLHashFromPageState(page);
+        const newPath = getURLPathFromPageState(page);
 
         if (options?.quizFinish) {
-            window.history.replaceState(null, '', newHash);
+            window.history.replaceState(null, '', newPath);
             setPageState(page);
         } else {
-            const currentHash = window.location.hash || '#/';
-            if (newHash !== currentHash) {
-                window.location.hash = newHash.substring(1);
+            const currentPath = window.location.pathname + window.location.search;
+            if (newPath !== currentPath) {
+                window.history.pushState(null, '', newPath);
+                setPageState(page);
             } else {
+                // Same path, just ensuring state is sync
                 setPageState(page);
             }
         }
@@ -363,7 +426,7 @@ export const NavigationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         window.history.back();
     };
 
-    const value: NavigationContextType = {
+    const value: NavigationContextType = useMemo(() => ({
         pageState,
         searchQuery,
         homeSlides,
@@ -387,7 +450,12 @@ export const NavigationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         handleNavigate,
         handleBack,
         setSearchQuery,
-    };
+    }), [
+        pageState, searchQuery, homeSlides, staticPageContent, socialMediaLinks, subjects, allSubjects,
+        studentCardTaglines, teacherCardTaglines, financialSettings, homePageCardCounts, upcomingExams,
+        photoPrintOptions, paymentGatewaySettings, supportSettings, ogImageUrl, teacherDashboardMessage,
+        genAiKey, gDriveFetcherApiKey, functionUrls, handleNavigate
+    ]);
 
     return (
         <NavigationContext.Provider value={value}>

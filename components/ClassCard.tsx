@@ -4,25 +4,16 @@ import { IndividualClass, Teacher } from '../types';
 import { ClockIcon, CalendarIcon, UserGroupIcon, PencilIcon, TrashIcon, MapPinIcon, OnlineIcon, EyeIcon, EyeSlashIcon, VideoCameraIcon, ShareIcon, ExternalLinkIcon } from './Icons';
 import StarRating from './StarRating';
 import { getDynamicClassStatus, getAverageRating, extractAndTruncate, getOptimizedImageUrl } from '../utils';
+import { slugify } from '../utils/slug';
 import { useNavigation } from '../contexts/NavigationContext';
 import { useUI } from '../contexts/UIContext';
 
-interface ClassCardProps {
-    classInfo: IndividualClass;
-    teacher: Teacher;
-    viewMode: 'public' | 'teacher';
-    enrollmentCount?: number;
-    onView: (classInfo: IndividualClass, teacher: Teacher) => void;
-    onEdit?: (classInfo: IndividualClass) => void;
-    onDelete?: (classId: number, enrollmentCount: number) => void;
-    onTogglePublish?: (classId: number) => void;
-    isOwnerView?: boolean;
+interface ClassStatusBadgeProps {
+    status: 'scheduled' | 'live' | 'finished' | 'canceled';
 }
 
-type DynamicStatus = 'live' | 'scheduled' | 'finished' | 'canceled';
-
-const ClassStatusBadge: React.FC<{ status: DynamicStatus }> = ({ status }) => {
-    const styles: Record<DynamicStatus, string> = {
+const ClassStatusBadge: React.FC<ClassStatusBadgeProps> = ({ status }) => {
+    const styles = {
         scheduled: 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300',
         live: 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300 animate-pulse',
         finished: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
@@ -34,6 +25,18 @@ const ClassStatusBadge: React.FC<{ status: DynamicStatus }> = ({ status }) => {
         </span>
     );
 };
+
+interface ClassCardProps {
+    classInfo: IndividualClass;
+    teacher: Teacher;
+    viewMode: 'public' | 'teacher';
+    enrollmentCount?: number;
+    onView: (classInfo: IndividualClass, teacher: Teacher) => void;
+    onEdit?: (classInfo: IndividualClass) => void;
+    onDelete?: (classId: number, enrolledCount: number) => void;
+    onTogglePublish?: (classId: number) => void;
+    isOwnerView?: boolean;
+}
 
 const ClassCard: React.FC<ClassCardProps> = ({ classInfo, teacher, viewMode, enrollmentCount, onView, onEdit, onDelete, onTogglePublish, isOwnerView = false }) => {
     const { handleNavigate } = useNavigation();
@@ -49,7 +52,7 @@ const ClassCard: React.FC<ClassCardProps> = ({ classInfo, teacher, viewMode, enr
 
     const handleShare = (e: React.MouseEvent) => {
         e.stopPropagation();
-        const url = `${window.location.origin}/#/?classId=${classInfo.id}`;
+        const url = `${window.location.origin}/#/classes/${slugify(classInfo.title)}`;
         navigator.clipboard.writeText(url).then(() => {
             addToast('Class link copied to clipboard!', 'success');
         }).catch(() => {
