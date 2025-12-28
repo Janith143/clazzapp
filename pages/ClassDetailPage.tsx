@@ -13,6 +13,7 @@ import MarkdownDisplay from '../components/MarkdownDisplay.tsx';
 import { useSEO } from '../hooks/useSEO.ts';
 import Modal from '../components/Modal.tsx';
 import PaymentMethodSelector from '../components/PaymentMethodSelector.tsx';
+import SEOHead from '../components/SEOHead.tsx';
 
 import { slugify } from '../utils/slug.ts';
 
@@ -40,11 +41,29 @@ const ClassDetailPage: React.FC<ClassDetailPageProps> = ({ classId, slug }) => {
 
     const { item: classInfo, teacher, isEnrolled } = useFetchItem('class', resolvedClassId || 0);
 
-    useSEO(
-        classInfo ? classInfo.title : 'Class Details',
-        classInfo ? classInfo.description.substring(0, 160) : 'View class details on clazz.lk',
-        teacher ? teacher.profileImage : undefined
-    );
+    const structuredData = useMemo(() => {
+        if (!classInfo || !teacher) return null;
+        const classItem = classInfo as IndividualClass;
+        // Individual Class treated as a Course/CourseInstance
+        return {
+            "@context": "https://schema.org",
+            "@type": "Course",
+            "name": classInfo.title,
+            "description": classInfo.description,
+            "provider": {
+                "@type": "Person",
+                "name": teacher.name,
+                "image": teacher.avatar || teacher.profileImage
+            },
+            "offers": {
+                "@type": "Offer",
+                "price": classItem.fee,
+                "priceCurrency": "LKR",
+                "availability": "https://schema.org/InStock",
+                "category": "Paid"
+            }
+        };
+    }, [classInfo, teacher]);
 
     const [isConfirmingEnrollment, setIsConfirmingEnrollment] = useState(false);
     const [showPaymentSelector, setShowPaymentSelector] = useState(false);
@@ -191,6 +210,12 @@ const ClassDetailPage: React.FC<ClassDetailPageProps> = ({ classId, slug }) => {
 
     return (
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-slideInUp">
+            <SEOHead
+                title={classInfo ? classInfo.title : 'Class Details'}
+                description={classInfo ? classInfo.description.substring(0, 160) : 'View class details on clazz.lk'}
+                image={teacher ? (teacher.avatar || teacher.profileImage) : undefined}
+                structuredData={structuredData}
+            />
             <div className="mb-4">
                 <button onClick={handleBack} className="flex items-center space-x-2 text-sm font-medium text-primary hover:text-primary-dark transition-colors">
                     <ChevronLeftIcon className="h-5 w-5" />

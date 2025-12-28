@@ -37,7 +37,7 @@ const CourseCard: React.FC<CourseCardProps> = ({ course, teacher, viewMode, enro
 
     const handleShare = (e: React.MouseEvent) => {
         e.stopPropagation();
-        const url = `${window.location.origin}/#/courses/${slugify(course.title)}`;
+        const url = `${window.location.origin}/courses/${slugify(course.title)}`;
         navigator.clipboard.writeText(url).then(() => {
             addToast('Course link copied to clipboard!', 'success');
         }).catch(() => {

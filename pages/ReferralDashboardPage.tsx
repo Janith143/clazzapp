@@ -25,13 +25,13 @@ const ReferralDashboardPage: React.FC = () => {
     const { users, teachers, sales, handleRequestAffiliateWithdrawal, processMonthlyPayouts } = useData();
     const { addToast } = useUI();
     const { handleNavigate, financialSettings } = useNavigation();
-    
+
     const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
     const [withdrawAmount, setWithdrawAmount] = useState('');
     const [isCheckingPayouts, setIsCheckingPayouts] = useState(true);
 
-    const referralLink = currentUser ? `${window.location.origin}/#/?ref=${currentUser.referralCode}` : '';
-    const teacherReferralLink = currentUser ? `${window.location.origin}/#/?teacherRef=${currentUser.referralCode}` : '';
+    const referralLink = currentUser ? `${window.location.origin}/?ref=${currentUser.referralCode}` : '';
+    const teacherReferralLink = currentUser ? `${window.location.origin}/?teacherRef=${currentUser.referralCode}` : '';
 
     useEffect(() => {
         const checkPayouts = async () => {
@@ -53,17 +53,17 @@ const ReferralDashboardPage: React.FC = () => {
             .then(() => addToast('Copied to clipboard!', 'success'))
             .catch(() => addToast('Failed to copy.', 'error'));
     };
-    
+
     const referralBalance = currentUser?.referralBalance || { total: 0, withdrawn: 0, available: 0 };
 
 
     const referralStats = useMemo(() => {
         if (!currentUser) return null;
-        
+
         const referredUsers = users.filter(u => u.referrerId === currentUser.id);
         const referredStudents = referredUsers.filter(u => u.role === 'student');
         const referredTeacherUsers = referredUsers.filter(u => u.role === 'teacher');
-        
+
         const referredTeacherUserIds = new Set(referredTeacherUsers.map(u => u.id));
         const referredTeachers = teachers.filter(t => t.registrationStatus === 'approved' && referredTeacherUserIds.has(t.userId));
 
@@ -72,26 +72,26 @@ const ReferralDashboardPage: React.FC = () => {
 
         const allSalesFromReferredTeachersThisMonth = sales
             .filter(s => referredTeachers.some(t => t.id === s.teacherId) && s.status === 'completed' && new Date(s.saleDate) >= startOfMonth);
-            
+
         const monthlyNetPlatformIncome = allSalesFromReferredTeachersThisMonth.reduce((acc, sale) => {
-             const teacher = teachers.find(t => t.id === sale.teacherId);
-             if (!teacher) return acc;
-             
-             const currentLifetimeEarnings = (currentUser.monthlyReferralEarnings || [])
+            const teacher = teachers.find(t => t.id === sale.teacherId);
+            if (!teacher) return acc;
+
+            const currentLifetimeEarnings = (currentUser.monthlyReferralEarnings || [])
                 .filter(e => e.status === 'processed')
                 .reduce((sum, e) => sum + e.earnings, 0);
 
-             if (currentLifetimeEarnings >= financialSettings.referralMaxEarning) {
+            if (currentLifetimeEarnings >= financialSettings.referralMaxEarning) {
                 return acc;
-             }
+            }
 
-             const saleValue = sale.totalAmount + sale.amountPaidFromBalance;
-             const grossPlatformIncome = saleValue * (teacher.commissionRate / 100);
-             const paymentGatewayCost = saleValue * financialSettings.referralGatewayFeeRate;
-             const platformRunningCost = saleValue * financialSettings.referralPlatformCostRate;
-             const netPlatformIncome = grossPlatformIncome - paymentGatewayCost - platformRunningCost;
-             
-             return acc + (netPlatformIncome > 0 ? netPlatformIncome : 0);
+            const saleValue = sale.totalAmount + sale.amountPaidFromBalance;
+            const grossPlatformIncome = saleValue * (teacher.commissionRate / 100);
+            const paymentGatewayCost = saleValue * financialSettings.referralGatewayFeeRate;
+            const platformRunningCost = saleValue * financialSettings.referralPlatformCostRate;
+            const netPlatformIncome = grossPlatformIncome - paymentGatewayCost - platformRunningCost;
+
+            return acc + (netPlatformIncome > 0 ? netPlatformIncome : 0);
         }, 0);
 
         let currentTier = 1;
@@ -99,7 +99,7 @@ const ReferralDashboardPage: React.FC = () => {
         if (monthlyNetPlatformIncome >= financialSettings.referralTier3Threshold) { currentTier = 4; monthlyCommissionRate = financialSettings.referralTier3Rate; }
         else if (monthlyNetPlatformIncome >= financialSettings.referralTier2Threshold) { currentTier = 3; monthlyCommissionRate = financialSettings.referralTier2Rate; }
         else if (monthlyNetPlatformIncome >= financialSettings.referralTier1Threshold) { currentTier = 2; monthlyCommissionRate = financialSettings.referralTier1Rate; }
-        
+
         const estimatedMonthlyEarnings = monthlyNetPlatformIncome * monthlyCommissionRate;
 
         const earningsPerTeacher = referredTeachers.map(teacher => {
@@ -129,7 +129,7 @@ const ReferralDashboardPage: React.FC = () => {
     if (!currentUser) {
         return <div className="text-center p-8">Please log in to view your referral dashboard.</div>;
     }
-    
+
     const handleConfirmWithdraw = () => {
         const amount = parseFloat(withdrawAmount);
         if (amount > 0 && referralBalance.available >= amount) {
@@ -142,11 +142,11 @@ const ReferralDashboardPage: React.FC = () => {
     const currencyFormatter = new Intl.NumberFormat('en-LK', { style: 'currency', currency: 'LKR', minimumFractionDigits: 0 });
 
     const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-    
+
     const sortedWithdrawals = useMemo(() => {
         return [...(currentUser.withdrawalHistory || [])].sort((a, b) => new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime());
     }, [currentUser.withdrawalHistory]);
-    
+
     const WithdrawalStatusBadge: React.FC<{ status: Withdrawal['status'] }> = ({ status }) => {
         const styles = {
             pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-800/50 dark:text-yellow-300',
@@ -165,11 +165,11 @@ const ReferralDashboardPage: React.FC = () => {
     return (
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-slideInUp">
             <div className="mb-8"><button onClick={() => handleNavigate({ name: 'home' })} className="flex items-center space-x-2 text-sm font-medium text-primary hover:text-primary-dark"><ChevronLeftIcon className="h-5 w-5" /><span>Back to Home</span></button></div>
-            
+
             <div className="bg-light-surface dark:bg-dark-surface p-8 rounded-lg shadow-md">
                 <h1 className="text-3xl font-bold text-center">Your Referral Program</h1>
                 <p className="mt-2 text-light-subtle dark:text-dark-subtle text-center">Share your links and earn commissions!</p>
-                
+
                 <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div>
                         <h2 className="text-xl font-bold">Invite a Student</h2>
@@ -180,7 +180,7 @@ const ReferralDashboardPage: React.FC = () => {
                             <label className="font-semibold text-sm">Your Student Referral Link</label>
                             <div className="mt-1 flex items-center gap-2">
                                 <input type="text" readOnly value={referralLink} className="w-full text-sm p-2 border rounded-md bg-light-background dark:bg-dark-background text-light-subtle dark:text-dark-subtle" />
-                                <button onClick={() => handleCopy(referralLink)} className="p-2 bg-primary text-white rounded-md hover:bg-primary-dark"><ShareIcon className="w-5 h-5"/></button>
+                                <button onClick={() => handleCopy(referralLink)} className="p-2 bg-primary text-white rounded-md hover:bg-primary-dark"><ShareIcon className="w-5 h-5" /></button>
                             </div>
                         </div>
                     </div>
@@ -194,7 +194,7 @@ const ReferralDashboardPage: React.FC = () => {
                             <label className="font-semibold text-sm">Your Teacher Referral Link</label>
                             <div className="mt-1 flex items-center gap-2">
                                 <input type="text" readOnly value={teacherReferralLink} className="w-full text-sm p-2 border rounded-md bg-light-background dark:bg-dark-background text-light-subtle dark:text-dark-subtle" />
-                                <button onClick={() => handleCopy(teacherReferralLink)} className="p-2 bg-primary text-white rounded-md hover:bg-primary-dark"><ShareIcon className="w-5 h-5"/></button>
+                                <button onClick={() => handleCopy(teacherReferralLink)} className="p-2 bg-primary text-white rounded-md hover:bg-primary-dark"><ShareIcon className="w-5 h-5" /></button>
                             </div>
                         </div>
                     </div>
@@ -213,7 +213,7 @@ const ReferralDashboardPage: React.FC = () => {
                     {/* Monthly Earnings Table */}
                     <div className="bg-light-surface dark:bg-dark-surface p-6 rounded-lg shadow-md">
                         <h2 className="text-xl font-bold mb-4">Monthly Earnings History</h2>
-                         <div className="overflow-x-auto">
+                        <div className="overflow-x-auto">
                             <table className="min-w-full divide-y divide-light-border dark:divide-dark-border text-sm">
                                 <thead className="bg-light-background dark:bg-dark-background"><tr><th className="px-3 py-3 text-left text-xs font-medium uppercase tracking-wider text-light-subtle dark:text-dark-subtle">Month</th><th className="px-3 py-3 text-right text-xs font-medium uppercase tracking-wider text-light-subtle dark:text-dark-subtle">Net Income Generated</th><th className="px-3 py-3 text-right text-xs font-medium uppercase tracking-wider text-light-subtle dark:text-dark-subtle">Your Earnings</th><th className="px-3 py-3 text-center text-xs font-medium uppercase tracking-wider text-light-subtle dark:text-dark-subtle">Status</th></tr></thead>
                                 <tbody className="divide-y divide-light-border dark:divide-dark-border">
@@ -266,7 +266,7 @@ const ReferralDashboardPage: React.FC = () => {
             </div>
 
             <ConfirmationModal isOpen={isWithdrawModalOpen} onClose={() => setIsWithdrawModalOpen(false)} onConfirm={handleConfirmWithdraw} title="Request Withdrawal" message={`Enter amount to withdraw from your available balance of ${currencyFormatter.format(referralBalance.available)}.`} confirmText="Submit Request">
-                 <input type="number" value={withdrawAmount} onChange={e => setWithdrawAmount(e.target.value)} max={referralBalance.available} className="w-full mt-4 p-2 border rounded-md text-light-text dark:text-dark-text bg-light-background dark:bg-dark-background border-light-border dark:border-dark-border" placeholder="Amount (e.g., 10000)" />
+                <input type="number" value={withdrawAmount} onChange={e => setWithdrawAmount(e.target.value)} max={referralBalance.available} className="w-full mt-4 p-2 border rounded-md text-light-text dark:text-dark-text bg-light-background dark:bg-dark-background border-light-border dark:border-dark-border" placeholder="Amount (e.g., 10000)" />
             </ConfirmationModal>
         </div>
     );

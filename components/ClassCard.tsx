@@ -52,7 +52,7 @@ const ClassCard: React.FC<ClassCardProps> = ({ classInfo, teacher, viewMode, enr
 
     const handleShare = (e: React.MouseEvent) => {
         e.stopPropagation();
-        const url = `${window.location.origin}/#/classes/${slugify(classInfo.title)}`;
+        const url = `${window.location.origin}/classes/${slugify(classInfo.title)}`;
         navigator.clipboard.writeText(url).then(() => {
             addToast('Class link copied to clipboard!', 'success');
         }).catch(() => {

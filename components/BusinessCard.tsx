@@ -9,7 +9,7 @@ interface BusinessCardProps {
 }
 
 const BusinessCard = React.forwardRef<HTMLDivElement, BusinessCardProps>(({ teacher }, ref) => {
-  const profileUrl = `${window.location.origin}/#/?teacherId=${teacher.id}`;
+  const profileUrl = teacher.username ? `${window.location.origin}/teacher/${teacher.username}` : `${window.location.origin}/?teacherId=${teacher.id}`;
 
   // Dynamic font scaling based on content length
   const nameFontSize =

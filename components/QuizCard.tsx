@@ -49,7 +49,7 @@ const QuizCard: React.FC<QuizCardProps> = ({ quiz, teacher, viewMode, currentUse
 
     const handleShare = (e: React.MouseEvent) => {
         e.stopPropagation();
-        const url = `${window.location.origin}/#/quizzes/${slugify(quiz.title)}`;
+        const url = `${window.location.origin}/quizzes/${slugify(quiz.title)}`;
         navigator.clipboard.writeText(url).then(() => {
             addToast('Quiz link copied to clipboard!', 'success');
         }).catch(() => {

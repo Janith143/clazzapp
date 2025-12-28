@@ -53,11 +53,7 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId, slug }) =
 
     const courseType = course ? (course.type || 'recorded') : 'recorded';
 
-    // useSEO(
-    //     course ? course.title : 'Course Details',
-    //     course ? course.description.substring(0, 160) : 'View course details on clazz.lk',
-    //     course && 'coverImage' in course ? course.coverImage : undefined
-    // );
+
 
     const totalDurationHoursForSchema = useMemo(() => {
         if (!course || !('lectures' in course)) return 0;

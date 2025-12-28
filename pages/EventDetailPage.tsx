@@ -11,6 +11,7 @@ import { useUI } from '../contexts/UIContext.tsx';
 import ConfirmationModal from '../components/ConfirmationModal.tsx';
 import MarkdownDisplay from '../components/MarkdownDisplay.tsx';
 import { useSEO } from '../hooks/useSEO.ts';
+import SEOHead from '../components/SEOHead.tsx';
 import TeacherCard from '../components/TeacherCard.tsx';
 import PhotoCard from '../components/PhotoCard.tsx';
 
@@ -82,11 +83,29 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId, slug }) => {
         return teachers.filter(t => event.participatingTeacherIds.includes(t.id));
     }, [teachers, event]);
 
-    useSEO(
-        event ? event.title : 'Event Details',
-        event ? (event.description || '').substring(0, 160) : 'View event details on clazz.lk',
-        event ? event.flyerImage : undefined
-    );
+    const structuredData = useMemo(() => {
+        if (!event || !organizer) return null;
+        return {
+            "@context": "https://schema.org",
+            "@type": "Event",
+            "name": event.title,
+            "description": event.description || '',
+            "startDate": `${event.startDate}T${event.startTime}`,
+            "endDate": `${event.startDate}T${event.endTime || '23:59'}`, // Fallback if end time missing
+            "eventStatus": "https://schema.org/EventScheduled",
+            "organizer": {
+                "@type": "Organization",
+                "name": organizer.name,
+            },
+            "image": event.flyerImage ? [event.flyerImage] : [],
+            "offers": {
+                "@type": "Offer",
+                "price": 0, // Events might be free or have tickets, assuming generic for now or 0
+                "priceCurrency": "LKR",
+                "availability": "https://schema.org/InStock"
+            }
+        };
+    }, [event, organizer]);
 
     const [isConfirmingEnrollment, setIsConfirmingEnrollment] = useState(false);
 
@@ -135,6 +154,12 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId, slug }) => {
 
     return (
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-slideInUp">
+            <SEOHead
+                title={event ? event.title : 'Event Details'}
+                description={event ? (event.description || '').substring(0, 160) : 'View event details on clazz.lk'}
+                image={event ? event.flyerImage : undefined}
+                structuredData={structuredData}
+            />
             <div className="mb-4">
                 <button onClick={handleBack} className="flex items-center space-x-2 text-sm font-medium text-primary hover:text-primary-dark transition-colors">
                     <ChevronLeftIcon className="h-5 w-5" />

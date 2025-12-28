@@ -24,7 +24,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, teacher, viewMode, o
 
     const handleShare = (e: React.MouseEvent) => {
         e.stopPropagation();
-        const url = `${window.location.origin}/#/products/${slugify(product.title)}`;
+        const url = `${window.location.origin}/store/${slugify(product.title)}`;
         navigator.clipboard.writeText(url).then(() => {
             addToast('Product link copied to clipboard!', 'success');
         }).catch(() => {
