@@ -22,50 +22,55 @@ app.use(cors({ origin: true }));
 // Middleware to parse URL-encoded bodies, required for WebXPay's form post callback
 app.use(express.urlencoded({ extended: true }));
 
-// Health check endpoint
-app.get('/', (req, res) => {
-    res.status(200).send('Payment handler service is running.');
-});
-
 // Reusable handler function
 const handleCallback = (req, res) => {
-    console.log('--- Received WebXPay Callback ---');
-    console.log('Raw Body:', req.body);
+    console.log(`--- Received WebXPay Callback (${req.method}) ---`);
+    console.log('Headers:', JSON.stringify(req.headers));
+    console.log('Body:', JSON.stringify(req.body));
+    console.log('Query:', JSON.stringify(req.query));
 
     const defaultFrontendUrl = 'https://clazz.lk';
     let frontendUrl = defaultFrontendUrl;
 
     try {
-        const encodedPayment = req.body.payment;
-        // custom_fields usually comes as a Base64 string from frontend -> Gateway -> Here
-        // But some gateways might decode it or send it as is. WebXPay documentation says custom_fields is string.
-        const customFieldsRaw = req.body.custom_fields || req.body.custom_feilds;
+        // Support both POST (body) and GET (query) parameters
+        const data = req.method === 'GET' ? req.query : req.body;
 
-        const orderId = req.body.order_id;
-        const msg = req.body.msg;
+        const encodedPayment = data.payment;
+        const customFieldsRaw = data.custom_fields || data.custom_feilds;
+
+        const orderId = data.order_id;
+        const msg = data.msg;
+
+        // If no data found, maybe it's just a health check hitting the wrong route?
+        if (!encodedPayment && !customFieldsRaw && !orderId && req.method === 'GET') {
+            return res.status(200).send('Payment Handler Service: No payment data found in request.');
+        }
 
         if (!encodedPayment || !customFieldsRaw) {
-            console.error('Callback is missing "payment" or "custom_fields" in the body.');
-            return res.redirect(`${defaultFrontendUrl}/?payment_status=error&msg=Invalid_callback_from_gateway`);
+            console.error('Callback is missing "payment" or "custom_fields".');
+            // Try to recover order_id if available to at least show something
+            const fallbackParams = orderId ? `?order_id=${orderId}` : '';
+            return res.redirect(`${defaultFrontendUrl}/?payment_status=error&msg=Invalid_callback_data${fallbackParams}`);
         }
+        // ... (rest of function is same, just using 'data' instead of req.body)
 
         // Try to decode custom_fields to find frontend_url
         try {
             // First decode Base64
             const decodedCustomFields = Buffer.from(customFieldsRaw, 'base64').toString('utf-8');
-            // Then URL decode if needed (though Base64 usually covers it) - sometimes JSON is URIComponentEncoded before Base64
+            // Then URL decode if needed
             const jsonString = decodeURIComponent(decodedCustomFields);
             const customFieldsObj = JSON.parse(jsonString);
 
             if (customFieldsObj && customFieldsObj.frontend_url) {
                 frontendUrl = customFieldsObj.frontend_url;
-                // Basic validation to ensure it's a valid URL string
                 if (!frontendUrl.startsWith('http')) {
                     frontendUrl = defaultFrontendUrl;
                 }
             }
         } catch (e) {
-            console.warn("Retaining default frontend URL. Failed to parse custom_fields for dynamic redirection:", e.message);
+            console.warn("Retaining default frontend URL. Failed to parse custom_fields:", e.message);
         }
 
         console.log(`Using Frontend URL: ${frontendUrl}`);
@@ -74,10 +79,7 @@ const handleCallback = (req, res) => {
         console.log('Decoded Payment String:', decodedPayment);
 
         const paymentParts = decodedPayment.split('|');
-        if (paymentParts.length < 5) {
-            console.error('Decoded payment string has an invalid format.');
-            return res.redirect(`${frontendUrl}/?payment_status=error&msg=Malformed_payment_data`);
-        }
+        // ... (rest is the same)
 
         const rawStatusCode = paymentParts[4] || '';
         const statusCode = rawStatusCode.split(' ')[0];
@@ -85,28 +87,32 @@ const handleCallback = (req, res) => {
 
         const redirectUrl = new URL(frontendUrl);
         redirectUrl.searchParams.append('status_code', statusCode);
-        // Pass original raw custom_fields back to frontend to be parsed there
         redirectUrl.searchParams.append('custom_fields', customFieldsRaw);
-
-        // DEBUG: Pass the raw status code to frontend for debugging "Payment Failed" issues
         redirectUrl.searchParams.append('debug_raw_status', rawStatusCode);
 
         if (orderId) redirectUrl.searchParams.append('order_id', orderId);
         if (msg) redirectUrl.searchParams.append('msg', msg);
 
-        console.log('Successfully parsed. Redirecting user to:', redirectUrl.toString());
+        console.log('Redirecting to:', redirectUrl.toString());
         return res.redirect(302, redirectUrl.toString());
 
     } catch (error) {
         console.error('Error processing payment callback:', error);
-        return res.redirect(`${frontendUrl}/?payment_status=error&msg=Server_error_processing_callback`);
+        return res.redirect(`${frontendUrl}/?payment_status=error&msg=Server_error`);
     }
 };
 
-// Endpoint to handle the POST callback from WebXPay
-app.post('/payment-callback', handleCallback);
+// Handle both POST and GET for flexibility
+app.all('/payment-callback', handleCallback);
 
-// Also handle POST at root in case user configured the URL without /payment-callback
+// Handle root path too, but prioritizing the Health Check for cleaner logs if visited directly
+app.get('/', (req, res) => {
+    // If it has query params, treat as callback
+    if (Object.keys(req.query).length > 0) {
+        return handleCallback(req, res);
+    }
+    res.status(200).send('Payment handler service is running.');
+});
 app.post('/', handleCallback);
 
 

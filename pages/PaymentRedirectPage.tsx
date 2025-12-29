@@ -173,6 +173,8 @@ const PaymentRedirectPage: React.FC<PaymentRedirectPageProps> = ({ user: context
             const selectedMethod = (payload as any).selectedMethod as PaymentMethod || 'card';
             const targetGateway = paymentGatewaySettings.methodMapping[selectedMethod] || paymentGatewaySettings.activePaymentGateway;
 
+            console.log("Selected Method:", selectedMethod, "Target Gateway:", targetGateway);
+
             if (targetGateway === 'marxipg') {
                 try {
                     const custom_fields = btoa(unescape(encodeURIComponent(JSON.stringify(customFieldsObject))));
@@ -191,6 +193,9 @@ const PaymentRedirectPage: React.FC<PaymentRedirectPageProps> = ({ user: context
                         frontend_url: frontend_url // Send dynamic frontend URL
                     };
 
+                    console.log("Preparing Marx Payload:", marxPayload);
+                    console.log("Calling Marx Backend:", `${functionUrls.marxPayment}/createOrder`);
+
                     const response = await fetch(`${functionUrls.marxPayment}/createOrder`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -198,6 +203,7 @@ const PaymentRedirectPage: React.FC<PaymentRedirectPageProps> = ({ user: context
                     });
 
                     const result = await response.json();
+                    console.log("Marx Backend Result:", result);
 
                     if (result.success && result.payUrl) {
                         window.location.href = result.payUrl;
@@ -205,6 +211,7 @@ const PaymentRedirectPage: React.FC<PaymentRedirectPageProps> = ({ user: context
                         throw new Error(result.message || 'Failed to initiate Marx payment.');
                     }
                 } catch (err: any) {
+                    console.error("Marx Frontend Error:", err);
                     setError(err.message);
                 }
             } else { // WebXPay

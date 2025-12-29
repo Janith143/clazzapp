@@ -56,6 +56,10 @@ app.get('/marx-callback', async (req, res) => {
 app.post('/createOrder', async (req, res) => {
     const { order_id, amount, items, customer, custom_fields, return_url, frontend_url } = req.body;
 
+    console.log("[CreateOrder] Incoming Body:", JSON.stringify(req.body));
+    console.log("[CreateOrder] order_id:", order_id);
+    console.log("[CreateOrder] customer:", JSON.stringify(customer));
+
     try {
         const settingsDoc = await db.collection('settings').doc('clientAppConfig').get();
         const marxSettings = settingsDoc.data()?.paymentGatewaySettings?.gateways?.marxipg;
@@ -97,10 +101,14 @@ app.post('/createOrder', async (req, res) => {
             returnUrl: req.body.return_url || `https://${req.get('host')}/marx-callback`,
             customerMail: customer.email,
             customerMobile: finalMobile,
+            customerName: `${customer.first_name} ${customer.last_name}`,
             orderSummary: items,
             customerReference: order_id, // This is the visible Invoice Number
+            req_reference_number: order_id, // Explicitly set reference number
             paymentMethod: "OTHER" // "OTHER" (for Visa/Mastercard/UnionPay) or "AMEX"
         };
+
+        console.log("[CreateOrder] Sending Payload to Marx:", JSON.stringify(payload));
 
         const response = await fetch(`${apiBaseUrl}/orders`, {
             method: 'POST',
