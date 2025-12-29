@@ -34,8 +34,12 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                 let registration: ServiceWorkerRegistration | undefined;
 
                 if ('serviceWorker' in navigator) {
-                    registration = await navigator.serviceWorker.getRegistration('/firebase-messaging-sw.js');
-                    if (!registration) {
+                    // Start by checking if we have a registration
+                    registration = await navigator.serviceWorker.getRegistration();
+
+                    // If not found or not active, wait for the 'ready' promise
+                    if (!registration || !registration.active) {
+                        console.log('Waiting for Service Worker to be ready...');
                         registration = await navigator.serviceWorker.ready;
                     }
                 }

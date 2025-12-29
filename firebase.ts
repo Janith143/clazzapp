@@ -19,19 +19,14 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 // Get instances of Firebase services using v9+ modular SDK
-export const db = getFirestore(app, 'clazzdb2'); // Use named database
+// Initialize Firestore with persistent cache settings to avoid deprecation warnings
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
 
-// Enable Offline Persistence
-enableMultiTabIndexedDbPersistence(db).catch((err) => {
-    if (err.code === 'failed-precondition') {
-        // Multiple tabs open, persistence can only be enabled in one tab at a a time.
-        // (This error typically only happens with enableIndexedDbPersistence, not multi-tab)
-        console.warn('Persistence failed: Multiple tabs open');
-    } else if (err.code === 'unimplemented') {
-        // The current browser does not support all of the features required to enable persistence
-        console.warn('Persistence not supported by browser');
-    }
-});
+export const db = initializeFirestore(app, {
+    localCache: persistentLocalCache({
+        tabManager: persistentMultipleTabManager()
+    })
+}, 'clazzdb2');
 export const auth = getAuth(app);
 // FIX: Correctly initialize storage using the imported getStorage function.
 export const storage = getStorage(app);
