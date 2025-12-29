@@ -1,14 +1,15 @@
 
 import { ContactInfo, TimeTableEntry } from './base';
 import { IndividualClass, Course, Quiz, Product } from './content';
+import { Event } from './commerce';
 import { Withdrawal, PayoutDetails } from './payment';
 import { IdVerification, BankVerification } from './verification';
 
 export interface TeacherRating {
-  studentId: string;
-  classId: number;
-  rating: number; // 1 to 5
-  ratedAt: string; // ISO string
+    studentId: string;
+    classId: number;
+    rating: number; // 1 to 5
+    ratedAt: string; // ISO string
 }
 
 export interface TeachingItem {
@@ -85,4 +86,5 @@ export interface Teacher {
     googleRefreshToken?: string;
     youtubeLinks?: string[];
     googleDriveLink?: string;
+    events?: Event[]; // Reusing the Event type (likely needs import adjustment if there's a name collision)
 }

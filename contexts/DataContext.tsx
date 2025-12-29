@@ -44,7 +44,7 @@ export interface DataContextType {
     handleSaveCourse: (courseDetails: Course) => Promise<void>;
     handleSaveQuiz: (quizDetails: Quiz) => Promise<void>;
     handleCancelItem: (teacherId: string, itemId: string | number, type: 'class' | 'quiz') => void;
-    handleTogglePublishState: (teacherId: string, itemId: string | number, type: 'class' | 'course' | 'quiz', action?: 'request_approval') => void;
+    handleTogglePublishState: (teacherId: string, itemId: string | number, type: 'class' | 'course' | 'quiz' | 'product' | 'events', action?: 'request_approval') => void;
     // FIX: Updated handleEnroll signature to include selectedMethod and return Promise<void> to match implementation in useEnrollmentActions hook.
     handleEnroll: (item: Course | IndividualClass | Quiz | Event, type: 'course' | 'class' | 'quiz' | 'event', ignoreVerification?: boolean, customPaymentAmount?: number, customPaymentDescription?: string, purchaseMetadata?: Sale['purchaseMetadata'], selectedMethod?: PaymentMethod) => Promise<void>;
     handleRateCourse: (courseId: string, rating: number) => void;

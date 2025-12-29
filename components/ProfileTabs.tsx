@@ -1,19 +1,19 @@
 
 import React, { useState } from 'react';
-import { 
-    ChevronRightIcon, 
-    HomeIcon, 
-    VideoCameraIcon, 
-    BookOpenIcon, 
-    ClipboardListIcon, 
-    ShoppingBagIcon, 
-    EventIcon, 
-    ClockIcon, 
-    BanknotesIcon, 
-    UserGroupIcon, 
-    CalendarIcon, 
-    PhoneIcon,
-    BellIcon
+import {
+  ChevronRightIcon,
+  HomeIcon,
+  VideoCameraIcon,
+  BookOpenIcon,
+  ClipboardListIcon,
+  ShoppingBagIcon,
+  EventIcon,
+  ClockIcon,
+  BanknotesIcon,
+  UserGroupIcon,
+  CalendarIcon,
+  PhoneIcon,
+  BellIcon
 } from './Icons';
 
 interface ProfileTabsProps {
@@ -42,9 +42,13 @@ const ProfileTabs: React.FC<ProfileTabsProps> = ({ activeTab, setActiveTab, isOw
   const [isExpanded, setIsExpanded] = useState(false);
 
   const visibleTabs = allTabs.filter(tab => {
-      if (tab.id === 'my_events' && !hasEvents) return false;
-      // @ts-ignore
-      return !tab.ownerOnly || isOwnProfile;
+    // @ts-ignore
+    return !tab.ownerOnly || isOwnProfile;
+  });
+  console.log('ProfileTabs render:', {
+    isOwnProfile,
+    hasEvents,
+    visibleTabIds: visibleTabs.map(t => t.id)
   });
 
   const handleTabClick = (e: React.MouseEvent, id: string) => {
@@ -56,10 +60,10 @@ const ProfileTabs: React.FC<ProfileTabsProps> = ({ activeTab, setActiveTab, isOw
     const isMobile = window.innerWidth < 768;
 
     if (isMobile && !isExpanded) {
-        setIsExpanded(true);
+      setIsExpanded(true);
     } else {
-        setActiveTab(id);
-        setIsExpanded(false);
+      setActiveTab(id);
+      setIsExpanded(false);
     }
   };
 
@@ -67,14 +71,14 @@ const ProfileTabs: React.FC<ProfileTabsProps> = ({ activeTab, setActiveTab, isOw
     <>
       {/* Mobile Backdrop */}
       {isExpanded && (
-        <div 
-            className="fixed inset-0 bg-black/50 z-[990] md:hidden"
-            onClick={() => setIsExpanded(false)}
+        <div
+          className="fixed inset-0 bg-black/50 z-[990] md:hidden"
+          onClick={() => setIsExpanded(false)}
         />
       )}
 
       {/* Sidebar Container */}
-      <div 
+      <div
         className={`
             fixed md:relative top-16 md:top-0 left-0 bottom-0 md:bottom-auto
             z-[1000] md:z-auto
@@ -89,43 +93,43 @@ const ProfileTabs: React.FC<ProfileTabsProps> = ({ activeTab, setActiveTab, isOw
       >
         <nav className="flex flex-col flex-1 overflow-y-auto py-2 md:py-0">
           {visibleTabs.map(tab => {
-              const isActive = activeTab === tab.id;
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={(e) => handleTabClick(e, tab.id)}
-                  className={`
+            const isActive = activeTab === tab.id;
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.id}
+                onClick={(e) => handleTabClick(e, tab.id)}
+                className={`
                       relative flex items-center
                       py-3 md:py-3 transition-all duration-200
                       md:border-l-4 md:border-r-0 md:px-4
-                      ${isActive 
-                          ? 'border-primary text-primary bg-primary/5 md:bg-primary/10' 
-                          : 'border-transparent text-light-subtle dark:text-dark-subtle hover:text-light-text dark:hover:text-dark-text hover:bg-gray-50 dark:hover:bg-white/5'
-                      }
+                      ${isActive
+                    ? 'border-primary text-primary bg-primary/5 md:bg-primary/10'
+                    : 'border-transparent text-light-subtle dark:text-dark-subtle hover:text-light-text dark:hover:text-dark-text hover:bg-gray-50 dark:hover:bg-white/5'
+                  }
                       ${isExpanded ? 'px-4 justify-start' : 'px-0 justify-center md:justify-start'}
                   `}
-                  aria-current={isActive ? 'page' : undefined}
-                  title={tab.label}
-                >
-                  <div className="flex items-center justify-center flex-shrink-0">
-                      <Icon className={`w-6 h-6 md:w-5 md:h-5 ${isActive ? 'text-primary' : 'currentColor'}`} />
-                  </div>
-                  
-                  <span className={`
+                aria-current={isActive ? 'page' : undefined}
+                title={tab.label}
+              >
+                <div className="flex items-center justify-center flex-shrink-0">
+                  <Icon className={`w-6 h-6 md:w-5 md:h-5 ${isActive ? 'text-primary' : 'currentColor'}`} />
+                </div>
+
+                <span className={`
                       ml-3 font-medium text-sm whitespace-nowrap
                       ${isExpanded ? 'block opacity-100' : 'hidden md:block'}
                   `}>
-                      {tab.label}
+                  {tab.label}
+                </span>
+
+                {isActive && (
+                  <span className="hidden md:block text-primary ml-auto">
+                    <ChevronRightIcon className="w-4 h-4" />
                   </span>
-                  
-                  {isActive && (
-                      <span className="hidden md:block text-primary ml-auto">
-                          <ChevronRightIcon className="w-4 h-4" />
-                      </span>
-                  )}
-                </button>
-              );
+                )}
+              </button>
+            );
           })}
         </nav>
       </div>

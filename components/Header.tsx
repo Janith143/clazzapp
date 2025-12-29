@@ -9,7 +9,7 @@ import { UserNotification, Notification, PageState, StaticPageKey, User } from '
 import { db } from '../firebase.ts';
 // FIX: Correcting Firebase import path for v9 modular SDK.
 import { collection, query, where, getDocs, doc, onSnapshot } from 'firebase/firestore';
-import { getOptimizedImageUrl } from '../utils.ts';
+import { getOptimizedImageUrl, getDynamicEventStatus, getDynamicQuizStatus } from '../utils.ts';
 import { slugify } from '../utils/slug.ts';
 
 const BellIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
@@ -293,7 +293,18 @@ const Header: React.FC = () => {
     const { theme, toggleTheme, setModalState, cart } = useUI();
     const { currentUser, handleLogout } = useAuth();
     const { pageState, handleNavigate, homePageCardCounts, searchQuery, setSearchQuery } = useNavigation();
-    const { teachers, handleMarkAllAsRead } = useData();
+    const { teachers, tuitionInstitutes, handleMarkAllAsRead } = useData();
+
+    const publishedEventsCount = useMemo(() => {
+        const teacherEvents = teachers.flatMap(t => t.events || []).filter(e => e.isPublished && e.status !== 'canceled' && getDynamicEventStatus(e) !== 'finished').length;
+        const instituteEvents = tuitionInstitutes.flatMap(ti => ti.events || []).filter(e => e.isPublished && e.status !== 'canceled' && getDynamicEventStatus(e) !== 'finished').length;
+        return teacherEvents + instituteEvents;
+    }, [teachers, tuitionInstitutes]);
+
+    const publishedQuizzesCount = useMemo(() => {
+        // Teachers have quizzes
+        return teachers.flatMap(t => t.quizzes || []).filter(q => q.isPublished && !q.isDeleted && q.status !== 'canceled' && getDynamicQuizStatus(q) !== 'finished').length;
+    }, [teachers]);
 
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     const [refCode, setRefCode] = useState<string | undefined>(undefined);
@@ -344,9 +355,9 @@ const Header: React.FC = () => {
         { name: 'all_teachers', label: 'Teachers', show: true },
         { name: 'all_courses', label: 'Courses', show: true },
         { name: 'all_classes', label: 'Classes', show: true },
-        { name: 'all_quizzes', label: 'Quizzes', show: homePageCardCounts.quizzes > 0 },
+        { name: 'all_quizzes', label: 'Quizzes', show: publishedQuizzesCount > 0 },
         { name: 'all_products', label: 'Store', show: true },
-        { name: 'all_events', label: 'Events', show: homePageCardCounts.events > 0 },
+        { name: 'all_events', label: 'Events', show: publishedEventsCount > 0 },
     ].filter(item => item.show);
 
     return (

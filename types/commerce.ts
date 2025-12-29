@@ -56,7 +56,7 @@ export type CartItem = ProductCartItem | PhotoCartItem;
 export interface Event {
     id: string;
     organizerId: string;
-    organizerType: 'tuition_institute';
+    organizerType: 'tuition_institute' | 'teacher';
     title: string;
     description: string;
     flyerImage: string;
@@ -117,7 +117,7 @@ export interface Sale {
     itemName: string;
     totalAmount: number;
     amountPaidFromBalance: number;
-    teacherCommission?: number; 
+    teacherCommission?: number;
     instituteCommission?: number;
     platformCommission?: number;
     sellerPayouts?: { [sellerId: string]: number };

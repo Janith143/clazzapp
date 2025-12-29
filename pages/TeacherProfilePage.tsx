@@ -26,6 +26,8 @@ import { YouTubePlayer } from '../components/YouTubePlayer';
 import { slugify } from '../utils/slug';
 import ImageViewerModal from '../components/ImageViewerModal';
 import NotFoundState from '../components/NotFoundState';
+import { useContentActions } from '../hooks/useContentActions';
+import TIScheduleEventModal from '../components/ti/TIScheduleEventModal';
 
 
 // Tab Components
@@ -156,9 +158,11 @@ interface TeacherProfilePageProps {
 
 const TeacherProfilePage: React.FC<TeacherProfilePageProps> = ({ teacherId, slug }) => {
     const { currentUser } = useAuth();
-    const { sales, teachers, users, handleUpdateTeacher, handleSaveClass, handleSaveQuiz, handleCancelItem, handleRequestWithdrawal, handleSaveBankDetails, handleVerificationUpload, handleVerificationDecision, handleTogglePublishState, handleRemoveCoverImageFromArray, handleFollowToggle, handleDeleteQuizSubmissions, tuitionInstitutes, handleUpdatePhysicalOrderStatus, loading: dataLoading, processMonthlyPayouts } = useData();
-    const { openImageUploadModal, addToast } = useUI();
-    const { handleNavigate, teacherDashboardMessage, functionUrls, gDriveFetcherApiKey } = useNavigation();
+    const { sales, teachers, users, handleUpdateTeacher, handleSaveClass, handleSaveQuiz, handleCancelItem, handleRequestWithdrawal, handleSaveBankDetails, handleVerificationUpload, handleVerificationDecision, handleTogglePublishState, handleRemoveCoverImageFromArray, handleFollowToggle, handleDeleteQuizSubmissions, tuitionInstitutes, handleUpdatePhysicalOrderStatus, loading: dataLoading, processMonthlyPayouts, submissions, handleImageSave } = useData();
+    const ui = useUI();
+    const nav = useNavigation();
+    const { addToast, openImageUploadModal } = ui;
+    const { handleNavigate, teacherDashboardMessage, functionUrls, gDriveFetcherApiKey } = nav;
     const { enableNotifications } = useFirebase();
 
     const teacher = useMemo(() => {
@@ -205,12 +209,25 @@ const TeacherProfilePage: React.FC<TeacherProfilePageProps> = ({ teacherId, slug
     const [quizToEdit, setQuizToEdit] = useState<Quiz | null>(null);
     const [isScheduleQuizModalOpen, setIsScheduleQuizModalOpen] = useState(false);
     const [itemToCancel, setItemToCancel] = useState<{ id: number | string, type: 'class' | 'quiz' } | null>(null);
-    const [itemToDelete, setItemToDelete] = useState<{ id: string | number, type: 'course' | 'product' | 'class', enrollmentCount?: number } | null>(null);
+    const [itemToDelete, setItemToDelete] = useState<{ id: string | number, type: 'course' | 'product' | 'class' | 'event', enrollmentCount?: number } | null>(null);
     const [selectedClassForAttendance, setSelectedClassForAttendance] = useState<IndividualClass | null>(null);
     const [isCompletionModalOpen, setIsCompletionModalOpen] = useState(false);
     const [isCheckingPayouts, setIsCheckingPayouts] = useState(true);
     const [isMessageDismissed, setIsMessageDismissed] = useState(true);
     const [playingVideoId, setPlayingVideoId] = useState<string | null>(null);
+    const [isEventModalOpen, setIsEventModalOpen] = useState(false);
+    const [eventToEdit, setEventToEdit] = useState<any>(null);
+
+    const { handleSaveEvent } = useContentActions({
+        currentUser,
+        teachers,
+        sales,
+        submissions,
+        ui,
+        nav,
+        handleUpdateTeacher,
+        handleImageSave
+    });
 
     // State for video showcase
     const [showAllVideos, setShowAllVideos] = useState(false);
@@ -274,6 +291,27 @@ const TeacherProfilePage: React.FC<TeacherProfilePageProps> = ({ teacherId, slug
         }
     }, [teacherDashboardMessage]);
 
+    const teacherEvents = useMemo(() => {
+        if (!teacher) return [];
+        // Events where teacher is a participant (from Institutes)
+        const participating = tuitionInstitutes
+            .flatMap(ti => (ti.events || []).map(e => ({ event: e, organizer: ti })))
+            .filter(({ event }) => event.participatingTeacherIds?.includes(teacher.id));
+
+        // Events organized by the teacher themselves
+        const ownEvents = (teacher.events || []).map(e => ({ event: e, organizer: teacher }));
+
+        return [...participating, ...ownEvents].sort((a, b) => new Date(a.event.startDate).getTime() - new Date(b.event.startDate).getTime());
+    }, [teacher, tuitionInstitutes]);
+
+
+
+    const visibleEventsCount = useMemo(() => {
+        if (!teacherEvents.length) return 0;
+        if (canEdit) return teacherEvents.length;
+        return teacherEvents.filter(e => e.event.isPublished).length;
+    }, [teacherEvents, canEdit]);
+
     useEffect(() => {
         const checkPayouts = async () => {
             if (teacher?.id) {
@@ -297,6 +335,17 @@ const TeacherProfilePage: React.FC<TeacherProfilePageProps> = ({ teacherId, slug
 
     // Business card state
     const [coverImageIndex, setCoverImageIndex] = useState(0);
+
+    const handleInternalSaveEvent = async (eventDetails: any) => {
+        if (!teacher) return;
+        await handleSaveEvent({
+            ...eventDetails,
+            organizerId: teacher.id,
+            organizerType: 'teacher'
+        });
+        setIsEventModalOpen(false);
+        setEventToEdit(null);
+    };
 
     const handleEditProfile = () => teacher && handleNavigate({ name: 'edit_teacher_profile', teacherId: teacher.id });
 
@@ -523,12 +572,7 @@ const TeacherProfilePage: React.FC<TeacherProfilePageProps> = ({ teacherId, slug
         return { weekStart, weekEnd, scheduleForWeek: schedule };
     }, [teacher, currentWeekOffset, canEdit]);
 
-    const teacherEvents = useMemo(() => {
-        if (!teacher) return [];
-        return tuitionInstitutes
-            .flatMap(ti => (ti.events || []).map(e => ({ event: e, organizer: ti })))
-            .filter(({ event }) => event.participatingTeacherIds?.includes(teacher.id));
-    }, [teacher, tuitionInstitutes]);
+
 
     const getDeleteMessage = () => {
         if (!itemToDelete) return '';
@@ -718,7 +762,23 @@ const TeacherProfilePage: React.FC<TeacherProfilePageProps> = ({ teacherId, slug
             case 'products':
                 return <TeacherProductsTab teacher={teacher} canEdit={canEdit} onDelete={(id) => setItemToDelete({ id, type: 'product' })} />;
             case 'my_events':
-                return <TeacherEventsTab teacher={teacher} events={teacherEvents} />;
+                return (
+                    <TeacherEventsTab
+                        teacher={teacher}
+                        events={teacherEvents}
+                        canEdit={isOwnProfile}
+                        onScheduleNew={() => {
+                            setEventToEdit(null);
+                            setIsEventModalOpen(true);
+                        }}
+                        onEdit={(event) => {
+                            setEventToEdit(event);
+                            setIsEventModalOpen(true);
+                        }}
+                        onCancel={(id) => setItemToDelete({ id, type: 'event' })}
+                        onTogglePublish={(id) => handleTogglePublishState(teacher.id, id, 'events')}
+                    />
+                );
             case 'past_classes':
                 return canEdit ? <TeacherPastClassesTab teacher={teacher} sales={sales} /> : null;
             case 'earnings':
@@ -791,7 +851,7 @@ const TeacherProfilePage: React.FC<TeacherProfilePageProps> = ({ teacherId, slug
                 {/* Sidebar Navigation */}
                 <div className="md:w-64 flex-shrink-0 relative z-20">
                     <div className="sticky top-24">
-                        <ProfileTabs activeTab={activeTab} setActiveTab={setActiveTab} isOwnProfile={canEdit} hasEvents={teacherEvents.length > 0} />
+                        <ProfileTabs activeTab={activeTab} setActiveTab={setActiveTab} isOwnProfile={canEdit} hasEvents={visibleEventsCount > 0} />
                     </div>
                 </div>
 
@@ -932,6 +992,17 @@ const TeacherProfilePage: React.FC<TeacherProfilePageProps> = ({ teacherId, slug
                     onClose={() => setViewingImage(null)}
                     imageUrl={viewingImage.url}
                     title={viewingImage.title}
+                />
+            )}
+
+            {isEventModalOpen && (
+                <TIScheduleEventModal
+                    isOpen={isEventModalOpen}
+                    onClose={() => setIsEventModalOpen(false)}
+                    onSave={handleInternalSaveEvent}
+                    organizerId={teacher.id}
+                    organizerType="teacher"
+                    initialData={eventToEdit}
                 />
             )}
         </div>

@@ -30,7 +30,7 @@ const MultiSelectTeachers: React.FC<{ selected: string[], onChange: (selected: s
         document.addEventListener("mousedown", handleClickOutside);
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, [wrapperRef]);
-    
+
     const toggleTeacher = (teacherId: string) => {
         if (selected.includes(teacherId)) {
             onChange(selected.filter(id => id !== teacherId));
@@ -68,14 +68,15 @@ const MultiSelectTeachers: React.FC<{ selected: string[], onChange: (selected: s
 
 
 interface TIScheduleEventModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSave: (eventDetails: InstituteEvent) => void;
-  instituteId: string;
-  initialData?: InstituteEvent | null;
+    isOpen: boolean;
+    onClose: () => void;
+    onSave: (eventDetails: InstituteEvent) => void;
+    organizerId: string;
+    organizerType?: 'tuition_institute' | 'teacher';
+    initialData?: InstituteEvent | null;
 }
 
-const TIScheduleEventModal: React.FC<TIScheduleEventModalProps> = ({ isOpen, onClose, onSave, instituteId, initialData }) => {
+const TIScheduleEventModal: React.FC<TIScheduleEventModalProps> = ({ isOpen, onClose, onSave, organizerId, organizerType = 'tuition_institute', initialData }) => {
     const { handleImageSave } = useData();
     const { addToast } = useUI();
     const [eventDetails, setEventDetails] = useState<Partial<InstituteEvent>>({});
@@ -106,13 +107,13 @@ const TIScheduleEventModal: React.FC<TIScheduleEventModalProps> = ({ isOpen, onC
                 });
             } else {
                 setEventDetails({
-                    organizerId: instituteId,
+                    organizerId: organizerId,
                     organizerType: 'tuition_institute',
                     title: '',
                     description: '',
                     category: 'Workshop',
                     mode: 'Physical',
-                    isPublished: true, 
+                    isPublished: true,
                     adminApproval: 'approved',
                     status: 'scheduled',
                     participatingTeacherIds: [],
@@ -121,13 +122,13 @@ const TIScheduleEventModal: React.FC<TIScheduleEventModalProps> = ({ isOpen, onC
                 });
             }
         }
-    }, [isOpen, initialData, instituteId]);
-    
+    }, [isOpen, initialData, organizerId]);
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setEventDetails(prev => ({ ...prev, [name]: value }));
     };
-    
+
     const handleTicketChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setEventDetails(prev => ({
@@ -186,12 +187,12 @@ const TIScheduleEventModal: React.FC<TIScheduleEventModalProps> = ({ isOpen, onC
         try {
             let flyerImageUrl = initialData?.flyerImage || '';
             if (flyerImageBase64) {
-                const uploadedUrl = await handleImageSave(flyerImageBase64, 'event_flyer', { organizerId: instituteId });
+                const uploadedUrl = await handleImageSave(flyerImageBase64, 'event_flyer', { organizerId: organizerId });
                 if (!uploadedUrl) throw new Error("Flyer image upload failed.");
                 flyerImageUrl = uploadedUrl;
             }
             if (!flyerImageUrl) throw new Error("A flyer image is required.");
-            
+
             const finalGallery = eventDetails.gallery?.isEnabled ? {
                 isEnabled: true,
                 googleDriveLink: eventDetails.gallery.googleDriveLink || '',
@@ -242,8 +243,8 @@ const TIScheduleEventModal: React.FC<TIScheduleEventModalProps> = ({ isOpen, onC
                     </div>
                     <div className="space-y-4">
                         <FormSelect label="Category" name="category" value={eventDetails.category || ''} onChange={handleChange} options={eventCategories.map(c => ({ value: c, label: c }))} required />
-                        <FormSelect label="Mode" name="mode" value={eventDetails.mode || 'Physical'} onChange={handleChange} options={[{value: 'Physical', label: 'Physical'}, {value: 'Online', label: 'Online'}, {value: 'Hybrid', label: 'Hybrid'}]} />
-                        
+                        <FormSelect label="Mode" name="mode" value={eventDetails.mode || 'Physical'} onChange={handleChange} options={[{ value: 'Physical', label: 'Physical' }, { value: 'Online', label: 'Online' }, { value: 'Hybrid', label: 'Hybrid' }]} />
+
                         {(eventDetails.mode === 'Physical' || eventDetails.mode === 'Hybrid') && (
                             <FormInput label="Venue / Address" name="venue" value={eventDetails.venue || ''} onChange={handleChange} />
                         )}
@@ -255,19 +256,19 @@ const TIScheduleEventModal: React.FC<TIScheduleEventModalProps> = ({ isOpen, onC
                             <FormInput label="Start Date" name="startDate" type="date" value={eventDetails.startDate || ''} onChange={handleChange} required />
                             <FormInput label="Start Time" name="startTime" type="time" value={eventDetails.startTime || ''} onChange={handleChange} required />
                         </div>
-                         <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-2 gap-4">
                             <FormInput label="End Date" name="endDate" type="date" value={eventDetails.endDate || ''} onChange={handleChange} required />
                             <FormInput label="End Time" name="endTime" type="time" value={eventDetails.endTime || ''} onChange={handleChange} required />
                         </div>
-                         <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-2 gap-4">
                             <FormInput label="Registration Deadline" name="registrationDeadline" type="date" value={eventDetails.registrationDeadline || ''} onChange={handleChange} required />
                             <FormInput label="Duration" name="duration" value={eventDetails.duration || ''} onChange={handleChange} placeholder="e.g., 3 hours, Full Day" />
                         </div>
                         <div className="grid grid-cols-2 gap-4">
-                           <FormInput label="Price per Ticket (LKR)" name="price" type="number" value={eventDetails.tickets?.price as any || ''} onChange={handleTicketChange} required />
-                           <FormInput label="Max Participants" name="maxParticipants" type="number" value={eventDetails.tickets?.maxParticipants as any || ''} onChange={handleTicketChange} placeholder="Leave empty for unlimited"/>
+                            <FormInput label="Price per Ticket (LKR)" name="price" type="number" value={eventDetails.tickets?.price as any || ''} onChange={handleTicketChange} required />
+                            <FormInput label="Max Participants" name="maxParticipants" type="number" value={eventDetails.tickets?.maxParticipants as any || ''} onChange={handleTicketChange} placeholder="Leave empty for unlimited" />
                         </div>
-                         <MultiSelectTeachers
+                        <MultiSelectTeachers
                             selected={eventDetails.participatingTeacherIds || []}
                             onChange={(selected) => setEventDetails(prev => ({ ...prev, participatingTeacherIds: selected }))}
                         />
@@ -279,7 +280,7 @@ const TIScheduleEventModal: React.FC<TIScheduleEventModalProps> = ({ isOpen, onC
                         <summary className="cursor-pointer font-semibold text-lg list-none flex justify-between items-center text-light-text dark:text-dark-text">
                             <span>Photo Gallery & Sales</span>
                             <span className="text-primary transform group-open:rotate-180 transition-transform duration-200">
-                                <ChevronDownIcon className="w-5 h-5"/>
+                                <ChevronDownIcon className="w-5 h-5" />
                             </span>
                         </summary>
                         <div className="mt-4 space-y-4 animate-fadeIn">
@@ -367,11 +368,11 @@ const TIScheduleEventModal: React.FC<TIScheduleEventModalProps> = ({ isOpen, onC
 
                 {error && <p className="text-red-500 text-sm text-center">{error}</p>}
                 <div className="pt-4 flex justify-end space-x-3">
-                     <button type="button" onClick={onClose} className="inline-flex items-center justify-center px-4 py-2 border border-light-border dark:border-dark-border text-sm font-medium rounded-md shadow-sm text-light-text dark:text-dark-text bg-light-surface dark:bg-dark-surface hover:bg-light-border dark:hover:bg-dark-border/50">
-                        <XIcon className="w-4 h-4 mr-2"/>Cancel
+                    <button type="button" onClick={onClose} className="inline-flex items-center justify-center px-4 py-2 border border-light-border dark:border-dark-border text-sm font-medium rounded-md shadow-sm text-light-text dark:text-dark-text bg-light-surface dark:bg-dark-surface hover:bg-light-border dark:hover:bg-dark-border/50">
+                        <XIcon className="w-4 h-4 mr-2" />Cancel
                     </button>
                     <button type="submit" disabled={isSaving} className="inline-flex items-center justify-center px-4 py-2 bg-primary text-white rounded-md disabled:opacity-50">
-                        <SaveIcon className="w-4 h-4 mr-2"/>
+                        <SaveIcon className="w-4 h-4 mr-2" />
                         {isSaving ? 'Saving...' : 'Save Event'}
                     </button>
                 </div>

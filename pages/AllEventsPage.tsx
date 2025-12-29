@@ -22,7 +22,7 @@ const eventSortOptions = [
 const eventCategories = ['All Categories', 'Education', 'Workshop', 'Seminar', 'Competition', 'Other'];
 
 const AllEventsPage: React.FC = () => {
-  const { tuitionInstitutes } = useData();
+  const { tuitionInstitutes, teachers } = useData();
   const { handleNavigate } = useNavigation();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -37,12 +37,34 @@ const AllEventsPage: React.FC = () => {
   const onBack = () => handleNavigate({ name: 'home' });
 
   const filteredAndSortedEvents = useMemo(() => {
-    const allEvents = tuitionInstitutes.flatMap(ti =>
+    const instituteEvents = tuitionInstitutes.flatMap(ti =>
       (ti.events || []).map(event => ({ ...event, organizer: ti }))
     );
 
+    const teacherEvents = teachers.flatMap(t =>
+      (t.events || []).map(event => ({ ...event, organizer: t }))
+    );
+
+    const allEvents = [...instituteEvents, ...teacherEvents];
+
+    // Detailed logs for debugging visibility
+    console.log('AllEventsPage Debug Details JSON:', JSON.stringify(allEvents.map(e => ({
+      title: e.title,
+      isPublished: e.isPublished,
+      status: e.status,
+      dynamicStatus: getDynamicEventStatus(e),
+      start: `${e.startDate} ${e.startTime}`,
+      end: `${e.endDate} ${e.endTime}`
+    })), null, 2));
+
     const filtered = allEvents.filter(item => {
-      if (!item.isPublished || item.status === 'canceled' || getDynamicEventStatus(item) === 'finished') return false;
+      const isPublished = item.isPublished;
+      const isCanceled = item.status === 'canceled';
+      const dynamicStatus = getDynamicEventStatus(item);
+      const isFinished = dynamicStatus === 'finished';
+
+      if (!isPublished || isCanceled || isFinished) return false;
+
       if (searchQuery.trim()) {
         const lowerQuery = searchQuery.toLowerCase();
         const searchableContent = [item.title, item.description, item.organizer.name, item.category].join(' ').toLowerCase();
@@ -92,6 +114,9 @@ const AllEventsPage: React.FC = () => {
     if (currentLoader) observer.observe(currentLoader);
     return () => { if (currentLoader) observer.unobserve(currentLoader); };
   }, [handleObserver, paginatedEvents]); // Added paginatedEvents to dependencies
+
+  // Calculate total raw count for debug UI
+  const totalRawEvents = tuitionInstitutes.flatMap(ti => ti.events || []).length + teachers.flatMap(t => t.events || []).length;
 
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-slideInUp">
@@ -151,6 +176,11 @@ const AllEventsPage: React.FC = () => {
         <div className="text-center py-16 text-light-subtle dark:text-dark-subtle">
           <p className="text-xl font-semibold">No events found</p>
           <p>Try adjusting your search query or filters.</p>
+          {totalRawEvents > 0 && (
+            <p className="mt-4 text-yellow-600 dark:text-yellow-400 text-sm">
+              Debug: Found {totalRawEvents} raw events, but all were hidden. Check console for details.
+            </p>
+          )}
         </div>
       )}
     </div>

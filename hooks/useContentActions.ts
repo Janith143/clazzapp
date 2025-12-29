@@ -1,13 +1,12 @@
 import { useCallback, useMemo } from 'react';
-import { Teacher, Course, Product, Quiz, IndividualClass, Sale, StudentSubmission, ClassGrading, EditableImageType, CourseRating, TeacherRating } from '../types';
-import { useUI } from '../contexts/UIContext';
+import { Teacher, Course, Product, Quiz, IndividualClass, Sale, StudentSubmission, ClassGrading, EditableImageType, CourseRating, TeacherRating, Event } from '../types';
 import { useNavigation } from '../contexts/NavigationContext';
 import { db } from '../firebase';
 // FIX: Import 'setDoc' and 'runTransaction' from 'firebase/firestore' to fix 'Cannot find name' errors.
 import { doc, updateDoc, getDoc, writeBatch, increment, deleteDoc, query, where, getDocs, collection, setDoc, runTransaction } from 'firebase/firestore';
 import { sendNotification } from '../utils';
 
-const ADMIN_EMAIL = 'admin@clazz.lk'; 
+const ADMIN_EMAIL = 'admin@clazz.lk';
 
 interface ContentActionDeps {
     currentUser: any;
@@ -23,7 +22,7 @@ interface ContentActionDeps {
 export const useContentActions = (deps: ContentActionDeps) => {
     const { currentUser, teachers, sales, submissions, ui, nav, handleUpdateTeacher, handleImageSave } = deps;
     const { addToast } = ui;
-    const { handleNavigate } = nav;
+    const { handleNavigate, functionUrls } = nav;
     const currencyFormatter = useMemo(() => new Intl.NumberFormat('en-LK', { style: 'currency', currency: 'LKR' }), []);
 
 
@@ -37,10 +36,10 @@ export const useContentActions = (deps: ContentActionDeps) => {
         else newClasses.push(classDetails);
         handleUpdateTeacher(teacherToUpdate.id, { individualClasses: newClasses });
     }, [teachers, handleUpdateTeacher, addToast]);
-    
+
     const handleSaveCourse = useCallback(async (courseDetails: Course) => {
         let finalCourseDetails = { ...courseDetails };
-    
+
         // Handle image upload if a new base64 image is present
         if (finalCourseDetails.coverImage && finalCourseDetails.coverImage.startsWith('data:image')) {
             addToast("Uploading cover image...", "info");
@@ -52,23 +51,23 @@ export const useContentActions = (deps: ContentActionDeps) => {
                 throw new Error("Image upload failed."); // Throw to stop execution
             }
         }
-        
+
         const teacher = teachers.find(t => t.id === finalCourseDetails.teacherId);
         if (!teacher) {
             addToast("Error: Associated teacher profile not found.", "error");
             return;
         }
-        
+
         const existingIndex = teacher.courses.findIndex(c => c.id === finalCourseDetails.id);
         const newCourses = [...teacher.courses];
         const isNew = existingIndex === -1;
-    
+
         if (isNew) {
             newCourses.push(finalCourseDetails);
         } else {
             newCourses[existingIndex] = finalCourseDetails;
         }
-        
+
         try {
             await handleUpdateTeacher(teacher.id, { courses: newCourses });
             addToast(isNew ? "Course created successfully!" : "Course updated successfully!", "success");
@@ -82,7 +81,7 @@ export const useContentActions = (deps: ContentActionDeps) => {
     const handleSaveProduct = useCallback(async (productDetails: Product) => {
         const teacher = teachers.find(t => t.id === productDetails.teacherId);
         if (!teacher) { addToast("Associated teacher not found.", "error"); return; }
-        
+
         const existingProducts = teacher.products || [];
         const existingIndex = existingProducts.findIndex(p => p.id === productDetails.id);
         const newProducts = [...existingProducts];
@@ -93,7 +92,7 @@ export const useContentActions = (deps: ContentActionDeps) => {
         } else {
             newProducts[existingIndex] = productDetails;
         }
-        
+
         await handleUpdateTeacher(teacher.id, { products: newProducts });
         addToast(isNewProduct ? "Product created. You can now request for it to be published." : "Product updated.", "success");
 
@@ -111,7 +110,7 @@ export const useContentActions = (deps: ContentActionDeps) => {
                     <p>You can review and approve it from the admin dashboard under 'Product Management'. Note: The teacher must still click 'Request Publish' for it to appear in your queue.</p>
                 </div>
             `;
-            await sendNotification({ email: ADMIN_EMAIL }, subject, htmlBody);
+            await sendNotification(functionUrls.notification, { email: ADMIN_EMAIL }, subject, htmlBody);
         }
     }, [teachers, handleUpdateTeacher, addToast, currencyFormatter]);
 
@@ -123,16 +122,16 @@ export const useContentActions = (deps: ContentActionDeps) => {
         if (existingIndex > -1) { newQuizzes[existingIndex] = quizDetails; } else { newQuizzes.push(quizDetails); }
         await handleUpdateTeacher(teacher.id, { quizzes: newQuizzes });
     }, [teachers, handleUpdateTeacher, addToast]);
-    
+
     const handleCancelItem = useCallback(async (teacherId: string, itemId: string | number, type: 'class' | 'quiz') => {
         const teacher = teachers.find(t => t.id === teacherId);
         if (!teacher) return;
-        
+
         const batch = writeBatch(db);
         const teacherRef = doc(db, 'teachers', teacherId);
         let itemsToUpdate: any[] = [];
         let itemToCancel: any;
-        
+
         if (type === 'class') {
             itemsToUpdate = teacher.individualClasses.map(c => {
                 if (c.id === itemId) { itemToCancel = c; return { ...c, status: 'canceled', isPublished: false }; }
@@ -160,23 +159,23 @@ export const useContentActions = (deps: ContentActionDeps) => {
             if (sale.teacherCommission && sale.teacherCommission > 0) {
                 batch.update(teacherRef, { 'earnings.total': increment(-sale.teacherCommission) });
             }
-        
+
             if (sale.instituteId && sale.instituteCommission && sale.instituteCommission > 0) {
                 const instituteRef = doc(db, 'tuitionInstitutes', sale.instituteId);
                 batch.update(instituteRef, { 'earnings.total': increment(-sale.instituteCommission) });
             }
         }
 
-        try { 
-            await batch.commit(); 
-            addToast(`${type} canceled and ${salesToRefund.length} student(s) refunded.`, 'success'); 
-        } catch (e) { 
-            console.error(e); 
-            addToast(`Failed to cancel ${type}.`, "error"); 
+        try {
+            await batch.commit();
+            addToast(`${type} canceled and ${salesToRefund.length} student(s) refunded.`, 'success');
+        } catch (e) {
+            console.error(e);
+            addToast(`Failed to cancel ${type}.`, "error");
         }
     }, [teachers, sales, addToast]);
-    
-    const handleTogglePublishState = useCallback(async (teacherId: string, itemId: string | number, type: 'class' | 'course' | 'quiz' | 'product', action?: 'request_approval') => {
+
+    const handleTogglePublishState = useCallback(async (teacherId: string, itemId: string | number, type: 'class' | 'course' | 'quiz' | 'product' | 'events', action?: 'request_approval') => {
         const teacherRef = doc(db, 'teachers', teacherId);
         try {
             const teacherDoc = await getDoc(teacherRef);
@@ -189,7 +188,7 @@ export const useContentActions = (deps: ContentActionDeps) => {
             let itemToUpdate: any;
 
             if (type === 'class') {
-                const items = [...teacherData.individualClasses]; 
+                const items = [...teacherData.individualClasses];
                 const idx = items.findIndex(i => i.id === itemId);
                 if (idx > -1) { isPublishing = !items[idx].isPublished; items[idx].isPublished = isPublishing; updatePayload = { individualClasses: items }; }
             } else if (type === 'course') {
@@ -197,11 +196,11 @@ export const useContentActions = (deps: ContentActionDeps) => {
                 const idx = items.findIndex(i => i.id === itemId);
                 if (idx > -1) {
                     itemToUpdate = items[idx];
-                     if (action === 'request_approval') { 
-                        items[idx].adminApproval = 'pending'; 
+                    if (action === 'request_approval') {
+                        items[idx].adminApproval = 'pending';
                         addToast(`${itemTypeLabel} submitted for admin review.`, 'success');
                         showSuccessToast = false;
-                        
+
                         const subject = `Content Awaiting Approval: ${itemToUpdate.title}`;
                         const htmlBody = `
                             <div style="font-family: Arial, sans-serif; color: #333;">
@@ -213,11 +212,11 @@ export const useContentActions = (deps: ContentActionDeps) => {
                                 </ul>
                                 <p>Please review it in the admin dashboard.</p>
                             </div>`;
-                        await sendNotification({ email: ADMIN_EMAIL }, subject, htmlBody);
-                     } else { 
-                        isPublishing = !items[idx].isPublished; 
-                        items[idx].isPublished = isPublishing; 
-                     }
+                        await sendNotification(functionUrls.notification, { email: ADMIN_EMAIL }, subject, htmlBody);
+                    } else {
+                        isPublishing = !items[idx].isPublished;
+                        items[idx].isPublished = isPublishing;
+                    }
                     updatePayload = { courses: items };
                 }
             } else if (type === 'product') {
@@ -225,11 +224,11 @@ export const useContentActions = (deps: ContentActionDeps) => {
                 const idx = items.findIndex(i => i.id === itemId);
                 if (idx > -1) {
                     itemToUpdate = items[idx];
-                     if (action === 'request_approval') { 
-                        items[idx].adminApproval = 'pending'; 
+                    if (action === 'request_approval') {
+                        items[idx].adminApproval = 'pending';
                         addToast(`${itemTypeLabel} submitted for admin review.`, 'success');
                         showSuccessToast = false;
-                        
+
                         const subject = `Product Awaiting Approval: ${itemToUpdate.title}`;
                         const htmlBody = `
                             <div style="font-family: Arial, sans-serif; color: #333;">
@@ -241,19 +240,23 @@ export const useContentActions = (deps: ContentActionDeps) => {
                                 </ul>
                                 <p>Please review it in the admin dashboard.</p>
                             </div>`;
-                        await sendNotification({ email: ADMIN_EMAIL }, subject, htmlBody);
-                     } else { 
-                        isPublishing = !items[idx].isPublished; 
-                        items[idx].isPublished = isPublishing; 
-                     }
+                        await sendNotification(functionUrls.notification, { email: ADMIN_EMAIL }, subject, htmlBody);
+                    } else {
+                        isPublishing = !items[idx].isPublished;
+                        items[idx].isPublished = isPublishing;
+                    }
                     updatePayload = { products: items };
                 }
             } else if (type === 'quiz') {
                 const items = [...teacherData.quizzes];
                 const idx = items.findIndex(i => i.id === itemId);
                 if (idx > -1) { isPublishing = !items[idx].isPublished; items[idx].isPublished = isPublishing; updatePayload = { quizzes: items }; }
+            } else if (type === 'events') {
+                const items = [...(teacherData.events || [])];
+                const idx = items.findIndex(i => i.id === itemId);
+                if (idx > -1) { isPublishing = !items[idx].isPublished; items[idx].isPublished = isPublishing; updatePayload = { events: items }; }
             }
-            
+
             if (Object.keys(updatePayload).length > 0) {
                 await updateDoc(teacherRef, updatePayload);
                 if (showSuccessToast) addToast(`${itemTypeLabel} has been ${isPublishing ? 'published' : 'unpublished'}.`, 'success');
@@ -271,18 +274,18 @@ export const useContentActions = (deps: ContentActionDeps) => {
             addToast("Could not find the course to rate.", "error");
             return;
         }
-    
+
         const newCourses = teacher.courses.map(course => {
             if (course.id === courseId) {
                 const newRatings = [...course.ratings];
                 const userRatingIndex = newRatings.findIndex(r => r.studentId === currentUser.id);
-    
+
                 const ratingData: CourseRating = {
                     studentId: currentUser.id,
                     rating,
                     ratedAt: new Date().toISOString()
                 };
-    
+
                 if (userRatingIndex > -1) {
                     newRatings[userRatingIndex] = ratingData;
                 } else {
@@ -292,7 +295,7 @@ export const useContentActions = (deps: ContentActionDeps) => {
             }
             return course;
         });
-    
+
         try {
             await handleUpdateTeacher(teacher.id, { courses: newCourses });
             addToast("Thank you for your rating!", "success");
@@ -311,23 +314,23 @@ export const useContentActions = (deps: ContentActionDeps) => {
             addToast("Could not find the teacher to rate.", "error");
             return;
         }
-    
+
         const newRatings = [...(teacher.ratings || [])];
         const userRatingIndex = newRatings.findIndex(r => r.studentId === currentUser.id && r.classId === classId);
-    
+
         const ratingData: TeacherRating = {
             studentId: currentUser.id,
             classId,
             rating,
             ratedAt: new Date().toISOString()
         };
-    
+
         if (userRatingIndex > -1) {
             newRatings[userRatingIndex] = ratingData;
         } else {
             newRatings.push(ratingData);
         }
-    
+
         try {
             await handleUpdateTeacher(teacher.id, { ratings: newRatings });
             addToast("Thank you for your rating!", "success");
@@ -335,12 +338,12 @@ export const useContentActions = (deps: ContentActionDeps) => {
             // Error toast will be in handleUpdateTeacher
         }
     }, [currentUser, teachers, handleUpdateTeacher, addToast]);
-    
+
     const handleFinishQuiz = useCallback(async (submissionData: Omit<StudentSubmission, 'id' | 'score'>) => {
         const quizSale = sales.find(s => s.itemId === submissionData.quizId && s.studentId === submissionData.studentId && (s.itemSnapshot as Quiz).instanceStartDate === submissionData.quizInstanceId);
         const quiz = quizSale?.itemSnapshot as Quiz;
         if (!quiz) { addToast("Quiz data not found for this submission.", "error"); return; }
-    
+
         let score = 0;
         quiz.questions.forEach(q => {
             const submissionAnswer = submissionData.answers.find(a => a.questionId === q.id);
@@ -351,13 +354,13 @@ export const useContentActions = (deps: ContentActionDeps) => {
                 }
             }
         });
-    
+
         const submissionId = `sub_${submissionData.studentId}_${submissionData.quizId}_${submissionData.quizInstanceId}`;
         await setDoc(doc(db, "submissions", submissionId), { ...submissionData, id: submissionId, score });
         addToast("Quiz submitted successfully!", "success");
         handleNavigate({ name: 'quiz_detail', quizId: submissionData.quizId, instanceId: submissionData.quizInstanceId });
     }, [sales, addToast, handleNavigate]);
-    
+
     const handleDeleteQuizSubmissions = useCallback(async (quizId: string) => {
         const batch = writeBatch(db);
         const q = query(collection(db, "submissions"), where("quizId", "==", quizId));
@@ -368,36 +371,36 @@ export const useContentActions = (deps: ContentActionDeps) => {
         await batch.commit();
         addToast("Previous submissions for this quiz have been cleared.", "success");
     }, [addToast]);
-    
+
     const logLectureWatch = useCallback(async (courseId: string, lectureId: string) => {
         if (!currentUser) return;
         const fieldToUpdate = `watchHistory.${courseId}.${lectureId}`;
         await updateDoc(doc(db, "users", currentUser.id), { [fieldToUpdate]: true });
     }, [currentUser]);
-    
+
     const handleSaveClassRecording = useCallback(async (teacherId: string, classId: number, instanceDate: string, recordingUrls: string[]) => {
         const teacher = teachers.find(t => t.id === teacherId);
         if (!teacher) {
             addToast("Teacher not found.", "error");
             return;
         }
-    
+
         const classIndex = teacher.individualClasses.findIndex(c => c.id === classId);
         if (classIndex === -1) {
             addToast("Class not found.", "error");
             return;
         }
-    
+
         const updatedClasses = [...teacher.individualClasses];
         const classToUpdate = { ...updatedClasses[classIndex] };
-        
+
         if (!classToUpdate.recordingUrls) {
             classToUpdate.recordingUrls = {};
         }
         classToUpdate.recordingUrls[instanceDate] = recordingUrls;
-    
+
         updatedClasses[classIndex] = classToUpdate;
-    
+
         try {
             await handleUpdateTeacher(teacherId, { individualClasses: updatedClasses });
             addToast("Recording link(s) saved!", "success");
@@ -417,7 +420,7 @@ export const useContentActions = (deps: ContentActionDeps) => {
         await handleUpdateTeacher(teacherId, { individualClasses: updatedClasses });
         addToast("Grades saved successfully!", "success");
     }, [teachers, handleUpdateTeacher, addToast]);
-    
+
     const handleSaveHomeworkSubmission = useCallback(async (teacherId: string, classId: number, instanceDate: string, link: string) => {
         if (!currentUser) {
             addToast("You must be logged in to submit homework.", "error");
@@ -428,37 +431,37 @@ export const useContentActions = (deps: ContentActionDeps) => {
                 const teacherRef = doc(db, 'teachers', teacherId);
                 const teacherDoc = await transaction.get(teacherRef);
                 if (!teacherDoc.exists()) throw new Error("Class teacher not found.");
-    
+
                 const teacherData = teacherDoc.data() as Teacher;
                 const classIndex = teacherData.individualClasses.findIndex(c => c.id === classId);
                 if (classIndex === -1) throw new Error("Class not found.");
-    
+
                 const classToUpdate = { ...teacherData.individualClasses[classIndex] };
                 const submissionsForDate = classToUpdate.homeworkSubmissions?.[instanceDate] || [];
-                
+
                 const existingSubmissionIndex = submissionsForDate.findIndex(s => s.studentId === currentUser.id);
-    
+
                 const newSubmission = {
                     studentId: currentUser.id,
                     link,
                     submittedAt: new Date().toISOString(),
                 };
-    
+
                 if (existingSubmissionIndex > -1) {
                     submissionsForDate[existingSubmissionIndex] = newSubmission;
                 } else {
                     submissionsForDate.push(newSubmission);
                 }
-                
+
                 if (!classToUpdate.homeworkSubmissions) {
                     classToUpdate.homeworkSubmissions = {};
                 }
                 // FIX: Changed from function call syntax to array/object property access syntax.
                 classToUpdate.homeworkSubmissions[instanceDate] = submissionsForDate;
-                
+
                 const updatedClasses = [...teacherData.individualClasses];
                 updatedClasses[classIndex] = classToUpdate;
-    
+
                 transaction.update(teacherRef, { individualClasses: updatedClasses });
             });
             addToast("Homework submitted successfully!", "success");
@@ -467,9 +470,36 @@ export const useContentActions = (deps: ContentActionDeps) => {
             addToast((e as Error).message || "Error saving homework.", "error");
         }
     }, [currentUser, addToast]);
-    
+
+    const handleSaveEvent = useCallback(async (eventDetails: Event) => {
+        const teacherId = eventDetails.organizerId;
+        const teacher = teachers.find(t => t.id === teacherId);
+
+        if (!teacher) {
+            addToast("Associated teacher profile not found.", "error");
+            return;
+        }
+
+        const existingEvents = teacher.events || [];
+        const existingIndex = existingEvents.findIndex(e => e.id === eventDetails.id);
+        const newEvents = [...existingEvents];
+
+        if (existingIndex > -1) {
+            newEvents[existingIndex] = eventDetails;
+        } else {
+            newEvents.push(eventDetails);
+        }
+
+        try {
+            await handleUpdateTeacher(teacher.id, { events: newEvents });
+            addToast("Event saved successfully!", "success");
+        } catch (e) {
+            // Error toast handled in handleUpdateTeacher
+        }
+    }, [teachers, handleUpdateTeacher, addToast]);
+
     return {
-        handleSaveClass, handleSaveCourse, handleSaveProduct, handleSaveQuiz, handleCancelItem, handleTogglePublishState,
+        handleSaveClass, handleSaveCourse, handleSaveProduct, handleSaveQuiz, handleSaveEvent, handleCancelItem, handleTogglePublishState,
         handleRateCourse, handleRateTeacher, handleFinishQuiz, handleDeleteQuizSubmissions, logLectureWatch,
         handleSaveClassRecording, handleSaveGrading, handleSaveHomeworkSubmission
     };

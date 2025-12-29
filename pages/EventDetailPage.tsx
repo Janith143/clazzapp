@@ -42,14 +42,23 @@ const MiniTeacherCard: React.FC<{ teacher: Teacher, onClick: () => void }> = ({ 
     </div>
 );
 
-const EventPhotoGallery: React.FC<{ event: Event }> = ({ event }) => {
-    if (!event.photos || event.photos.length === 0) return null;
+const EventPhotoGallery: React.FC<{ event: Event, organizerId: string }> = ({ event, organizerId }) => {
+    if (!event.gallery?.photos || event.gallery.photos.length === 0) return null;
     return (
         <div className="bg-light-surface dark:bg-dark-surface p-6 rounded-lg shadow-md">
             <h2 className="text-xl font-bold mb-4">Event Photos</h2>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {event.photos.map((photo, index) => (
-                    <PhotoCard key={index} photo={photo} />
+                {event.gallery.photos.map((photo, index) => (
+                    <PhotoCard
+                        key={index}
+                        photo={photo}
+                        isFavorite={false} // Placeholder
+                        downloadPrice={event.gallery?.downloadPrice || 0}
+                        downloadPriceHighRes={event.gallery?.downloadPriceHighRes || 0}
+                        printOptions={[]} // Placeholder
+                        eventId={event.id}
+                        instituteId={organizerId} // Pass organizerId (might be teacherId, downstream needs to handle)
+                    />
                 ))}
             </div>
         </div>
@@ -63,6 +72,7 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId, slug }) => {
     const { teachers, tuitionInstitutes, handleEnroll, sales, loading: dataLoading } = useData();
 
     const { event, organizer } = useMemo(() => {
+        // Search in Institutes
         for (const ti of tuitionInstitutes) {
             let foundEvent = (ti.events || []).find(e => e.id === eventId);
             if (!foundEvent && slug) {
@@ -70,8 +80,18 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId, slug }) => {
             }
             if (foundEvent) return { event: foundEvent, organizer: ti };
         }
+
+        // Search in Teachers
+        for (const t of teachers) {
+            let foundEvent = (t.events || []).find(e => e.id === eventId);
+            if (!foundEvent && slug) {
+                foundEvent = (t.events || []).find(e => slugify(e.title) === slug);
+            }
+            if (foundEvent) return { event: foundEvent, organizer: t };
+        }
+
         return { event: null, organizer: null };
-    }, [tuitionInstitutes, eventId, slug]);
+    }, [tuitionInstitutes, teachers, eventId, slug]);
 
     const isEnrolled = useMemo(() => {
         if (!currentUser || !event) return false;
@@ -94,7 +114,7 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId, slug }) => {
             "endDate": `${event.startDate}T${event.endTime || '23:59'}`, // Fallback if end time missing
             "eventStatus": "https://schema.org/EventScheduled",
             "organizer": {
-                "@type": "Organization",
+                "@type": (organizer as any).userId ? "Person" : "Organization",
                 "name": organizer.name,
             },
             "image": event.flyerImage ? [event.flyerImage] : [],
@@ -185,7 +205,7 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId, slug }) => {
                             <p className="font-semibold text-lg">{organizer.name}</p>
                         </div>
                     </div>
-                    <EventPhotoGallery event={event} />
+                    <EventPhotoGallery event={event} organizerId={organizer.id} />
                 </div>
 
                 {/* Sidebar */}

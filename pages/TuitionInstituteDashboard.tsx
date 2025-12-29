@@ -40,7 +40,7 @@ const InstituteProfileSettings: React.FC<{ institute: TuitionInstitute }> = ({ i
 
     const handleSave = async () => {
         const newRate = parseFloat(commission);
-        
+
         if (isNaN(newRate)) {
             addToast("Please enter a valid number for commission rate.", "error");
             return;
@@ -91,7 +91,7 @@ const InstituteProfileSettings: React.FC<{ institute: TuitionInstitute }> = ({ i
                         disabled={isSaving || (commission === institute.commissionRate.toString())}
                         className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary-dark disabled:opacity-50"
                     >
-                        <SaveIcon className="w-4 h-4 mr-2"/>
+                        <SaveIcon className="w-4 h-4 mr-2" />
                         {isSaving ? 'Saving...' : 'Save Changes'}
                     </button>
                 </div>
@@ -111,7 +111,7 @@ const TuitionInstituteDashboard: React.FC<TuitionInstituteDashboardProps> = ({ i
     const { handleNavigate } = useNavigation();
 
     const [activeTab, setActiveTab] = useState<'overview' | 'classes' | 'events' | 'attendance' | 'earnings' | 'profile'>('overview');
-    
+
     // Class Modal State
     const [isClassModalOpen, setIsClassModalOpen] = useState(false);
     const [classToEdit, setClassToEdit] = useState<IndividualClass | null>(null);
@@ -144,8 +144,8 @@ const TuitionInstituteDashboard: React.FC<TuitionInstituteDashboardProps> = ({ i
     const instituteClasses = useMemo(() => {
         if (!institute) return [];
         return teachers
-          .flatMap(t => t.individualClasses.filter(c => c.instituteId === institute.id).map(c => ({ ...c, teacher: t })))
-          .sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+            .flatMap(t => t.individualClasses.filter(c => c.instituteId === institute.id).map(c => ({ ...c, teacher: t })))
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     }, [institute, teachers]);
 
     const enrollmentCounts = useMemo(() => {
@@ -163,7 +163,7 @@ const TuitionInstituteDashboard: React.FC<TuitionInstituteDashboardProps> = ({ i
         setIsClassModalOpen(false);
         setClassToEdit(null);
     };
-    
+
     const handleInternalSaveEvent = (eventDetails: InstituteEvent) => {
         handleSaveEvent(eventDetails);
         setIsEventModalOpen(false);
@@ -196,7 +196,7 @@ const TuitionInstituteDashboard: React.FC<TuitionInstituteDashboardProps> = ({ i
         }
         setItemToCancel(null);
     };
-    
+
     const handleResetClick = (teacherId: string, teacherName: string) => {
         setResetTarget({ teacherId, teacherName });
     };
@@ -235,7 +235,7 @@ const TuitionInstituteDashboard: React.FC<TuitionInstituteDashboardProps> = ({ i
             const month = d.getMonth();
             const monthName = d.toLocaleString('default', { month: 'long', year: 'numeric' });
             const monthKey = `${year}-${month}`;
-            
+
             lastMonths.push({
                 monthName,
                 earnings: earningsByMonth.get(monthKey) || 0,
@@ -254,14 +254,14 @@ const TuitionInstituteDashboard: React.FC<TuitionInstituteDashboardProps> = ({ i
             case 'classes':
                 return (
                     <div>
-                         <div className="flex justify-end mb-4">
+                        <div className="flex justify-end mb-4">
                             <button onClick={() => { setClassToEdit(null); setIsClassModalOpen(true); }} className="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-white bg-primary rounded-md hover:bg-primary-dark transition-colors">
                                 <PlusIcon className="h-4 h-4" />
                                 <span>Schedule New Class</span>
                             </button>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                           {instituteClasses.map(({ teacher, ...classInfo }) => (
+                            {instituteClasses.map(({ teacher, ...classInfo }) => (
                                 <ClassCard
                                     key={classInfo.id}
                                     classInfo={classInfo}
@@ -273,7 +273,7 @@ const TuitionInstituteDashboard: React.FC<TuitionInstituteDashboardProps> = ({ i
                                     onDelete={(id, enrollmentCount) => requestCancelItem(id, 'class')}
                                     onTogglePublish={(id) => handleTogglePublishState(classInfo.teacherId, id, 'class')}
                                 />
-                           ))}
+                            ))}
                         </div>
                     </div>
                 );
@@ -288,15 +288,15 @@ const TuitionInstituteDashboard: React.FC<TuitionInstituteDashboardProps> = ({ i
                     />
                 );
             case 'attendance':
-                 return (
+                return (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div className="md:col-span-1">
                             <h3 className="text-xl font-bold mb-4">Select a Class</h3>
                             <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-2">
                                 {instituteClasses.filter(c => c.status === 'scheduled').map(c => (
-                                    <button 
-                                        key={c.id} 
-                                        onClick={() => setSelectedClassForAttendance(c as IndividualClass)} 
+                                    <button
+                                        key={c.id}
+                                        onClick={() => setSelectedClassForAttendance(c as IndividualClass)}
                                         className={`w-full text-left p-3 border rounded-lg transition-colors ${selectedClassForAttendance?.id === c.id ? 'bg-primary/10 border-primary' : 'border-light-border dark:border-dark-border hover:bg-light-border dark:hover:bg-dark-border'}`}
                                     >
                                         <p className="font-bold">{c.title}</p>
@@ -325,90 +325,91 @@ const TuitionInstituteDashboard: React.FC<TuitionInstituteDashboardProps> = ({ i
                     </div>
                 );
             case 'earnings':
-                 const manualSales = sales.filter(s => s.instituteId === institute.id && s.paymentMethod === 'manual_at_venue');
-                 const teacherBalances = institute.teacherManualBalances ? Object.entries(institute.teacherManualBalances) : [];
- 
-                 return (
-                     <div className="space-y-8">
-                         <div className="bg-light-surface dark:bg-dark-surface p-6 rounded-lg shadow-md">
-                             <h2 className="text-xl font-bold mb-4 text-light-text dark:text-dark-text">Balances Owed to Teachers (from Manual Collections)</h2>
-                             <p className="text-sm text-light-subtle dark:text-dark-subtle mb-4">This balance is settled directly between you and the teacher. After paying, use the reset button to clear their balance on the platform.</p>
-                             {teacherBalances.length > 0 ? (
-                                 <div className="overflow-x-auto">
-                                     <table className="min-w-full divide-y divide-light-border dark:divide-dark-border text-sm">
-                                         <thead className="bg-light-background dark:bg-dark-background">
-                                             <tr>
-                                                 <th className="px-4 py-3 text-left text-xs font-medium text-light-subtle dark:text-dark-subtle uppercase tracking-wider">Teacher</th>
-                                                 <th className="px-4 py-3 text-right text-xs font-medium text-light-subtle dark:text-dark-subtle uppercase tracking-wider">Balance Owed</th>
-                                                 <th className="px-4 py-3 text-left text-xs font-medium text-light-subtle dark:text-dark-subtle uppercase tracking-wider">Last Paid</th>
-                                                 <th className="px-4 py-3 text-center text-xs font-medium text-light-subtle dark:text-dark-subtle uppercase tracking-wider">Action</th>
-                                             </tr>
-                                         </thead>
-                                         <tbody className="divide-y divide-light-border dark:divide-dark-border">
-                                             {teacherBalances.map(([teacherId, data]) => {
-                                                 const typedData = data as { balance: number; teacherName: string; lastReset?: string };
-                                                 return (
-                                                 <tr key={teacherId}>
-                                                     <td className="px-4 py-3 whitespace-nowrap font-medium text-light-text dark:text-dark-text">{typedData.teacherName}</td>
-                                                     <td className="px-4 py-3 whitespace-nowrap text-right font-bold text-lg text-primary">{currencyFormatter.format(typedData.balance)}</td>
-                                                     <td className="px-4 py-3 whitespace-nowrap text-light-text dark:text-dark-text">{typedData.lastReset ? new Date(typedData.lastReset).toLocaleDateString() : 'Never'}</td>
-                                                     <td className="px-4 py-3 whitespace-nowrap text-center">
-                                                         <button disabled={typedData.balance <= 0} onClick={() => handleResetClick(teacherId, typedData.teacherName)} className="px-3 py-1 text-xs font-medium text-white bg-primary rounded-md hover:bg-primary-dark disabled:bg-gray-400">
-                                                             Pay & Reset Balance
-                                                         </button>
-                                                     </td>
-                                                 </tr>
-                                             );
+                const manualSales = sales.filter(s => s.instituteId === institute.id && s.paymentMethod === 'manual_at_venue');
+                const teacherBalances = institute.teacherManualBalances ? Object.entries(institute.teacherManualBalances) : [];
+
+                return (
+                    <div className="space-y-8">
+                        <div className="bg-light-surface dark:bg-dark-surface p-6 rounded-lg shadow-md">
+                            <h2 className="text-xl font-bold mb-4 text-light-text dark:text-dark-text">Balances Owed to Teachers (from Manual Collections)</h2>
+                            <p className="text-sm text-light-subtle dark:text-dark-subtle mb-4">This balance is settled directly between you and the teacher. After paying, use the reset button to clear their balance on the platform.</p>
+                            {teacherBalances.length > 0 ? (
+                                <div className="overflow-x-auto">
+                                    <table className="min-w-full divide-y divide-light-border dark:divide-dark-border text-sm">
+                                        <thead className="bg-light-background dark:bg-dark-background">
+                                            <tr>
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-light-subtle dark:text-dark-subtle uppercase tracking-wider">Teacher</th>
+                                                <th className="px-4 py-3 text-right text-xs font-medium text-light-subtle dark:text-dark-subtle uppercase tracking-wider">Balance Owed</th>
+                                                <th className="px-4 py-3 text-left text-xs font-medium text-light-subtle dark:text-dark-subtle uppercase tracking-wider">Last Paid</th>
+                                                <th className="px-4 py-3 text-center text-xs font-medium text-light-subtle dark:text-dark-subtle uppercase tracking-wider">Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-light-border dark:divide-dark-border">
+                                            {teacherBalances.map(([teacherId, data]) => {
+                                                const typedData = data as { balance: number; teacherName: string; lastReset?: string };
+                                                return (
+                                                    <tr key={teacherId}>
+                                                        <td className="px-4 py-3 whitespace-nowrap font-medium text-light-text dark:text-dark-text">{typedData.teacherName}</td>
+                                                        <td className="px-4 py-3 whitespace-nowrap text-right font-bold text-lg text-primary">{currencyFormatter.format(typedData.balance)}</td>
+                                                        <td className="px-4 py-3 whitespace-nowrap text-light-text dark:text-dark-text">{typedData.lastReset ? new Date(typedData.lastReset).toLocaleDateString() : 'Never'}</td>
+                                                        <td className="px-4 py-3 whitespace-nowrap text-center">
+                                                            <button disabled={typedData.balance <= 0} onClick={() => handleResetClick(teacherId, typedData.teacherName)} className="px-3 py-1 text-xs font-medium text-white bg-primary rounded-md hover:bg-primary-dark disabled:bg-gray-400">
+                                                                Pay & Reset Balance
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                );
                                             })}
-                                         </tbody>
-                                     </table>
-                                 </div>
-                             ) : (<p className="text-center py-8 text-light-subtle dark:text-dark-subtle">No outstanding balances with teachers from manual collections.</p>)}
-                         </div>
- 
-                         <div className="bg-light-surface dark:bg-dark-surface p-6 rounded-lg shadow-md">
-                             <h2 className="text-xl font-bold mb-4 text-light-text dark:text-dark-text">Manual Collections Log</h2>
-                             {manualSales.length > 0 ? (
-                                 <div className="overflow-x-auto max-h-96">
-                                     <table className="min-w-full divide-y divide-light-border dark:divide-dark-border text-sm">
-                                         <thead className="bg-light-background dark:bg-dark-background sticky top-0">
-                                             <tr>
-                                                 <th className="px-3 py-3 text-left text-xs font-medium text-light-subtle dark:text-dark-subtle uppercase tracking-wider">Date</th>
-                                                 <th className="px-3 py-3 text-left text-xs font-medium text-light-subtle dark:text-dark-subtle uppercase tracking-wider">Class</th>
-                                                 <th className="px-3 py-3 text-left text-xs font-medium text-light-subtle dark:text-dark-subtle uppercase tracking-wider">Student</th>
-                                                 <th className="px-3 py-3 text-right text-xs font-medium text-light-subtle dark:text-dark-subtle uppercase tracking-wider">Collected</th>
-                                                 <th className="px-3 py-3 text-right text-xs font-medium text-light-subtle dark:text-dark-subtle uppercase tracking-wider">Teacher's Share</th>
-                                                 <th className="px-3 py-3 text-right text-xs font-medium text-light-subtle dark:text-dark-subtle uppercase tracking-wider">Your Income</th>
-                                                 <th className="px-3 py-3 text-right text-xs font-medium text-light-subtle dark:text-dark-subtle uppercase tracking-wider">Platform Fee</th>
-                                             </tr>
-                                         </thead>
-                                         <tbody className="divide-y divide-light-border dark:divide-dark-border">
-                                             {manualSales.map(sale => {
-                                                 const student = users.find(u => u.id === sale.studentId);
-                                                 return (
-                                                 <tr key={sale.id}>
-                                                     <td className="px-3 py-3 whitespace-nowrap text-light-text dark:text-dark-text">{new Date(sale.saleDate).toLocaleDateString()}</td>
-                                                     <td className="px-3 py-3 text-light-text dark:text-dark-text">{sale.itemName}</td>
-                                                     <td className="px-3 py-3 text-light-text dark:text-dark-text">{student ? `${student.firstName} ${student.lastName}` : 'N/A'}</td>
-                                                     <td className="px-3 py-3 text-right font-semibold text-light-text dark:text-dark-text">{currencyFormatter.format(sale.amountPaidFromBalance)}</td>
-                                                     <td className="px-3 py-3 text-right text-light-text dark:text-dark-text">{currencyFormatter.format(sale.teacherCommission || 0)}</td>
-                                                     <td className="px-3 py-3 text-right text-green-600 font-semibold">{currencyFormatter.format(sale.instituteCommission || 0)}</td>
-                                                     <td className="px-3 py-3 text-right text-red-600">{currencyFormatter.format(sale.platformCommission || 0)}</td>
-                                                 </tr>
-                                             )})}
-                                         </tbody>
-                                     </table>
-                                 </div>
-                             ) : (<p className="text-center py-8 text-light-subtle dark:text-dark-subtle">No manual payments have been recorded yet.</p>)}
-                         </div>
-                     </div>
-                 );
+                                        </tbody>
+                                    </table>
+                                </div>
+                            ) : (<p className="text-center py-8 text-light-subtle dark:text-dark-subtle">No outstanding balances with teachers from manual collections.</p>)}
+                        </div>
+
+                        <div className="bg-light-surface dark:bg-dark-surface p-6 rounded-lg shadow-md">
+                            <h2 className="text-xl font-bold mb-4 text-light-text dark:text-dark-text">Manual Collections Log</h2>
+                            {manualSales.length > 0 ? (
+                                <div className="overflow-x-auto max-h-96">
+                                    <table className="min-w-full divide-y divide-light-border dark:divide-dark-border text-sm">
+                                        <thead className="bg-light-background dark:bg-dark-background sticky top-0">
+                                            <tr>
+                                                <th className="px-3 py-3 text-left text-xs font-medium text-light-subtle dark:text-dark-subtle uppercase tracking-wider">Date</th>
+                                                <th className="px-3 py-3 text-left text-xs font-medium text-light-subtle dark:text-dark-subtle uppercase tracking-wider">Class</th>
+                                                <th className="px-3 py-3 text-left text-xs font-medium text-light-subtle dark:text-dark-subtle uppercase tracking-wider">Student</th>
+                                                <th className="px-3 py-3 text-right text-xs font-medium text-light-subtle dark:text-dark-subtle uppercase tracking-wider">Collected</th>
+                                                <th className="px-3 py-3 text-right text-xs font-medium text-light-subtle dark:text-dark-subtle uppercase tracking-wider">Teacher's Share</th>
+                                                <th className="px-3 py-3 text-right text-xs font-medium text-light-subtle dark:text-dark-subtle uppercase tracking-wider">Your Income</th>
+                                                <th className="px-3 py-3 text-right text-xs font-medium text-light-subtle dark:text-dark-subtle uppercase tracking-wider">Platform Fee</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-light-border dark:divide-dark-border">
+                                            {manualSales.map(sale => {
+                                                const student = users.find(u => u.id === sale.studentId);
+                                                return (
+                                                    <tr key={sale.id}>
+                                                        <td className="px-3 py-3 whitespace-nowrap text-light-text dark:text-dark-text">{new Date(sale.saleDate).toLocaleDateString()}</td>
+                                                        <td className="px-3 py-3 text-light-text dark:text-dark-text">{sale.itemName}</td>
+                                                        <td className="px-3 py-3 text-light-text dark:text-dark-text">{student ? `${student.firstName} ${student.lastName}` : 'N/A'}</td>
+                                                        <td className="px-3 py-3 text-right font-semibold text-light-text dark:text-dark-text">{currencyFormatter.format(sale.amountPaidFromBalance)}</td>
+                                                        <td className="px-3 py-3 text-right text-light-text dark:text-dark-text">{currencyFormatter.format(sale.teacherCommission || 0)}</td>
+                                                        <td className="px-3 py-3 text-right text-green-600 font-semibold">{currencyFormatter.format(sale.instituteCommission || 0)}</td>
+                                                        <td className="px-3 py-3 text-right text-red-600">{currencyFormatter.format(sale.platformCommission || 0)}</td>
+                                                    </tr>
+                                                )
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            ) : (<p className="text-center py-8 text-light-subtle dark:text-dark-subtle">No manual payments have been recorded yet.</p>)}
+                        </div>
+                    </div>
+                );
             case 'profile':
-                 return <InstituteProfileSettings institute={institute} />;
+                return <InstituteProfileSettings institute={institute} />;
             case 'overview':
             default:
                 return (
-                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                         <div className="lg:col-span-1 bg-light-surface dark:bg-dark-surface p-6 rounded-lg shadow-md space-y-4">
                             <div>
                                 <h2 className="text-xl font-bold">Available Funds</h2>
@@ -454,7 +455,7 @@ const TuitionInstituteDashboard: React.FC<TuitionInstituteDashboardProps> = ({ i
                 );
         }
     };
-    
+
     const tabItems = [
         { id: 'overview', label: 'Overview', icon: <BanknotesIcon className="w-5 h-5 mr-2" /> },
         { id: 'classes', label: 'Classes', icon: <VideoCameraIcon className="w-5 h-5 mr-2" /> },
@@ -467,8 +468,8 @@ const TuitionInstituteDashboard: React.FC<TuitionInstituteDashboardProps> = ({ i
     return (
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-slideInUp">
             <div className="mb-8">
-                <button 
-                    onClick={() => handleNavigate({ name: isAdminView ? 'admin_dashboard' : 'home' })} 
+                <button
+                    onClick={() => handleNavigate({ name: isAdminView ? 'admin_dashboard' : 'home' })}
                     className="flex items-center space-x-2 text-sm font-medium text-primary hover:text-primary-dark"
                 >
                     <ChevronLeftIcon className="h-5 h-5" />
@@ -486,11 +487,10 @@ const TuitionInstituteDashboard: React.FC<TuitionInstituteDashboardProps> = ({ i
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id as any)}
-                            className={`${
-                                activeTab === tab.id
+                            className={`${activeTab === tab.id
                                     ? 'border-primary text-primary'
                                     : 'border-transparent text-light-subtle dark:text-dark-subtle hover:text-light-text dark:hover:text-dark-text hover:border-light-border dark:hover:border-dark-border'
-                            } flex items-center whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors`}
+                                } flex items-center whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors`}
                         >
                             {tab.icon}
                             {tab.label}
@@ -500,7 +500,7 @@ const TuitionInstituteDashboard: React.FC<TuitionInstituteDashboardProps> = ({ i
             </div>
 
             <div>{renderTabContent()}</div>
-            
+
             {isClassModalOpen && (
                 <TIScheduleClassModal
                     isOpen={isClassModalOpen}
@@ -510,32 +510,33 @@ const TuitionInstituteDashboard: React.FC<TuitionInstituteDashboardProps> = ({ i
                     initialData={classToEdit}
                 />
             )}
-             {isEventModalOpen && (
+            {isEventModalOpen && (
                 <TIScheduleEventModal
                     isOpen={isEventModalOpen}
                     onClose={() => setIsEventModalOpen(false)}
                     onSave={handleInternalSaveEvent}
-                    instituteId={institute.id}
+                    organizerId={institute.id}
+                    organizerType="tuition_institute"
                     initialData={eventToEdit}
                 />
             )}
-             {itemToCancel && (
-                <ConfirmationModal 
-                    isOpen={true} 
-                    onClose={() => setItemToCancel(null)} 
-                    onConfirm={handleConfirmCancel} 
-                    title={`Cancel ${itemToCancel.type}`} 
-                    message={`Are you sure you want to cancel this ${itemToCancel.type}? This will refund all enrolled students.`} 
+            {itemToCancel && (
+                <ConfirmationModal
+                    isOpen={true}
+                    onClose={() => setItemToCancel(null)}
+                    onConfirm={handleConfirmCancel}
+                    title={`Cancel ${itemToCancel.type}`}
+                    message={`Are you sure you want to cancel this ${itemToCancel.type}? This will refund all enrolled students.`}
                     confirmText="Yes, Cancel"
                 />
             )}
-             {resetTarget && (
-                <ConfirmationModal 
-                    isOpen={true} 
-                    onClose={() => setResetTarget(null)} 
-                    onConfirm={handleConfirmReset} 
-                    title={`Reset Balance for ${resetTarget.teacherName}`} 
-                    message={`This confirms you have paid the teacher their share of manual collections. It will reset their balance on the platform to zero. This cannot be undone.`} 
+            {resetTarget && (
+                <ConfirmationModal
+                    isOpen={true}
+                    onClose={() => setResetTarget(null)}
+                    onConfirm={handleConfirmReset}
+                    title={`Reset Balance for ${resetTarget.teacherName}`}
+                    message={`This confirms you have paid the teacher their share of manual collections. It will reset their balance on the platform to zero. This cannot be undone.`}
                     confirmText="Yes, I've Paid & Reset"
                 />
             )}

@@ -39,11 +39,11 @@ export const useEnrollmentActions = (deps: EnrollmentActionDeps) => {
                 if (!isProfileComplete) {
                     let initialStep = 1;
                     if (email && contactNumber) initialStep = 2;
-                    
+
                     addToast('Please complete your profile to proceed with payment.', 'info');
-                    setModalState({ 
-                        name: 'edit_student_profile', 
-                        initialStep, 
+                    setModalState({
+                        name: 'edit_student_profile',
+                        initialStep,
                         onSaveAndContinue: (data) => executeEnrollment(true, data)
                     });
                     return;
@@ -53,34 +53,40 @@ export const useEnrollmentActions = (deps: EnrollmentActionDeps) => {
             const newSaleId = generateStandardId('INV');
             const saleRef = doc(db, "sales", newSaleId);
             const displayItemName = customPaymentDescription || item.title;
-    
-            const saleData: Partial<Sale> = { 
-                id: newSaleId, studentId: effectiveUser.id, itemId: item.id, itemType: type, itemName: displayItemName, 
-                totalAmount: 0, amountPaidFromBalance: 0, saleDate: new Date().toISOString(), 
+
+            const saleData: Partial<Sale> = {
+                id: newSaleId, studentId: effectiveUser.id, itemId: item.id, itemType: type, itemName: displayItemName,
+                totalAmount: 0, amountPaidFromBalance: 0, saleDate: new Date().toISOString(),
                 currency: 'LKR', status: 'completed', itemSnapshot: item,
             };
-    
+
             if (purchaseMetadata) saleData.purchaseMetadata = purchaseMetadata;
-            if (type === 'event') saleData.instituteId = (item as Event).organizerId; 
-            else {
+            if (type === 'event') {
+                const eventItem = item as Event;
+                if (eventItem.organizerType === 'teacher') {
+                    saleData.teacherId = eventItem.organizerId;
+                } else {
+                    saleData.instituteId = eventItem.organizerId;
+                }
+            } else {
                 if ('teacherId' in item) saleData.teacherId = item.teacherId;
                 if ('instituteId' in item && item.instituteId) saleData.instituteId = item.instituteId;
             }
-            
+
             const sale: Sale = saleData as Sale;
-            
+
             let finalFee = 0;
             if (customPaymentAmount !== undefined) finalFee = customPaymentAmount;
             else finalFee = (type === 'event') ? (item as Event).tickets.price : ('fee' in item) ? (item as Course | IndividualClass | Quiz).fee : 0;
-            
+
             if (type === 'class' && (item as IndividualClass).paymentMethod === 'manual') finalFee = 0;
-    
+
             try {
                 await runTransaction(db, async (transaction) => {
                     const studentDoc = await transaction.get(doc(db, "users", effectiveUser.id));
                     if (!studentDoc.exists()) throw new Error("Student document not found!");
                     const studentData = studentDoc.data() as User;
-                    
+
                     if (type === 'class' && (item as IndividualClass).isFreeSlot) {
                         const teacherRef = doc(db, 'teachers', (item as IndividualClass).teacherId);
                         const teacherDoc = await transaction.get(teacherRef);
@@ -92,18 +98,18 @@ export const useEnrollmentActions = (deps: EnrollmentActionDeps) => {
                             transaction.update(teacherRef, { individualClasses: updatedClasses });
                         } else throw new Error("Teacher not found.");
                     }
-    
+
                     const balanceToApply = Math.min(studentData.accountBalance, finalFee);
                     sale.amountPaidFromBalance = balanceToApply;
                     sale.totalAmount = finalFee - balanceToApply;
-    
-                    if (sale.totalAmount > 0) { 
-                        sale.status = 'hold'; 
-                        transaction.set(saleRef, sale); 
+
+                    if (sale.totalAmount > 0) {
+                        sale.status = 'hold';
+                        transaction.set(saleRef, sale);
                     } else {
                         sale.status = 'completed';
                         sale.paymentMethod = (type === 'class' && (item as IndividualClass).paymentMethod === 'manual') ? 'manual_at_venue' : 'balance';
-                        
+
                         const saleValue = sale.amountPaidFromBalance;
                         if (saleValue > 0) {
                             let platformComm = 0, teacherComm = 0, instituteComm = 0;
@@ -132,21 +138,23 @@ export const useEnrollmentActions = (deps: EnrollmentActionDeps) => {
                         if (balanceToApply > 0) transaction.update(doc(db, "users", effectiveUser.id), { accountBalance: studentData.accountBalance - balanceToApply });
                     }
                 });
-    
+
                 if (sale.totalAmount > 0) {
-                    handleNavigate({ 
-                        name: 'payment_redirect', 
-                        payload: { 
-                            type: 'enrollment', 
-                            item, 
-                            sale, 
+                    handleNavigate({
+                        name: 'payment_redirect',
+                        payload: {
+                            type: 'enrollment',
+                            item,
+                            sale,
                             updatedUser: effectiveUser as User,
-                            selectedMethod 
-                        } 
+                            selectedMethod
+                        }
                     });
                 } else {
                     addToast(`Successfully registered for ${item.title}!`, 'success');
-                    if (finalFee > 0) sendPaymentConfirmation(effectiveUser, finalFee, sale.itemName, sale.id);
+                    if (finalFee > 0 && nav.functionUrls?.notification) {
+                        sendPaymentConfirmation(nav.functionUrls.notification, effectiveUser, finalFee, sale.itemName, sale.id);
+                    }
                 }
             } catch (e) { console.error(e); addToast((e as Error).message || "Unable to enroll.", "error"); }
         };

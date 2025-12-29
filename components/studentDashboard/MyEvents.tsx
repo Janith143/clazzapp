@@ -10,28 +10,39 @@ interface MyEventsProps {
 }
 
 const MyEvents: React.FC<MyEventsProps> = ({ user }) => {
-    const { sales, tuitionInstitutes } = useData();
+    const { sales, tuitionInstitutes, teachers } = useData();
     const { handleNavigate } = useNavigation();
 
     const enrolledEvents = useMemo(() => {
         if (!user) return [];
 
         const userSales = sales.filter(s => s.studentId === user.id && s.itemType === 'event' && s.status === 'completed');
-        
+
         return userSales.map(sale => {
-            const organizer = tuitionInstitutes.find(ti => ti.id === sale.instituteId);
+            let organizer: any = tuitionInstitutes.find(ti => ti.id === sale.instituteId);
+            if (!organizer && sale.teacherId) {
+                organizer = teachers.find(t => t.id === sale.teacherId);
+            }
+            // Fallback: Check if organizerId matches regardless of field populated
+            if (!organizer) {
+                const event = sale.itemSnapshot as any;
+                if (event && event.organizerId) {
+                    organizer = tuitionInstitutes.find(ti => ti.id === event.organizerId) || teachers.find(t => t.id === event.organizerId);
+                }
+            }
+
             return { event: sale.itemSnapshot, organizer };
         }).filter(item => item.organizer); // Only show if organizer data is available
-    }, [user, sales, tuitionInstitutes]);
+    }, [user, sales, tuitionInstitutes, teachers]);
 
     return enrolledEvents.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {enrolledEvents.map(({ event, organizer }) => (
-                <EventCard 
-                    key={event.id} 
-                    event={event as any} 
-                    organizer={organizer!} 
-                    onView={(e) => handleNavigate({ name: 'event_detail', eventId: e.id })} 
+                <EventCard
+                    key={event.id}
+                    event={event as any}
+                    organizer={organizer!}
+                    onView={(e) => handleNavigate({ name: 'event_detail', eventId: e.id })}
                 />
             ))}
         </div>

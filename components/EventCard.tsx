@@ -1,13 +1,19 @@
 import React from 'react';
 import { Event, TuitionInstitute } from '../types.ts';
-import { ClockIcon, CalendarIcon, MapPinIcon, OnlineIcon } from './Icons.tsx';
+import { ClockIcon, CalendarIcon, MapPinIcon, OnlineIcon, PencilIcon, TrashIcon } from './Icons.tsx';
 import { getDynamicEventStatus, getOptimizedImageUrl } from '../utils.ts';
 import { slugify } from '../utils/slug.ts';
 
+
+import { Teacher } from '../types';
+
 interface EventCardProps {
   event: Event;
-  organizer: TuitionInstitute;
+  organizer: TuitionInstitute | Teacher;
   onView: (event: Event) => void;
+  onEdit?: (event: Event) => void;
+  onDelete?: (id: string) => void;
+  onTogglePublish?: (id: string) => void;
 }
 
 type DynamicStatus = 'live' | 'scheduled' | 'finished' | 'canceled';
@@ -26,7 +32,7 @@ const EventStatusBadge: React.FC<{ status: DynamicStatus }> = ({ status }) => {
   );
 };
 
-const EventCard: React.FC<EventCardProps> = ({ event, organizer, onView }) => {
+const EventCard: React.FC<EventCardProps> = ({ event, organizer, onView, onEdit, onDelete, onTogglePublish }) => {
   const currencyFormatter = new Intl.NumberFormat('en-LK', {
     style: 'currency',
     currency: 'LKR',
@@ -120,14 +126,63 @@ const EventCard: React.FC<EventCardProps> = ({ event, organizer, onView }) => {
           </div>
         </div>
 
-        <div className="mt-4 pt-4 border-t border-light-border dark:border-dark-border">
+        <div className="mt-4 pt-4 border-t border-light-border dark:border-dark-border flex items-center gap-2">
+          {/* View Details Button - Always Primary */}
           <button
             onClick={() => onView(event)}
-            className="w-full text-center px-4 py-2 text-sm font-medium text-white bg-primary rounded-md hover:bg-primary-dark transition-colors"
+            className="flex-1 text-center px-4 py-2 text-sm font-medium text-white bg-primary rounded-md hover:bg-primary-dark transition-colors shadow-sm"
           >
             View Details
           </button>
+
+          {/* Management Actions - Only visible to owners */}
+          {(onEdit || onTogglePublish || onDelete) && (
+            <div className="flex items-center gap-1 border-l border-light-border dark:border-dark-border pl-2 border-opacity-50">
+
+              {/* Toggle Publish - Compact status indicator/button */}
+              {onTogglePublish && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onTogglePublish(event.id); }}
+                  title={event.isPublished ? 'Click to Unpublish' : 'Click to Publish'}
+                  className={`p-2 rounded-md transition-colors ${event.isPublished ? 'text-green-600 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/30' : 'text-yellow-600 hover:bg-yellow-50 dark:text-yellow-400 dark:hover:bg-yellow-900/30'}`}
+                >
+                  {/* Inline Eye Icon */}
+                  {event.isPublished ? (
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
+                      <path d="M10 12.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z" />
+                      <path fillRule="evenodd" d="M.664 10.59a1.651 1.651 0 010-1.186A10.004 10.004 0 0110 3c4.257 0 7.893 2.66 9.336 6.41.147.381.146.804 0 1.186A10.004 10.004 0 0110 17c-4.257 0-7.893-2.66-9.336-6.41zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+                    </svg>
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
+                      <path fillRule="evenodd" d="M3.28 2.22a.75.75 0 00-1.06 1.06l14.5 14.5a.75.75 0 101.06-1.06l-1.745-1.745a10.029 10.029 0 003.3-5.975.75.75 0 000-.589A10.004 10.004 0 0010 3c-1.93 0-3.71.551-5.23 1.503L3.28 2.22zM8.941 6.819A4.01 4.01 0 0110 6c1.886 0 3.475 1.294 3.882 3.033l-4.941-2.214zM4.77 10.985A10.015 10.015 0 0010 17c1.47 0 2.85-.308 4.095-.86L12.59 14.64a4.002 4.002 0 01-5.717-5.717l-2.103-2.103a8.96 8.96 0 00.001 4.165z" clipRule="evenodd" />
+                    </svg>
+                  )}
+                </button>
+              )}
+
+              {onEdit && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onEdit(event); }}
+                  className="p-2 text-light-text dark:text-dark-text hover:bg-light-border dark:hover:bg-dark-border rounded-md transition-colors"
+                  title="Edit Event"
+                >
+                  <PencilIcon className="w-5 h-5" />
+                </button>
+              )}
+
+              {onDelete && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onDelete(event.id); }}
+                  className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-md transition-colors"
+                  title="Delete Event"
+                >
+                  <TrashIcon className="w-5 h-5" />
+                </button>
+              )}
+            </div>
+          )}
         </div>
+
       </div>
     </div>
   );
