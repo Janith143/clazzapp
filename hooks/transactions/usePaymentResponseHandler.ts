@@ -73,7 +73,7 @@ export const usePaymentResponseHandler = (deps: PaymentResponseHandlerDeps) => {
                         if (sale.amountPaidFromBalance > 0 && currentUser) batch.update(doc(db, "users", currentUser.id), { accountBalance: increment(-sale.amountPaidFromBalance) });
 
                         const student = currentUser || users.find(u => u.id === sale.studentId);
-                        if (student) sendPaymentConfirmation(student, sale.totalAmount, sale.itemName, sale.id);
+                        if (student) sendPaymentConfirmation(functionUrls.notification, student, sale.totalAmount, sale.itemName, sale.id);
 
                         ui.addToast(`Successfully enrolled in ${sale.itemName}!`, 'success');
 
@@ -101,7 +101,7 @@ export const usePaymentResponseHandler = (deps: PaymentResponseHandlerDeps) => {
                             batch.set(voucherRef, newVoucher);
                             newVouchers.push(newVoucher);
                         }
-                        sendPaymentConfirmation({ email: details.billingEmail }, totalAmount, `${quantity} x Gift Voucher(s)`, orderId);
+                        sendPaymentConfirmation(functionUrls.notification, { email: details.billingEmail }, totalAmount, `${quantity} x Gift Voucher(s)`, orderId);
                         await batch.commit(); return { name: 'voucher_success', vouchers: newVouchers };
                     }
                     case 'external_topup': {
@@ -110,7 +110,7 @@ export const usePaymentResponseHandler = (deps: PaymentResponseHandlerDeps) => {
                             const topUpRequest: TopUpRequest = { id: `${orderId}_${student.id}`, studentId: student.id, method: 'gateway', amount: amountPerStudent, status: 'approved', requestedAt: new Date().toISOString(), processedAt: new Date().toISOString() };
                             batch.update(doc(db, "users", student.id), { accountBalance: increment(amountPerStudent), topUpHistory: arrayUnion(topUpRequest) });
                         });
-                        sendPaymentConfirmation(billingDetails, totalAmount, `Top-Up for ${students.length} students`, orderId);
+                        sendPaymentConfirmation(functionUrls.notification, billingDetails, totalAmount, `Top-Up for ${students.length} students`, orderId);
                         await batch.commit(); return { name: 'topup_success', successData: { students, amountPerStudent, totalAmount } };
                     }
                     case 'marketplace_purchase':
@@ -146,7 +146,7 @@ export const usePaymentResponseHandler = (deps: PaymentResponseHandlerDeps) => {
 
                         if (customFields.type === 'photo_purchase') (reconstructedCart as PhotoCartItem[]).forEach(item => { if (item.type.includes('download')) downloadImage(item.type === 'photo_download_highres' ? item.photo.url_highres : item.photo.url_thumb.replace(/=s\d+$/, '=s1600'), `clazz_lk_${item.photo.id}.png`); });
 
-                        sendPaymentConfirmation(billingDetails, totalAmount, `${reconstructedCart.length} items`, newSale.id);
+                        sendPaymentConfirmation(functionUrls.notification, billingDetails, totalAmount, `${reconstructedCart.length} items`, newSale.id);
                         ui.addToast('Purchase complete!', 'success'); ui.clearCart();
                         pageToNavigateTo = { name: 'student_dashboard', initialTab: 'my_orders' };
                         break;
@@ -159,6 +159,7 @@ export const usePaymentResponseHandler = (deps: PaymentResponseHandlerDeps) => {
                         // But the user flow immediately prompts account creation.
 
                         sendPaymentConfirmation(
+                            functionUrls.notification,
                             { email: billingDetails.billingEmail, contactNumber: billingDetails.billingContactNumber },
                             amount,
                             `Teacher Subscription (Level ${planLevel})`,
@@ -179,7 +180,7 @@ export const usePaymentResponseHandler = (deps: PaymentResponseHandlerDeps) => {
                                 <p><strong>Transaction ID:</strong> ${orderId}</p>
                             </div>
                          `;
-                        await sendNotification({ email: ADMIN_EMAIL }, subject, htmlBody);
+                        await sendNotification(functionUrls.notification, { email: ADMIN_EMAIL }, subject, htmlBody);
 
                         ui.addToast('Subscription payment successful!', 'success');
                         pageToNavigateTo = {
@@ -196,7 +197,12 @@ export const usePaymentResponseHandler = (deps: PaymentResponseHandlerDeps) => {
                 await batch.commit();
             } else {
                 const errorMessage = params.get('msg');
-                ui.addToast(`Payment failed: ${errorMessage && errorMessage !== 'null' ? errorMessage : 'Transaction was unsuccessful.'}`, 'error');
+                const debugStatus = params.get('debug_raw_status');
+                let toastMsg = errorMessage && errorMessage !== 'null' ? errorMessage : 'Transaction was unsuccessful.';
+                if (debugStatus) {
+                    toastMsg += ` (Status: ${debugStatus})`;
+                }
+                ui.addToast(`Payment failed: ${toastMsg}`, 'error');
                 if (customFields.type === 'enrollment') await deleteDoc(doc(db, "sales", customFields.sale.id));
                 pageToNavigateTo = { name: 'student_dashboard' };
             }

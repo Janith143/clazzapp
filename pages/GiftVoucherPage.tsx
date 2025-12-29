@@ -10,8 +10,8 @@ import html2canvas from 'html2canvas';
 type ActiveTab = 'voucher' | 'topup';
 
 interface GiftVoucherPageProps {
-  vouchers?: Voucher[];
-  successData?: { students: User[]; amountPerStudent: number; totalAmount: number };
+    vouchers?: Voucher[];
+    successData?: { students: User[]; amountPerStudent: number; totalAmount: number };
 }
 
 const GeneratedVoucherCard = React.forwardRef<HTMLDivElement, { voucher: Voucher }>(({ voucher }, ref) => {
@@ -45,11 +45,11 @@ const GeneratedVoucherCard = React.forwardRef<HTMLDivElement, { voucher: Voucher
                     <p className="text-xs text-light-subtle dark:text-dark-subtle mt-2">Redeem at checkout or in student dashboard.</p>
                 </div>
                 <div className="mt-6 pt-4 border-t border-light-border dark:border-dark-border flex items-end justify-between">
-                     <div className="text-left text-xs text-light-subtle dark:text-dark-subtle">
+                    <div className="text-left text-xs text-light-subtle dark:text-dark-subtle">
                         <p>Voucher ID: {voucher.id}</p>
                         <p>Valid Until: {new Date(voucher.expiresAt).toLocaleDateString()}</p>
                         <div className="flex items-center space-x-1 mt-2">
-                            <MailIcon className="w-3 h-3"/>
+                            <MailIcon className="w-3 h-3" />
                             <span>Support: info@clazz.lk</span>
                         </div>
                     </div>
@@ -65,9 +65,9 @@ const GiftVoucherPage: React.FC<GiftVoucherPageProps> = ({ vouchers: successVouc
     const { handleNavigate } = useNavigation();
     const { users, handleVoucherPurchaseRequest, handleExternalTopUpRequest } = useData();
     const { addToast } = useUI();
-    
+
     const [activeTab, setActiveTab] = useState<ActiveTab>(successTopUpData ? 'topup' : 'voucher');
-    
+
     // Voucher states
     const [voucherFormData, setVoucherFormData] = useState({
         amount: '',
@@ -87,7 +87,7 @@ const GiftVoucherPage: React.FC<GiftVoucherPageProps> = ({ vouchers: successVouc
     const [topUpStudentList, setTopUpStudentList] = useState<User[]>([]);
 
     const currencyFormatter = new Intl.NumberFormat('en-LK', { style: 'currency', currency: 'LKR', minimumFractionDigits: 0 });
-    
+
     const isVoucherSuccess = !!successVouchers;
     const isTopUpSuccess = !!successTopUpData;
 
@@ -111,7 +111,7 @@ const GiftVoucherPage: React.FC<GiftVoucherPageProps> = ({ vouchers: successVouc
 
     const handleVoucherChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
-        if(name === 'quantity' && parseInt(value, 10) < 1) return;
+        if (name === 'quantity' && parseInt(value, 10) < 1) return;
         setVoucherFormData(prev => ({ ...prev, [name]: value }));
     };
 
@@ -130,7 +130,7 @@ const GiftVoucherPage: React.FC<GiftVoucherPageProps> = ({ vouchers: successVouc
         const { amount: _amount, quantity: _quantity, ...details } = voucherFormData;
         handleVoucherPurchaseRequest({ amount, ...details }, quantity);
     };
-    
+
     const handleAddStudent = () => {
         if (foundStudent && !topUpStudentList.some(s => s.id === foundStudent.id)) {
             setTopUpStudentList(prev => [...prev, foundStudent]);
@@ -146,7 +146,7 @@ const GiftVoucherPage: React.FC<GiftVoucherPageProps> = ({ vouchers: successVouc
     const handleRemoveStudent = (studentId: string) => {
         setTopUpStudentList(prev => prev.filter(s => s.id !== studentId));
     };
-    
+
     const handleTopUpSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         const amount = parseFloat(topUpFormData.amount);
@@ -175,13 +175,13 @@ const GiftVoucherPage: React.FC<GiftVoucherPageProps> = ({ vouchers: successVouc
             .then(() => addToast('Voucher code copied to clipboard!', 'success'))
             .catch(() => addToast('Could not copy code.', 'error'));
     };
-    
+
     const VoucherPreviewCard: React.FC = () => {
         const sender = voucherFormData.cardSenderName || 'A Kind Gifter';
         const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=clazz.lk-preview&qzone=1`;
 
         return (
-             <div className="my-8 rounded-lg shadow-xl p-6 bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-slate-800 dark:to-slate-900 border border-light-border dark:border-dark-border relative overflow-hidden text-light-text dark:text-dark-text">
+            <div className="my-8 rounded-lg shadow-xl p-6 bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-slate-800 dark:to-slate-900 border border-light-border dark:border-dark-border relative overflow-hidden text-light-text dark:text-dark-text">
                 <div className="absolute -top-10 -right-10 w-32 h-32 text-primary/10 dark:text-primary/5"><LogoIcon /></div>
                 <div className="relative z-10">
                     <div className="flex justify-between items-start">
@@ -202,11 +202,11 @@ const GiftVoucherPage: React.FC<GiftVoucherPageProps> = ({ vouchers: successVouc
                         <p className="text-xs text-light-subtle dark:text-dark-subtle mt-2">Redeem at checkout or in student dashboard.</p>
                     </div>
                     <div className="mt-6 pt-4 border-t border-light-border dark:border-dark-border flex items-end justify-between">
-                         <div className="text-left text-xs text-light-subtle dark:text-dark-subtle">
+                        <div className="text-left text-xs text-light-subtle dark:text-dark-subtle">
                             <p>Voucher ID: V-XXXXXXXX</p>
                             <p>Valid Until: 6 Months from Purchase</p>
                             <div className="flex items-center space-x-1 mt-2">
-                                <MailIcon className="w-3 h-3"/>
+                                <MailIcon className="w-3 h-3" />
                                 <span>Support: info@clazz.lk</span>
                             </div>
                         </div>
@@ -221,14 +221,14 @@ const GiftVoucherPage: React.FC<GiftVoucherPageProps> = ({ vouchers: successVouc
     const voucherQuantity = parseInt(voucherFormData.quantity, 10) || 1;
     const totalVoucherAmount = voucherAmount * voucherQuantity;
     const totalTopUpAmount = (parseFloat(topUpFormData.amount) || 0) * topUpStudentList.length;
-    
+
     const tabs = [
         { id: 'voucher', label: "Buy a Gift Voucher" },
         { id: 'topup', label: "Top Up Account" }
     ];
 
     const TermsAndConditions = () => (
-         <div className="mt-6 text-left text-xs text-light-subtle dark:text-dark-subtle bg-light-background dark:bg-dark-background p-4 rounded-lg border border-light-border dark:border-dark-border">
+        <div className="mt-6 text-left text-xs text-light-subtle dark:text-dark-subtle bg-light-background dark:bg-dark-background p-4 rounded-lg border border-light-border dark:border-dark-border">
             <h4 className="font-bold text-sm text-light-text dark:text-dark-text mb-2">Terms & Conditions</h4>
             <ul className="list-disc list-inside space-y-1">
                 <li>Non-refundable & non-exchangeable for cash.</li>
@@ -243,7 +243,7 @@ const GiftVoucherPage: React.FC<GiftVoucherPageProps> = ({ vouchers: successVouc
 
     const renderVoucherForm = () => (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-             <div className="bg-light-surface dark:bg-dark-surface p-8 rounded-lg shadow-md">
+            <div className="bg-light-surface dark:bg-dark-surface p-8 rounded-lg shadow-md">
                 <h1 className="text-3xl font-bold">Buy a Gift Voucher</h1>
                 <p className="mt-2 text-light-subtle dark:text-dark-subtle">Give the gift of learning.</p>
                 <form onSubmit={handleVoucherSubmit} className="mt-8 space-y-6">
@@ -255,7 +255,7 @@ const GiftVoucherPage: React.FC<GiftVoucherPageProps> = ({ vouchers: successVouc
                         </div>
                         <p className="text-xs text-light-subtle dark:text-dark-subtle mt-1">Minimum value is {currencyFormatter.format(100)}. Amount must be in multiples of {currencyFormatter.format(100)}.</p>
                     </div>
-                     <div>
+                    <div>
                         <h3 className="font-semibold text-lg border-b border-light-border dark:border-dark-border pb-2 mb-4">Billing Details (for Payment)</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <FormInput label="First Name" name="billingFirstName" value={voucherFormData.billingFirstName} onChange={handleVoucherChange} required maxLength={30} />
@@ -269,9 +269,9 @@ const GiftVoucherPage: React.FC<GiftVoucherPageProps> = ({ vouchers: successVouc
                         <h3 className="font-semibold text-lg border-b border-light-border dark:border-dark-border pb-2 mb-4">Gift Card Customization (Optional)</h3>
                         <FormInput label="Your Name (to show on card)" name="cardSenderName" value={voucherFormData.cardSenderName} onChange={handleVoucherChange} />
                         <div className="mt-4"><FormInput label="Recipient's Name" name="recipientName" value={voucherFormData.recipientName} onChange={handleVoucherChange} /></div>
-                        <div className="mt-4"><label className="block text-sm font-medium mb-1 text-light-text dark:text-dark-text">Personal Message</label><textarea name="message" value={voucherFormData.message} onChange={handleVoucherChange} rows={3} maxLength={150} className="w-full px-3 py-2 border rounded-md bg-light-background dark:bg-dark-background border-light-border dark:border-dark-border text-light-text dark:text-dark-text focus:outline-none focus:ring-primary focus:border-primary"/></div>
+                        <div className="mt-4"><label className="block text-sm font-medium mb-1 text-light-text dark:text-dark-text">Personal Message</label><textarea name="message" value={voucherFormData.message} onChange={handleVoucherChange} rows={3} maxLength={150} className="w-full px-3 py-2 border rounded-md bg-light-background dark:bg-dark-background border-light-border dark:border-dark-border text-light-text dark:text-dark-text focus:outline-none focus:ring-primary focus:border-primary" /></div>
                     </div>
-                     <div className="pt-4 space-y-2">
+                    <div className="pt-4 space-y-2">
                         <div className="text-right">
                             <p className="text-light-subtle dark:text-dark-subtle">Total Amount</p>
                             <p className="text-2xl font-bold text-primary">{currencyFormatter.format(totalVoucherAmount)}</p>
@@ -279,17 +279,17 @@ const GiftVoucherPage: React.FC<GiftVoucherPageProps> = ({ vouchers: successVouc
                         <button type="submit" className="w-full bg-primary text-white font-bold py-3 rounded-md hover:bg-primary-dark transition-colors">Proceed to Purchase</button>
                     </div>
                 </form>
-             </div>
-             <div className="sticky top-24">
+            </div>
+            <div className="sticky top-24">
                 <h3 className="text-lg font-semibold text-center mb-2 text-light-text dark:text-dark-text">Live Preview</h3>
                 <VoucherPreviewCard />
                 <TermsAndConditions />
-             </div>
-         </div>
+            </div>
+        </div>
     );
-    
+
     const renderTopUpForm = () => (
-         <div className="bg-light-surface dark:bg-dark-surface p-8 rounded-lg shadow-md">
+        <div className="bg-light-surface dark:bg-dark-surface p-8 rounded-lg shadow-md">
             <h1 className="text-3xl font-bold">Top Up a Student Account</h1>
             <p className="mt-2 text-light-subtle dark:text-dark-subtle">Directly add funds to one or more student accounts.</p>
             <form onSubmit={handleTopUpSubmit} className="mt-8 space-y-6">
@@ -314,7 +314,7 @@ const GiftVoucherPage: React.FC<GiftVoucherPageProps> = ({ vouchers: successVouc
                                 disabled={!foundStudent || topUpStudentList.some(s => s.id === foundStudent.id)}
                                 className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                <PlusIcon className="w-5 h-5"/>
+                                <PlusIcon className="w-5 h-5" />
                             </button>
                         </div>
                         {currentStudentIdInput && (
@@ -341,7 +341,7 @@ const GiftVoucherPage: React.FC<GiftVoucherPageProps> = ({ vouchers: successVouc
                         )}
                     </div>
                 </div>
-                 <div>
+                <div>
                     <h3 className="font-semibold text-lg border-b border-light-border dark:border-dark-border pb-2 mb-4">Billing Details (for Payment)</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <FormInput label="First Name" name="billingFirstName" value={topUpFormData.billingFirstName} onChange={handleTopUpChange} required maxLength={30} />
@@ -351,12 +351,12 @@ const GiftVoucherPage: React.FC<GiftVoucherPageProps> = ({ vouchers: successVouc
                     <div className="mt-4"><FormInput label="Contact Number" name="billingContactNumber" type="tel" value={topUpFormData.billingContactNumber} onChange={handleTopUpChange} required placeholder="+94771234567" /></div>
                     <div className="mt-4"><FormInput label="Address Line 1" name="billingAddressLineOne" value={topUpFormData.billingAddressLineOne} onChange={handleTopUpChange} required /></div>
                 </div>
-                 <div className="p-4 rounded-md bg-yellow-50 dark:bg-yellow-900/30 border-l-4 border-yellow-400">
+                <div className="p-4 rounded-md bg-yellow-50 dark:bg-yellow-900/30 border-l-4 border-yellow-400">
                     <p className="font-bold text-yellow-800 dark:text-yellow-200">Important Notice</p>
                     <p className="text-sm text-yellow-700 dark:text-yellow-300">These payments are non-refundable. Please ensure the Student ID(s) are correct before proceeding.</p>
                 </div>
-                 <div className="pt-4 space-y-2">
-                     <div className="text-right">
+                <div className="pt-4 space-y-2">
+                    <div className="text-right">
                         <p className="text-light-subtle dark:text-dark-subtle">Total Amount</p>
                         <p className="text-2xl font-bold text-primary">{currencyFormatter.format(totalTopUpAmount)}</p>
                     </div>
@@ -365,7 +365,7 @@ const GiftVoucherPage: React.FC<GiftVoucherPageProps> = ({ vouchers: successVouc
                     </button>
                 </div>
             </form>
-         </div>
+        </div>
     );
 
     const resetTopUpForm = () => {
@@ -374,7 +374,7 @@ const GiftVoucherPage: React.FC<GiftVoucherPageProps> = ({ vouchers: successVouc
 
     return (
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-slideInUp">
-            <div className="mb-8"><button onClick={() => handleNavigate({name: 'home'})} className="flex items-center space-x-2 text-sm font-medium text-primary hover:text-primary-dark"><ChevronLeftIcon className="h-5 w-5" /><span>Back to Home</span></button></div>
+            <div className="mb-8"><button onClick={() => handleNavigate({ name: 'home' })} className="flex items-center space-x-2 text-sm font-medium text-primary hover:text-primary-dark"><ChevronLeftIcon className="h-5 w-5" /><span>Back to Home</span></button></div>
             <div className="max-w-4xl mx-auto">
                 {!isVoucherSuccess && !isTopUpSuccess && (
                     <div className="border-b border-light-border dark:border-dark-border mb-8">
@@ -385,7 +385,7 @@ const GiftVoucherPage: React.FC<GiftVoucherPageProps> = ({ vouchers: successVouc
                         </nav>
                     </div>
                 )}
-                
+
                 {activeTab === 'voucher' ? (
                     isVoucherSuccess ? (
                         <div className="text-center">
@@ -395,7 +395,7 @@ const GiftVoucherPage: React.FC<GiftVoucherPageProps> = ({ vouchers: successVouc
                                 {successVouchers!.map((voucher, index) => (
                                     <div key={voucher.code}>
                                         <GeneratedVoucherCard ref={el => { voucherCardRefs.current[index] = el; }} voucher={voucher} />
-                                        <div className="flex justify-center space-x-4 -mt-4"><button onClick={() => handleDownload(index, voucher.code)} className="flex items-center space-x-2 px-6 py-2 border border-primary text-primary rounded-md font-semibold hover:bg-primary/10"><DownloadIcon className="w-5 h-5"/><span>Download</span></button><button onClick={() => handleShare(voucher.code)} className="flex items-center space-x-2 px-6 py-2 border border-primary text-primary rounded-md font-semibold hover:bg-primary/10"><ShareIcon className="w-5 h-5"/><span>Copy Code</span></button></div>
+                                        <div className="flex justify-center space-x-4 -mt-4"><button onClick={() => handleDownload(index, voucher.code)} className="flex items-center space-x-2 px-6 py-2 border border-primary text-primary rounded-md font-semibold hover:bg-primary/10"><DownloadIcon className="w-5 h-5" /><span>Download</span></button><button onClick={() => handleShare(voucher.code)} className="flex items-center space-x-2 px-6 py-2 border border-primary text-primary rounded-md font-semibold hover:bg-primary/10"><ShareIcon className="w-5 h-5" /><span>Copy Code</span></button></div>
                                     </div>
                                 ))}
                             </div>
@@ -423,7 +423,7 @@ const GiftVoucherPage: React.FC<GiftVoucherPageProps> = ({ vouchers: successVouc
                                     </div>
                                 </div>
                             </div>
-                             <div className="mt-8 text-left max-w-sm mx-auto text-xs text-light-subtle dark:text-dark-subtle bg-light-background dark:bg-dark-background p-4 rounded-lg border border-light-border dark:border-dark-border">
+                            <div className="mt-8 text-left max-w-sm mx-auto text-xs text-light-subtle dark:text-dark-subtle bg-light-background dark:bg-dark-background p-4 rounded-lg border border-light-border dark:border-dark-border">
                                 <h4 className="font-bold text-sm text-light-text dark:text-dark-text mb-2">Terms & Conditions</h4>
                                 <ul className="list-disc list-inside space-y-1"><li>All top-up payments are final and non-refundable.</li><li>It is the purchaser's responsibility to ensure the Student ID is entered correctly.</li><li>Funds can only be used for purchases on the clazz.lk platform.</li><li>Clazz.lk is not liable for funds sent to an incorrect Student ID due to user error.</li></ul>
                             </div>

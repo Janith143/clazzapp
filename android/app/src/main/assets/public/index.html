@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <script>
+        window.global = window;
+    </script>
+    <!-- Google Tag Manager -->
+    <script>(function (w, d, s, l, i) {
+            w[l] = w[l] || []; w[l].push({
+                'gtm.start':
+                    new Date().getTime(), event: 'gtm.js'
+            }); var f = d.getElementsByTagName(s)[0],
+                j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
+                    'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
+        })(window, document, 'script', 'dataLayer', 'GTM-WL6LV85G');</script>
+    <!-- End Google Tag Manager -->
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+    <title>clazz.lk - Online Learning Platform for Sri Lanka</title>
+    <meta name="description"
+        content="A full-featured, scalable online platform for connecting students with tuition teachers in Sri Lanka, featuring profiles, class scheduling, course creation, and more.">
+    <meta name="keywords"
+        content="online tuition, sri lanka, education, classes, courses, teachers, students, A/L, O/L, physics, maths">
+    <link rel="canonical" href="https://clazz.lk/" />
+
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://clazz.lk/">
+    <meta property="og:title" content="clazz.lk - Online Learning Platform for Sri Lanka">
+    <meta property="og:description"
+        content="Connect with the best tutors, enroll in online classes, and excel in your studies.">
+
+    <meta property="og:image" content="https://asia-south1-clazz2-new.cloudfunctions.net/ogImageHandler">
+
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://clazz.lk/">
+    <meta property="twitter:title" content="clazz.lk - Online Learning Platform for Sri Lanka">
+    <meta property="twitter:description"
+        content="Connect with the best tutors, enroll in online classes, and excel in your studies.">
+
+    <meta property="twitter:image" content="https://asia-south1-clazz2-new.cloudfunctions.net/ogImageHandler">
+
+    <link rel="icon" type="image/png" href="/Logo3.png">
+
+    <!-- Added for mobile web app readiness -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#f8fafc" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#020617" media="(prefers-color-scheme: dark)">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+    <script type="application/ld+json" id="structured-data">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "clazz.lk",
+      "url": "https://clazz.lk/",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://clazz.lk/?s={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+    }
+    </script>
+
+    <link rel="stylesheet" href="https://unpkg.com/draft-js@0.11.7/dist/Draft.css" />
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsencrypt/3.3.2/jsencrypt.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <style>
+        .animate-marquee {
+            animation: marquee 40s linear infinite;
+        }
+
+        /* Added for a more native app-like feel in WebViews */
+        body::-webkit-scrollbar {
+            display: none;
+        }
+
+        body {
+            -ms-overflow-style: none;
+            /* IE and Edge */
+            scrollbar-width: none;
+            /* Firefox */
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Theme-aware native controls */
+        :root {
+            color-scheme: light;
+        }
+
+        html.dark {
+            color-scheme: dark;
+        }
+
+        @keyframes flow-watermark {
+            0% {
+                left: -80%;
+                top: 10%;
+                opacity: 0;
+                transform: rotate(-15deg);
+            }
+
+            10% {
+                opacity: 0.4;
+            }
+
+            90% {
+                opacity: 0.4;
+            }
+
+            100% {
+                left: 110%;
+                top: 90%;
+                opacity: 0;
+                transform: rotate(-15deg);
+            }
+        }
+
+        @keyframes flow-watermark-reverse {
+            0% {
+                left: 110%;
+                top: 15%;
+                opacity: 0;
+                transform: rotate(15deg);
+            }
+
+            10% {
+                opacity: 0.4;
+            }
+
+            90% {
+                opacity: 0.4;
+            }
+
+            100% {
+                left: -80%;
+                top: 85%;
+                opacity: 0;
+                transform: rotate(15deg);
+            }
+        }
+
+        /* Custom Horizontal Scrollbar for Tabs */
+        .horizontal-tabs-scrollbar {
+            scrollbar-width: thin;
+            /* Firefox */
+            scrollbar-color: #cbd5e1 #f1f5f9;
+            /* Firefox Thumb, Track */
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .dark .horizontal-tabs-scrollbar {
+            scrollbar-color: #475569 #1e293b;
+        }
+
+        /* WebKit Scrollbar Styling (Chrome, Safari, Edge, iOS) */
+        .horizontal-tabs-scrollbar::-webkit-scrollbar {
+            height: 6px;
+            /* Visible height */
+            width: 0px;
+            /* Hide vertical */
+            display: block !important;
+            /* Force display override */
+            -webkit-appearance: none;
+            /* Crucial for iOS to disable overlay */
+            background-color: transparent;
+        }
+
+        .horizontal-tabs-scrollbar::-webkit-scrollbar-track {
+            background-color: #f1f5f9;
+            border-radius: 4px;
+            margin: 0 4px;
+        }
+
+        .dark .horizontal-tabs-scrollbar::-webkit-scrollbar-track {
+            background-color: #1e293b;
+        }
+
+        .horizontal-tabs-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #94a3b8;
+            /* Visible thumb color */
+            border-radius: 4px;
+            border: 1px solid #f1f5f9;
+            /* Padding effect */
+        }
+
+        .dark .horizontal-tabs-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #64748b;
+            border: 1px solid #1e293b;
+        }
+
+        .horizontal-tabs-scrollbar::-webkit-scrollbar-thumb:hover {
+            background-color: #64748b;
+        }
+
+        .dark .horizontal-tabs-scrollbar::-webkit-scrollbar-thumb:hover {
+            background-color: #475569;
+        }
+
+        /* Custom Horizontal Scrollbar for Showcases */
+        .horizontal-showcase-scrollbar {
+            scrollbar-width: auto;
+            /* 'auto' or 'thin' */
+            scrollbar-color: #94a3b8 #e2e8f0;
+            /* thumb and track color */
+        }
+
+        .dark .horizontal-showcase-scrollbar {
+            scrollbar-color: #475569 #1e293b;
+        }
+
+        .horizontal-showcase-scrollbar::-webkit-scrollbar {
+            height: 12px;
+        }
+
+        .horizontal-showcase-scrollbar::-webkit-scrollbar-track {
+            background: #e2e8f0;
+            border-radius: 10px;
+        }
+
+        .dark .horizontal-showcase-scrollbar::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+
+        .horizontal-showcase-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #94a3b8;
+            border-radius: 10px;
+            border: 3px solid #e2e8f0;
+        }
+
+        .dark .horizontal-showcase-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #475569;
+            border: 3px solid #1e293b;
+        }
+
+        .horizontal-showcase-scrollbar::-webkit-scrollbar-thumb:hover {
+            background-color: #64748b;
+        }
+
+        .dark .horizontal-showcase-scrollbar::-webkit-scrollbar-thumb:hover {
+            background-color: #334155;
+        }
+    </style>
+    <!-- Redirect script removed: handled by NavigationContext -->
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-98MHPV86X9"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+
+        gtag('config', 'G-98MHPV86X9');
+    </script>
+
+
+  <script type="module" crossorigin src="/assets/index-BXN-gaEy.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/vendor-firebase-CLtQg3ae.js">
+  <link rel="stylesheet" crossorigin href="/assets/index-DvUgaaJd.css">
+</head>
+
+<body class="bg-light-background dark:bg-dark-background">
+    <div id="root"></div>
+</body>
+
+</html>

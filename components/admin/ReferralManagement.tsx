@@ -4,10 +4,10 @@ import { UserGroupIcon, ShareIcon, BanknotesIcon } from '../Icons.tsx';
 import StudentDetailsModal from '../StudentDetailsModal.tsx';
 
 interface ReferralManagementProps {
-  users: User[];
-  teachers: Teacher[];
-  sales: Sale[];
-  onViewTeacher: (teacherId: string) => void;
+    users: User[];
+    teachers: Teacher[];
+    sales: Sale[];
+    onViewTeacher: (teacherId: string) => void;
 }
 
 const StatCard: React.FC<{ title: string; value: string | number; icon: React.ReactNode; }> = ({ title, value, icon }) => (
@@ -53,14 +53,14 @@ const ReferralManagement: React.FC<ReferralManagementProps> = ({ users, teachers
 
             let totalNetPlatformIncomeFromReferrals = 0;
             let totalEarningsForReferrer = 0;
-            
+
             // Chronological calculation for accuracy
             const lifetimeEarningsByTeacher = new Map<string, number>();
 
             const allSalesFromReferredTeachers = sales
                 .filter(s => approvedReferredTeachers.some(t => t.id === s.teacherId) && s.status === 'completed')
                 .sort((a, b) => new Date(a.saleDate).getTime() - new Date(b.saleDate).getTime());
-            
+
             allSalesFromReferredTeachers.forEach(sale => {
                 const teacher = teachers.find(t => t.id === sale.teacherId);
                 if (!teacher) return;
@@ -77,7 +77,7 @@ const ReferralManagement: React.FC<ReferralManagementProps> = ({ users, teachers
 
                 const currentLifetimeEarnings = lifetimeEarningsByTeacher.get(teacher.id) || 0;
                 if (currentLifetimeEarnings >= MAX_EARNING_PER_REFERRAL) return;
-                
+
                 // Use a base 4% for lifetime calculation, as tiers are monthly.
                 const potentialEarningFromSale = netPlatformIncome * 0.04;
                 const remainingEarningCapacity = MAX_EARNING_PER_REFERRAL - currentLifetimeEarnings;
@@ -100,14 +100,14 @@ const ReferralManagement: React.FC<ReferralManagementProps> = ({ users, teachers
         return {
             totalReferrers: referrers.length,
             totalReferredUsers,
-            referrerDetails: referrerDetails.sort((a,b) => b.totalEarningsForReferrer - a.totalEarningsForReferrer),
+            referrerDetails: referrerDetails.sort((a, b) => b.totalEarningsForReferrer - a.totalEarningsForReferrer),
         };
     }, [users, teachers, sales]);
 
     return (
         <div className="space-y-8">
             <h1 className="text-3xl font-bold">Referral System Overview</h1>
-             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <StatCard title="Total Referrers" value={referralData.totalReferrers} icon={<ShareIcon className="w-7 h-7" />} />
                 <StatCard title="Total Referred Users" value={referralData.totalReferredUsers} icon={<UserGroupIcon className="w-7 h-7" />} />
                 <StatCard title="Total Est. Payouts" value={currencyFormatter.format(referralData.referrerDetails.reduce((acc, r) => acc + r.totalEarningsForReferrer, 0))} icon={<BanknotesIcon className="w-7 h-7" />} />
@@ -127,7 +127,7 @@ const ReferralManagement: React.FC<ReferralManagementProps> = ({ users, teachers
                                 <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-light-subtle dark:text-dark-subtle">Total Earnings</th>
                             </tr>
                         </thead>
-                         <tbody className="divide-y divide-light-border dark:divide-dark-border">
+                        <tbody className="divide-y divide-light-border dark:divide-dark-border">
                             {referralData.referrerDetails.map(referrer => (
                                 <tr key={referrer.id}>
                                     <td className="px-4 py-3 whitespace-nowrap">
@@ -159,7 +159,7 @@ const ReferralManagement: React.FC<ReferralManagementProps> = ({ users, teachers
                     </table>
                 </div>
             </div>
-             {selectedStudent && <StudentDetailsModal isOpen={!!selectedStudent} onClose={() => setSelectedStudent(null)} student={selectedStudent} />}
+            {selectedStudent && <StudentDetailsModal isOpen={!!selectedStudent} onClose={() => setSelectedStudent(null)} student={selectedStudent} />}
         </div>
     );
 };

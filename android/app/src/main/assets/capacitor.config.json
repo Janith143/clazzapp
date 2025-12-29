@@ -1,0 +1,28 @@
+{
+	"appId": "com.clazz.app",
+	"appName": "Clazz",
+	"webDir": "dist",
+	"server": {
+		"androidScheme": "https",
+		"allowNavigation": [
+			"*.clazz.lk",
+			"*.firebaseapp.com",
+			"*.googleapis.com",
+			"*.googleusercontent.com",
+			"*.gstatic.com"
+		]
+	},
+	"plugins": {
+		"CapacitorHttp": {
+			"enabled": true
+		},
+		"GoogleAuth": {
+			"scopes": [
+				"profile",
+				"email"
+			],
+			"serverClientId": "REPLACE_WITH_WEB_CLIENT_ID.apps.googleusercontent.com",
+			"forceCodeForRefreshToken": true
+		}
+	}
+}

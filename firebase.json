@@ -49,6 +49,11 @@
       "source": "backend/chat-notifications",
       "codebase": "chat-notifications",
       "runtime": "nodejs20"
+    },
+    {
+      "source": "backend/database-triggers",
+      "codebase": "database-triggers",
+      "runtime": "nodejs20"
     }
   ],
   "firestore": {
