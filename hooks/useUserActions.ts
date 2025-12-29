@@ -55,24 +55,30 @@ export const useUserActions = (deps: UserActionDeps) => {
     }, [addToast]);
 
     const addTeacher = useCallback(async (teacher: Teacher) => {
-        await setDoc(doc(db, "teachers", teacher.id), teacher);
+        try {
+            await setDoc(doc(db, "teachers", teacher.id), teacher);
 
-        // Affiliate Referrer Notification
-        const teacherUser = users.find(u => u.id === teacher.userId);
-        if (teacherUser?.referrerId) {
-            const referrer = users.find(u => u.id === teacherUser.referrerId);
-            if (referrer) {
-                const subject = "A new teacher joined using your referral code!";
-                const htmlBody = `
-                    <div style="font-family: Arial, sans-serif; color: #333;">
-                        <p>Hi ${referrer.firstName},</p>
-                        <p>Great news! A new teacher, <strong>${teacher.name}</strong>, has registered on Clazz.lk using your referral code.</p>
-                        <p>Once their account is approved and they start generating platform income, you will begin earning commissions.</p>
-                    </div>`;
-                await sendNotification(functionUrls.notification, { email: referrer.email }, subject, htmlBody);
+            // Affiliate Referrer Notification
+            const teacherUser = users.find(u => u.id === teacher.userId);
+            if (teacherUser?.referrerId) {
+                const referrer = users.find(u => u.id === teacherUser.referrerId);
+                if (referrer) {
+                    const subject = "A new teacher joined using your referral code!";
+                    const htmlBody = `
+                        <div style="font-family: Arial, sans-serif; color: #333;">
+                            <p>Hi ${referrer.firstName},</p>
+                            <p>Great news! A new teacher, <strong>${teacher.name}</strong>, has registered on Clazz.lk using your referral code.</p>
+                            <p>Once their account is approved and they start generating platform income, you will begin earning commissions.</p>
+                        </div>`;
+                    await sendNotification(functionUrls.notification, { email: referrer.email }, subject, htmlBody);
+                }
             }
+        } catch (error) {
+            console.error("Error creating teacher profile:", error);
+            addToast("Failed to create teacher profile.", "error");
+            throw error;
         }
-    }, [users]);
+    }, [users, addToast, functionUrls]);
 
     const addTuitionInstitute = useCallback(async (institute: TuitionInstitute) => {
         await setDoc(doc(db, "tuitionInstitutes", institute.id), institute);

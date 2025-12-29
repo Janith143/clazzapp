@@ -22,6 +22,7 @@ import PaymentGatewayManagement from '../components/admin/PaymentGatewayManageme
 import StaffManagement from '../components/admin/StaffManagement';
 import DeveloperSettings from '../components/admin/DeveloperSettings';
 import { useAuth } from '../contexts/AuthContext';
+import DataRepairTool from '../components/admin/DataRepairTool';
 
 const AdminDashboard: React.FC = () => {
     const {
@@ -149,6 +150,7 @@ const AdminDashboard: React.FC = () => {
             <div className="flex flex-col md:flex-row gap-8">
                 <AdminSidebar activeView={activeView} setActiveView={setActiveView} />
                 <main className="flex-1">
+                    <DataRepairTool />
                     {renderView()}
                 </main>
             </div>

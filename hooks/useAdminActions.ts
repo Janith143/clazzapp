@@ -111,9 +111,7 @@ export const useAdminActions = (deps: any) => {
         }
     }, [addToast, teachers, knownInstitutes]);
 
-    const addTeacher = useCallback(async (teacher: Teacher) => {
-        await setDoc(doc(db, "teachers", teacher.id), teacher);
-    }, []);
+
 
     const handleUpdateWithdrawal = useCallback(async (userId: string, withdrawalId: string, status: 'completed' | 'failed', notes?: string) => {
         try {
@@ -726,7 +724,7 @@ export const useAdminActions = (deps: any) => {
 
     return {
         handleUpdateTeacher,
-        addTeacher,
+
         handleUpdateWithdrawal,
         handleRemoveDefaultCoverImage,
         handleRemoveCoverImageFromArray,

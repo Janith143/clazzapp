@@ -190,7 +190,7 @@ const getPageStateFromURL = (): PageState => {
 
     // Fallback for simple slug at root: /janith
     const pathSegments = pathname.split('/').filter(Boolean);
-    const reservedPaths = ['admin', 'teachers', 'courses', 'classes', 'quizzes', 'exams', 'events', 'store', 'gift-voucher', 'referrals', 'dashboard', 'institute'];
+    const reservedPaths = ['admin', 'teachers', 'courses', 'classes', 'quizzes', 'exams', 'events', 'store', 'gift-voucher', 'referrals', 'dashboard', 'institute', 'home'];
     if (pathSegments.length === 1 && !reservedPaths.includes(pathSegments[0])) {
         return { name: 'teacher_profile_slug', slug: pathSegments[0] };
     }
@@ -320,6 +320,12 @@ export const NavigationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
                 window.history.replaceState(null, '', newPath);
                 setPageState(getPageStateFromURL());
             }
+        }
+
+        // --- Redirect /home to / ---
+        if (window.location.pathname === '/home') {
+            window.history.replaceState(null, '', '/');
+            setPageState({ name: 'home' });
         }
 
 
