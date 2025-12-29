@@ -481,7 +481,7 @@ function AppContent() {
         <MobileWelcomeGate onLogin={handleGateLogin} onBrowse={handleGateBrowse} />
       )}
       <Header />
-      <main className="flex-grow pb-20 md:pb-0">
+      <main className="flex-grow pb-24 md:pb-0 pb-safe">
         <Suspense fallback={<div className="flex justify-center items-center h-screen"><SpinnerIcon className="w-10 h-10 text-primary animate-spin" /></div>}>
           {renderPage()}
         </Suspense>

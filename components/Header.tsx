@@ -378,7 +378,7 @@ const Header: React.FC = () => {
                                             href={href}
                                             onClick={(e) => {
                                                 e.preventDefault();
-                                                handleNavigate({ name: item.name });
+                                                handleNavigate({ name: item.name } as PageState);
                                             }}
                                             className={`font-medium text-sm transition-colors ${pageState.name === item.name
                                                 ? 'text-primary'
@@ -402,7 +402,7 @@ const Header: React.FC = () => {
                                         onChange={(e) => setSearchQuery(e.target.value)}
                                         onBlur={() => !searchQuery && setIsSearchOpen(false)}
                                         placeholder="Search..."
-                                        className="w-full pl-3 pr-10 py-1.5 text-sm bg-light-background dark:bg-dark-background border border-light-border dark:border-dark-border rounded-full focus:outline-none focus:ring-1 focus:ring-primary"
+                                        className="w-full pl-3 pr-10 py-1.5 text-base md:text-sm bg-light-background dark:bg-dark-background border border-light-border dark:border-dark-border rounded-full focus:outline-none focus:ring-1 focus:ring-primary"
                                     />
                                 )}
                                 <button
