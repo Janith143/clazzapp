@@ -75,7 +75,7 @@ const ProfileHeader = React.forwardRef<HTMLDivElement, ProfileHeaderProps>(({
                             style={{ width: '10rem', height: '10rem', overflow: 'hidden', borderRadius: '9999px', clipPath: 'circle(50% at 50% 50%)' }}
                         >
                             {teacher.profileImage ? (
-                                <img src={getOptimizedImageUrl(teacher.profileImage, 160, 160)} srcSet={profileImageSrcSet} sizes="160px" alt={teacher.name} crossOrigin="anonymous" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                <img src={getOptimizedImageUrl(teacher.profileImage, 160, 160)} srcSet={profileImageSrcSet} sizes="160px" alt={teacher.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                             ) : (
                                 <div style={{ width: '100%', height: '100%', backgroundColor: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffffff', fontWeight: 'bold', fontSize: '3rem' }}>
                                     {teacher.name?.split(' ')[0]?.charAt(0) || ''}{teacher.name?.split(' ')[1]?.charAt(0) || ''}

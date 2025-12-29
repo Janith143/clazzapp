@@ -104,7 +104,7 @@ const TeacherCard: React.FC<TeacherCardProps> = ({ teacher, onViewProfile }) => 
                     src={optimizedCoverImage}
                     alt={`${teacher.name}'s cover`}
                     className={`w-full h-full object-cover transition-opacity duration-300 ${isImageLoading ? 'opacity-50' : 'opacity-100'}`}
-                    crossOrigin="anonymous"
+
                     onLoad={handleImageLoad}
                     loading="lazy"
                     decoding="async"
@@ -164,7 +164,6 @@ const TeacherCard: React.FC<TeacherCardProps> = ({ teacher, onViewProfile }) => 
                         src={optimizedProfileImage}
                         alt={teacher.name}
                         className="w-full h-full object-cover"
-                        crossOrigin="anonymous"
                         loading="lazy"
                         decoding="async"
                         width="96"
