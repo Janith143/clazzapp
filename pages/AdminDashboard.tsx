@@ -23,6 +23,7 @@ import StaffManagement from '../components/admin/StaffManagement';
 import DeveloperSettings from '../components/admin/DeveloperSettings';
 import { useAuth } from '../contexts/AuthContext';
 import DataRepairTool from '../components/admin/DataRepairTool';
+import RequestsManagement from '../components/admin/RequestsManagement';
 
 const AdminDashboard: React.FC = () => {
     const {
@@ -140,6 +141,8 @@ const AdminDashboard: React.FC = () => {
                 return <CalculationGuide setActiveView={setActiveView} onNavigateToContent={handleNavigateToContent} />;
             case 'developer':
                 return <DeveloperSettings />;
+            case 'requests':
+                return <RequestsManagement />;
             default:
                 return <div>Select a view</div>;
         }

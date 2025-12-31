@@ -6,7 +6,7 @@ import type { Course, IndividualClass, Quiz, Product } from './content';
 
 export type EditableImageType = 'profile' | 'student_profile' | 'cover_add' | { type: 'cover', index: number } | 'admin_default_cover' | 'id_verification_front' | 'id_verification_back' | 'bank_verification' | 'payment_slip' | 'event_flyer' | 'quiz_question_image' | 'product_cover' | 'course_cover' | 'og_image' | 'payment_method_logo';
 
-export type AdminView = 'analytics' | 'users' | 'content' | 'products' | 'revenue' | 'vouchers' | 'referrals' | 'allsales' | 'site_content' | 'calculation_guide' | 'photo_orders' | 'physical_orders' | 'payment_gateways' | 'staff' | 'developer';
+export type AdminView = 'analytics' | 'users' | 'content' | 'products' | 'revenue' | 'vouchers' | 'referrals' | 'allsales' | 'site_content' | 'calculation_guide' | 'photo_orders' | 'physical_orders' | 'payment_gateways' | 'staff' | 'developer' | 'requests';
 export type DashboardTab = 'overview' | 'courses' | 'classes' | 'quizzes' | 'products' | 'history' | 'profile' | 'my_events' | 'my_orders' | 'past_classes' | 'score_card' | 'attendance' | 'timetable' | 'my_vouchers';
 
 type PaymentRedirectPayload =
@@ -59,7 +59,11 @@ export type PageState =
   | { name: 'gift_voucher' }
   | { name: 'voucher_success'; vouchers: Voucher[] }
   | { name: 'topup_success'; successData: { students: User[]; amountPerStudent: number; totalAmount: number } }
-  | { name: 'subscription_success'; planLevel: number; amount: number; transactionId: string; billingDetails: BillingDetails; refCode: string };
+  | { name: 'topup_success'; successData: { students: User[]; amountPerStudent: number; totalAmount: number } }
+  | { name: 'subscription_success'; planLevel: number; amount: number; transactionId: string; billingDetails: BillingDetails; refCode: string }
+  | { name: 'report_content' }
+  | { name: 'request_deletion' }
+  | { name: 'unsubscribe'; type?: 'sms' | 'email' };
 
 export type ModalState =
   | { name: 'none' }

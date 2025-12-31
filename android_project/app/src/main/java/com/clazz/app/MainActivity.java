@@ -33,6 +33,7 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
+    private boolean isAppLoaded = false;
     private WebView webView;
     private ValueCallback<Uri[]> mUploadMessage;
     private String mCameraPhotoPath;
@@ -54,7 +55,7 @@ public class MainActivity extends AppCompatActivity {
         webSettings.setMediaPlaybackRequiresUserGesture(false);
 
         // Optimize WebView performance
-        webSettings.setCacheMode(WebSettings.LOAD_DEFAULT);
+        webSettings.setCacheMode(WebSettings.LOAD_DEFAULT); // Use cache when available (relies on Server Headers)
         
         // Custom User Agent to help backend identify app
         String userAgent = webSettings.getUserAgentString();
@@ -80,6 +81,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onPageFinished(WebView view, String url) {
                  android.util.Log.d("WebView", "Page Finished: " + url);
+                 isAppLoaded = true;
             }
         });
         
@@ -137,18 +139,22 @@ public class MainActivity extends AppCompatActivity {
             }
 
             @Override
+            public boolean onConsoleMessage(android.webkit.ConsoleMessage consoleMessage) {
+                android.util.Log.d("WebView", "JS: " + consoleMessage.message() + " -- From line "
+                        + consoleMessage.lineNumber() + " of "
+                        + consoleMessage.sourceId());
+                return true;
+            }
+
+            @Override
             public void onPermissionRequest(PermissionRequest request) {
                 request.grant(request.getResources());
             }
         });
 
         checkAndRequestPermissions();
-
-        if (savedInstanceState == null) {
-            webView.loadUrl("https://clazz.lk");
-        } else {
-            webView.restoreState(savedInstanceState);
-        }
+        
+        handleIntent(getIntent(), savedInstanceState, false);
 
         com.google.firebase.messaging.FirebaseMessaging.getInstance().getToken()
             .addOnCompleteListener(new com.google.android.gms.tasks.OnCompleteListener<String>() {
@@ -165,6 +171,46 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
             });
+    }
+    
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        handleIntent(intent, null, true);
+    }
+    
+    private void handleIntent(Intent intent, Bundle savedInstanceState, boolean isNewIntent) {
+        String url = intent.getStringExtra("url");
+        if (url != null) {
+            android.util.Log.d("MainActivity", "Loading URL from Notification: " + url);
+            
+            // Smart Deep Link: If app is loaded (Warm Start) and Open Chat, use JS
+            if (isAppLoaded && url.contains("action=open_chat")) {
+                Uri uri = Uri.parse(url);
+                String chatId = uri.getQueryParameter("chatId");
+                if (chatId != null) {
+                    android.util.Log.d("MainActivity", "Injecting JS for Chat: " + chatId);
+                    webView.post(() -> {
+                        try {
+                             webView.evaluateJavascript("if(window.handleOpenChatFromAndroid) { window.handleOpenChatFromAndroid('" + chatId + "'); } else { console.error('Native JS Bridge Missing: handleOpenChatFromAndroid not found'); }", null);
+                        } catch (Exception e) {
+                             android.util.Log.e("MainActivity", "JS Injection Failed", e);
+                        }
+                    });
+                    return;
+                }
+            }
+            
+            webView.loadUrl(url);
+        } else if (savedInstanceState == null) {
+             // Only load default URL if we are NOT restoring state and NO deep link
+             // If this is a cold start (savedInstanceState == null) AND no URL, load home.
+            webView.loadUrl("https://clazz.lk");
+        } else {
+            // If we have state, restore it (unless we have a URL, which we handled above)
+            webView.restoreState(savedInstanceState);
+        }
     }
 
     public class WebAppInterface {

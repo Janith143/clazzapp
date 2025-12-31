@@ -120,22 +120,28 @@ app.post('/send-fcm-push', async (req, res) => {
         const iconUrl = teacher.avatar || 'https://clazz.lk/Logo3.png';
 
         // 5. Send Push Notifications via FCM
+        // 5. Send Push Notifications via FCM
         const messagePayload = {
-            notification: {
-                title: `New message from ${teacher.name}`,
-                body: content,
-            },
+            // Removed root 'notification' to force Android "Data Message" handling
+            // This ensures Heads-Up Display and prevents App Reloads via our custom Service logic.
+            // notification: {
+            //     title: `New message from ${teacher.name}`,
+            //     body: content,
+            // },
             data: {
                 // Specific fields to trigger client-side popup logic
                 type: 'teacher_notification',
                 title: `Message from ${teacher.name}`,
-                message: content,
+                body: content, // Key must match 'body' in Android MyFirebaseMessagingService.java
+                message: content, // Keeping 'message' just in case Web uses it, but Android needs 'body'
                 url: clickLink,
                 teacherId: teacher.id,
                 notificationId: newNotification.id
             },
             webpush: {
                 notification: {
+                    title: `Message from ${teacher.name}`, // Added title for Web
+                    body: content, // Added body for Web
                     icon: iconUrl,
                     requireInteraction: true,
                     // fcm_options link is the standard way for background clicks to open a URL

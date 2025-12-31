@@ -68,18 +68,16 @@ const chatNotificationHandler = async (event) => {
             return;
         }
 
-        const clickLink = `https://clazz.lk/?action=open_chat`;
+        const clickLink = `https://clazz.lk/?action=open_chat&chatId=${chatId}`;
 
         const payload = {
             token: fcmToken,
-            notification: {
-                title: "Support Agent",
-                body: messageData.text || "You received a new message.",
-            },
             data: {
                 type: 'chat_reply',
                 chatId: chatId,
                 url: clickLink,
+                title: "Support Agent",
+                body: messageData.text || "You received a new message.",
                 click_action: "FLUTTER_NOTIFICATION_CLICK"
             },
             webpush: {

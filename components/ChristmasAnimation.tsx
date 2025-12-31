@@ -79,12 +79,12 @@ const NewYearAnimation: React.FC = () => {
         ))}
       </div>
 
-      {/* Small countdown badge */}
+      {/* Small countdown badge 
       <div className="fixed bottom-4 right-4 z-[61] pointer-events-none">
         <div className="backdrop-blur-md bg-black/40 text-white text-sm px-3 py-1.5 rounded-full shadow-md">
           {timeLeft}
         </div>
-      </div>
+      </div>*/}
     </>
   );
 };

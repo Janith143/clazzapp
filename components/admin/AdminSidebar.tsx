@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { ChartBarIcon, UsersIcon, BookOpenIcon, BanknotesIcon, TicketIcon, ShareIcon, CurrencyDollarIcon, DocumentTextIcon, CalculatorIcon, PrinterIcon, CreditCardIcon, ShieldCheckIcon, CodeBracketIcon } from '../Icons.tsx';
+import { ChartBarIcon, UsersIcon, BookOpenIcon, BanknotesIcon, TicketIcon, ShareIcon, CurrencyDollarIcon, DocumentTextIcon, CalculatorIcon, PrinterIcon, CreditCardIcon, ShieldCheckIcon, CodeBracketIcon, MailIcon } from '../Icons.tsx';
 import { AdminView } from '../../types.ts';
 import { useAuth } from '../../contexts/AuthContext.tsx';
 
@@ -34,6 +34,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeView, setActiveView }
       { id: 'payment_gateways', label: 'Payment Gateways', icon: <CreditCardIcon className="w-5 h-5 mr-3" /> },
       { id: 'site_content', label: 'Site Content', icon: <DocumentTextIcon className="w-5 h-5 mr-3" /> },
       { id: 'calculation_guide', label: 'Calculation Guide', icon: <CalculatorIcon className="w-5 h-5 mr-3" /> },
+      { id: 'requests', label: 'Requests', icon: <MailIcon className="w-5 h-5 mr-3" /> },
       { id: 'developer', label: 'Developer', icon: <CodeBracketIcon className="w-5 h-5 mr-3" /> },
     ];
 

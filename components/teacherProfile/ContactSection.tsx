@@ -6,6 +6,8 @@ import BusinessCard from '../BusinessCard.tsx';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import QRCodeWithLogo from '../QRCodeWithLogo.tsx';
+import { useAuth } from '../../contexts/AuthContext';
+import { useNavigation } from '../../contexts/NavigationContext';
 
 interface ContactSectionProps {
     teacher: Teacher;
@@ -29,6 +31,8 @@ const ContactSection: React.FC<ContactSectionProps> = ({ teacher }) => {
     const cardContainerRef = useRef<HTMLDivElement>(null);
     const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string | null>(null);
     const profileUrl = teacher.username ? `${window.location.origin}/teacher/${teacher.username}` : `${window.location.origin}/?teacherId=${teacher.id}`;
+    const { currentUser } = useAuth();
+    const { handleNavigate } = useNavigation();
 
     useEffect(() => {
         const container = cardContainerRef.current;
@@ -144,6 +148,23 @@ const ContactSection: React.FC<ContactSectionProps> = ({ teacher }) => {
                             </p>
                         </div>
                     </div>
+
+                    {currentUser && (
+                        <div className="mt-4 pt-4 border-t border-light-border dark:border-dark-border flex flex-col space-y-2">
+                            <button
+                                onClick={() => handleNavigate({ name: 'report_content' })}
+                                className="text-xs text-red-500 hover:text-red-700 text-left font-medium w-fit"
+                            >
+                                Report Content
+                            </button>
+                            <button
+                                onClick={() => handleNavigate({ name: 'request_deletion' })}
+                                className="text-xs text-red-500 hover:text-red-700 text-left font-medium w-fit"
+                            >
+                                Request Account Deletion
+                            </button>
+                        </div>
+                    )}
                 </div>
 
                 <div className="bg-light-surface dark:bg-dark-surface p-6 rounded-lg shadow-md overflow-hidden">
@@ -196,7 +217,7 @@ const ContactSection: React.FC<ContactSectionProps> = ({ teacher }) => {
                     </div>
                 </div>
             </div>
-        </div>
+        </div >
     );
 };
 

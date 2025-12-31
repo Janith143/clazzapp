@@ -57,8 +57,26 @@ const ChatWidget: React.FC = () => {
 
     // Persistence Logic
     useEffect(() => {
-        const storedChatId = sessionStorage.getItem('supportChatId');
-        if (storedChatId) setChatId(storedChatId);
+        const params = new URLSearchParams(window.location.search);
+        const urlChatId = params.get('chatId');
+
+        if (urlChatId) {
+            console.log("ChatWidget found ID in URL:", urlChatId);
+            setChatId(urlChatId);
+            localStorage.setItem('supportChatId', urlChatId);
+        } else {
+            const storedChatId = localStorage.getItem('supportChatId');
+            if (storedChatId) setChatId(storedChatId);
+        }
+    }, []);
+
+    // Persistence Logic (Backup for old session storage users - migration)
+    useEffect(() => {
+        const oldSessionId = sessionStorage.getItem('supportChatId');
+        if (oldSessionId && !localStorage.getItem('supportChatId')) {
+            localStorage.setItem('supportChatId', oldSessionId);
+            setChatId(oldSessionId);
+        }
     }, []);
 
     // Ensure token is linked to chat if available later
@@ -116,10 +134,20 @@ const ChatWidget: React.FC = () => {
 
     const initLiveChat = async () => {
         let currentChatId = chatId;
+
+        // Fallback: Check storage if state is empty (Race condition fix)
+        if (!currentChatId) {
+            currentChatId = localStorage.getItem('supportChatId');
+            if (currentChatId) {
+                setChatId(currentChatId);
+                sessionStorage.setItem('supportChatId', currentChatId); // Keep session synced just in case
+            }
+        }
+
         if (!currentChatId) {
             currentChatId = uuidv4();
             setChatId(currentChatId);
-            sessionStorage.setItem('supportChatId', currentChatId);
+            localStorage.setItem('supportChatId', currentChatId);
 
             await setDoc(doc(db, 'supportChats', currentChatId), {
                 createdAt: new Date().toISOString(),
@@ -131,7 +159,7 @@ const ChatWidget: React.FC = () => {
             });
         } else if (fcmToken) {
             // If chat exists, make sure token is updated
-            await updateDoc(doc(db, 'supportChats', currentChatId), { fcmToken });
+            updateDoc(doc(db, 'supportChats', currentChatId), { fcmToken }).catch(e => console.log("Token update error", e));
         }
         setViewState('live_chat');
     };

@@ -9,7 +9,7 @@ const Footer: React.FC = () => {
     const { handleNavigate, socialMediaLinks } = useNavigation();
     const { setModalState, addToast } = useUI();
     const { currentUser } = useAuth();
-    
+
     const companyLinks = [
         { key: 'about_us', label: "About Us" },
         { key: 'contact_support', label: "Contact Support" },
@@ -40,12 +40,12 @@ const Footer: React.FC = () => {
 
     const LinkButton: React.FC<{ link: { key: string, label: string } }> = ({ link }) => (
         <li>
-            <button onClick={() => handleNavigate({name: 'static', pageKey: link.key as StaticPageKey})} className="text-light-subtle dark:text-dark-subtle hover:text-primary text-left">
+            <button onClick={() => handleNavigate({ name: 'static', pageKey: link.key as StaticPageKey })} className="text-light-subtle dark:text-dark-subtle hover:text-primary text-left">
                 {link.label}
             </button>
         </li>
     );
-    
+
     const handleClearCache = async () => {
         if (window.confirm('Are you sure you want to clear all application cache, storage, and service workers? This will log you out and redirect to the home page.')) {
             try {
@@ -69,7 +69,7 @@ const Footer: React.FC = () => {
                     await Promise.all(keys.map(key => caches.delete(key)));
                     addToast('Cache storage cleared.', 'info');
                 }
-                
+
                 addToast('Full cache clear successful! Redirecting to home...', 'success');
 
                 // Redirect to the root of the site to force a fresh load
@@ -118,7 +118,7 @@ const Footer: React.FC = () => {
                                     Gift Vouchers
                                 </button>
                             </li>
-                             <li>
+                            <li>
                                 <button onClick={() => handleNavigate({ name: 'referral_dashboard' })} className="text-light-subtle dark:text-dark-subtle hover:text-primary text-left">
                                     Referral Program
                                 </button>
@@ -128,7 +128,7 @@ const Footer: React.FC = () => {
 
                     <div>
                         <h3 className="font-semibold text-light-text dark:text-dark-text">For Partners</h3>
-                         <ul className="mt-4 space-y-2 text-sm">
+                        <ul className="mt-4 space-y-2 text-sm">
                             <li>
                                 <button onClick={() => setModalState({ name: 'login', userType: 'user' })} className="text-light-subtle dark:text-dark-subtle hover:text-primary text-left">
                                     Teacher Login
@@ -139,12 +139,12 @@ const Footer: React.FC = () => {
                                     Teacher Signup
                                 </button>
                             </li>
-                             <li className="pt-2">
+                            <li className="pt-2">
                                 <button onClick={() => setModalState({ name: 'login', userType: 'tuition_institute' })} className="text-light-subtle dark:text-dark-subtle hover:text-primary text-left font-semibold">
                                     Institute Login
                                 </button>
                             </li>
-                             <li>
+                            <li>
                                 <button onClick={() => setModalState({ name: 'register', userType: 'tuition_institute' })} className="text-light-subtle dark:text-dark-subtle hover:text-primary text-left font-semibold">
                                     Institute Signup
                                 </button>
@@ -156,6 +156,11 @@ const Footer: React.FC = () => {
                         <h3 className="font-semibold text-light-text dark:text-dark-text">Community</h3>
                         <ul className="mt-4 space-y-2 text-sm">
                             {communityLinks.map(link => <LinkButton key={link.key} link={link} />)}
+                            <li>
+                                <button onClick={() => handleNavigate({ name: 'report_content' })} className="text-light-subtle dark:text-dark-subtle hover:text-primary text-left">
+                                    Report Content
+                                </button>
+                            </li>
                         </ul>
                     </div>
 
@@ -163,12 +168,13 @@ const Footer: React.FC = () => {
                         <h3 className="font-semibold text-light-text dark:text-dark-text">Legal</h3>
                         <ul className="mt-4 space-y-2 text-sm">
                             {legalLinks.map(link => <LinkButton key={link.key} link={link} />)}
+
                         </ul>
                     </div>
                 </div>
 
                 <div className="mt-8 pt-8 border-t border-light-border dark:border-dark-border text-center text-xs text-light-subtle dark:text-dark-subtle">
-                    &copy; {new Date().getFullYear()} clazz.lk. All rights reserved. 
+                    &copy; {new Date().getFullYear()} clazz.lk. All rights reserved.
                     <div className="mt-4">
                         <button
                             onClick={handleClearCache}

@@ -24,16 +24,22 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         // Handle FCM messages here.
         Log.d(TAG, "From: " + remoteMessage.getFrom());
 
+        String url = null;
+        // Prioritize data payload for URL, regardless of whether it's a notification or data message
+        if (remoteMessage.getData().size() > 0) {
+            url = remoteMessage.getData().get("url");
+        }
+
         // Check if message contains a notification payload.
         if (remoteMessage.getNotification() != null) {
             Log.d(TAG, "Message Notification Body: " + remoteMessage.getNotification().getBody());
-            sendNotification(remoteMessage.getNotification().getTitle(), remoteMessage.getNotification().getBody());
+            sendNotification(remoteMessage.getNotification().getTitle(), remoteMessage.getNotification().getBody(), url);
         } else if (remoteMessage.getData().size() > 0) {
-            // Handle data payload (optional, treating as notification for now if no notification payload)
+            // Handle data payload
             String title = remoteMessage.getData().get("title");
             String body = remoteMessage.getData().get("body");
             if (title != null && body != null) {
-                 sendNotification(title, body);
+                 sendNotification(title, body, url);
             }
         }
     }
@@ -41,32 +47,31 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
     @Override
     public void onNewToken(String token) {
         Log.d(TAG, "Refreshed token: " + token);
-        // If you want to send this token to your server, do it here.
-        // For now, we assume the WebView / Web App handles its own token registration via JS,
-        // OR the user will manually copy this token if debugging. 
-        // Ideally, pass this token to WebView? 
-        // For a wrapper, it's often complex. 
-        // But if the Web App uses `firebase-messaging-sw.js`, that uses a DIFFERENT token (Web Push).
-        // The Native App uses an Android Token.
-        // To get notifications ON THE DEVICE via Native, the backend MUST send to the ANDROID TOKEN.
-        // This requires the backend to know about this device.
     }
 
-    private void sendNotification(String title, String messageBody) {
+    private void sendNotification(String title, String messageBody, String url) {
         Intent intent = new Intent(this, MainActivity.class);
-        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        if (url != null) {
+            intent.putExtra("url", url);
+        }
+        
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0 /* Request code */, intent,
-                PendingIntent.FLAG_IMMUTABLE);
+                PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
 
-        String channelId = "fcm_default_channel";
+        String channelId = "clazz_channel_high_v2";
         Uri defaultSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
         NotificationCompat.Builder notificationBuilder =
                 new NotificationCompat.Builder(this, channelId)
-                        .setSmallIcon(R.mipmap.ic_launcher) // Ensure this resource exists
+                        .setSmallIcon(R.mipmap.ic_launcher)
                         .setContentTitle(title)
                         .setContentText(messageBody)
                         .setAutoCancel(true)
                         .setSound(defaultSoundUri)
+                        .setPriority(NotificationCompat.PRIORITY_HIGH) // For Pre-Oreo
+                        .setDefaults(NotificationCompat.DEFAULT_ALL)
+                        .setCategory(NotificationCompat.CATEGORY_MESSAGE) // Critical for Heads Up
+                        .setVisibility(NotificationCompat.VISIBILITY_PUBLIC) // For Lock Screen
                         .setContentIntent(pendingIntent);
 
         NotificationManager notificationManager =
@@ -75,11 +80,15 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
         // Since android Oreo notification channel is needed.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel channel = new NotificationChannel(channelId,
-                    "Channel human readable title",
-                    NotificationManager.IMPORTANCE_DEFAULT);
+                    "Clazz App Notifications",
+                    NotificationManager.IMPORTANCE_HIGH);
+            channel.enableLights(true);
+            channel.enableVibration(true);
+            channel.setLockscreenVisibility(android.app.Notification.VISIBILITY_PUBLIC);
             notificationManager.createNotificationChannel(channel);
         }
 
-        notificationManager.notify(0 /* ID of notification */, notificationBuilder.build());
+        // Use unique ID for each notification so they stack
+        notificationManager.notify((int) System.currentTimeMillis(), notificationBuilder.build());
     }
 }

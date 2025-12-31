@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="default_web_client_id" translatable="false">487626975727-14dsu96cipcpi7s0t9819g31o9pat0ae.apps.googleusercontent.com</string>
+    <string name="gcm_defaultSenderId" translatable="false">487626975727</string>
+    <string name="google_api_key" translatable="false">AIzaSyA7TXoShOdE-kpzzV1muxtlsBrwZC3sAn0</string>
+    <string name="google_app_id" translatable="false">1:487626975727:android:d6523478f46719d5ddae1a</string>
+    <string name="google_crash_reporting_api_key" translatable="false">AIzaSyA7TXoShOdE-kpzzV1muxtlsBrwZC3sAn0</string>
+    <string name="google_storage_bucket" translatable="false">clazz2-new.firebasestorage.app</string>
+    <string name="project_id" translatable="false">clazz2-new</string>
+</resources>

@@ -1,0 +1,26 @@
+[
+    {
+        "merged": "com.clazz.app-release-40:/xml_file_paths.xml.flat",
+        "source": "com.clazz.app-main-41:/xml/file_paths.xml"
+    },
+    {
+        "merged": "com.clazz.app-release-40:/mipmap-hdpi_ic_launcher.png.flat",
+        "source": "com.clazz.app-main-41:/mipmap-hdpi/ic_launcher.png"
+    },
+    {
+        "merged": "com.clazz.app-release-40:/mipmap-hdpi_ic_launcher_round.png.flat",
+        "source": "com.clazz.app-main-41:/mipmap-hdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "com.clazz.app-release-40:/mipmap-xxxhdpi_ic_launcher.png.flat",
+        "source": "com.clazz.app-main-41:/mipmap-xxxhdpi/ic_launcher.png"
+    },
+    {
+        "merged": "com.clazz.app-release-40:/layout_activity_main.xml.flat",
+        "source": "com.clazz.app-main-41:/layout/activity_main.xml"
+    },
+    {
+        "merged": "com.clazz.app-release-40:/mipmap-xxxhdpi_ic_launcher_round.png.flat",
+        "source": "com.clazz.app-main-41:/mipmap-xxxhdpi/ic_launcher_round.png"
+    }
+]

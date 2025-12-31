@@ -55,6 +55,9 @@ const TuitionInstituteDashboard = React.lazy(() => import('./pages/TuitionInstit
 const AttendanceScannerPage = React.lazy(() => import('./pages/AttendanceScannerPage'));
 const TeacherReferralLandingPage = React.lazy(() => import('./pages/TeacherReferralLandingPage'));
 const SubscriptionSuccessPage = React.lazy(() => import('./pages/SubscriptionSuccessPage'));
+const ReportContentPage = React.lazy(() => import('./pages/ReportContentPage'));
+const RequestAccountDeletionPage = React.lazy(() => import('./pages/RequestAccountDeletionPage'));
+const UnsubscribePage = React.lazy(() => import('./pages/UnsubscribePage'));
 
 import { Quiz, Sale, PageState, Notification as AppNotification } from './types'; // Aliased Notification to avoid conflict
 import { SpinnerIcon, CheckCircleIcon } from './components/Icons';
@@ -109,19 +112,28 @@ function AppContent() {
 
   const isMobile = useIsMobile();
   const [showWelcomeGate, setShowWelcomeGate] = useState(
-    () => !sessionStorage.getItem('hasDismissedWelcomeGate')
+    () => !localStorage.getItem('hasDismissedWelcomeGate')
   );
 
   const handleGateLogin = () => {
     setModalState({ name: 'login' });
     setShowWelcomeGate(false);
-    sessionStorage.setItem('hasDismissedWelcomeGate', 'true');
+    localStorage.setItem('hasDismissedWelcomeGate', 'true');
   };
 
   const handleGateBrowse = () => {
     setShowWelcomeGate(false);
-    sessionStorage.setItem('hasDismissedWelcomeGate', 'true');
+    localStorage.setItem('hasDismissedWelcomeGate', 'true');
   };
+
+  // Expose Global Function for Android Native
+  useEffect(() => {
+    (window as any).handleOpenChatFromAndroid = (chatId: string) => {
+      console.log("Native Trigger:", chatId);
+      if (chatId) localStorage.setItem('supportChatId', chatId);
+      setChatWidgetOpen(true);
+    };
+  }, [setChatWidgetOpen]);
 
   // --- Push Notification Handlers ---
 
@@ -132,6 +144,10 @@ function AppContent() {
 
       // Handle Chat Trigger
       if (params.get('action') === 'open_chat') {
+        const chatId = params.get('chatId');
+        if (chatId) {
+          localStorage.setItem('supportChatId', chatId);
+        }
         setChatWidgetOpen(true);
         // Clean URL
         window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
@@ -160,10 +176,21 @@ function AppContent() {
         // Clean URL
         window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
       }
+
+      // Handle Page Navigation from URL
+      const page = params.get('page');
+      if (page === 'report_content') {
+        handleNavigate({ name: 'report_content' });
+      } else if (page === 'request_account_deletion') {
+        handleNavigate({ name: 'request_deletion' });
+      } else if (page === 'unsubscribe') {
+        const type = params.get('type') as 'sms' | 'email' | undefined;
+        handleNavigate({ name: 'unsubscribe', type });
+      }
     };
 
     handleInitialNotification();
-  }, [setChatWidgetOpen, setNotificationPopup]);
+  }, [setChatWidgetOpen, setNotificationPopup, handleNavigate]);
 
   // 2. Handle messages from Service Worker (App already open/background)
   useEffect(() => {
@@ -452,7 +479,11 @@ function AppContent() {
       }
       case 'static':
         const content = staticPageContent[pageState.pageKey];
+        if (!content) return <div className="p-8 text-center text-red-500">Error: Page content not found ({pageState.pageKey})</div>;
         return <StaticPage title={content.title} content={content.content} onBack={handleBack} />;
+      case 'report_content': return <ReportContentPage />;
+      case 'request_deletion': return <RequestAccountDeletionPage />;
+      case 'unsubscribe': return <UnsubscribePage type={pageState.type} />;
       default: return <div>Page Not Found</div>;
     }
   };
