@@ -1,0 +1,3 @@
+com.clazz.app.test
+style WhiteBackgroundDialogTheme
+style WhiteBackgroundTheme

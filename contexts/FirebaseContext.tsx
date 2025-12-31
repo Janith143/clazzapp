@@ -95,9 +95,39 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         }
     };
 
-    // Setup FCM
+    // Poll for Android Native Interface
+    useEffect(() => {
+        const checkForNative = async () => {
+            if ((window as any).AndroidNative && (window as any).AndroidNative.getFcmToken) {
+                const nativeToken = (window as any).AndroidNative.getFcmToken();
+                if (nativeToken) {
+                    console.log("Native Android Token Found via Poll:", nativeToken);
+                    setFcmToken(nativeToken);
+                    await saveTokenToProfile(nativeToken);
+                    return true;
+                }
+            }
+            return false;
+        };
+
+        // Check immediately
+        checkForNative();
+
+        let attempts = 0;
+        const intervalId = setInterval(async () => {
+            if (attempts > 10) { clearInterval(intervalId); return; } // Stop after 10 seconds
+            const found = await checkForNative();
+            if (found) clearInterval(intervalId);
+            attempts++;
+        }, 1000);
+
+        return () => clearInterval(intervalId);
+    }, [currentUser?.id]);
+
+    // Setup FCM Listener
     useEffect(() => {
         let unsubscribeOnMessage: (() => void) | undefined;
+        // ... (rest of existing setupFcmListener logic) ...
 
         const setupFcmListener = async () => {
             try {

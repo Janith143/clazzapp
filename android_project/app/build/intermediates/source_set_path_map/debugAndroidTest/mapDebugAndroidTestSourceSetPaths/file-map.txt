@@ -1,0 +1,7 @@
+com.clazz.app.test.app-jetified-core-1.5.0-0 C:\Users\Panoralink\.gradle\caches\8.13\transforms\0fdffe4439b1ca64206096ec08bd1d08\transformed\jetified-core-1.5.0\res
+com.clazz.app.test.app-jetified-annotation-experimental-1.3.0-1 C:\Users\Panoralink\.gradle\caches\8.13\transforms\4860b86da70a133954043f067a65d868\transformed\jetified-annotation-experimental-1.3.0\res
+com.clazz.app.test.app-androidTest-2 E:\Business\Websites\ClazzMain\Clazzweb\android_project\app\build\generated\res\resValues\androidTest\debug
+com.clazz.app.test.app-updated_navigation_xml-3 E:\Business\Websites\ClazzMain\Clazzweb\android_project\app\build\generated\updated_navigation_xml\debugAndroidTest
+com.clazz.app.test.app-mergeDebugAndroidTestResources-4 E:\Business\Websites\ClazzMain\Clazzweb\android_project\app\build\intermediates\incremental\debugAndroidTest\mergeDebugAndroidTestResources\merged.dir
+com.clazz.app.test.app-mergeDebugAndroidTestResources-5 E:\Business\Websites\ClazzMain\Clazzweb\android_project\app\build\intermediates\incremental\debugAndroidTest\mergeDebugAndroidTestResources\stripped.dir
+com.clazz.app.test.app-debugAndroidTest-6 E:\Business\Websites\ClazzMain\Clazzweb\android_project\app\build\intermediates\merged_res\debugAndroidTest\mergeDebugAndroidTestResources
