@@ -60,7 +60,28 @@ public class MainActivity extends AppCompatActivity {
         String userAgent = webSettings.getUserAgentString();
         webSettings.setUserAgentString(userAgent + " ClazzApp/1.0");
 
-        webView.setWebViewClient(new WebViewClient());
+        webView.setWebViewClient(new WebViewClient() {
+            @Override
+            public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
+                Toast.makeText(MainActivity.this, "Error: " + description, Toast.LENGTH_SHORT).show();
+                android.util.Log.e("WebView", "Error: " + description + " URL: " + failingUrl);
+            }
+
+            @Override
+            public void onReceivedHttpError(WebView view, android.webkit.WebResourceRequest request, android.webkit.WebResourceResponse errorResponse) {
+                 android.util.Log.e("WebView", "HTTP Error: " + errorResponse.getStatusCode());
+            }
+
+            @Override
+            public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
+                android.util.Log.d("WebView", "Page Started: " + url);
+            }
+
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                 android.util.Log.d("WebView", "Page Finished: " + url);
+            }
+        });
         
         // Initialize Interface
         mWebAppInterface = new WebAppInterface(this);
