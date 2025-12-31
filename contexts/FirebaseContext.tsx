@@ -18,7 +18,37 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const { currentUser } = useAuth();
     const [fcmToken, setFcmToken] = useState<string | null>(null);
 
+    const saveTokenToProfile = async (token: string) => {
+        if (currentUser?.id) {
+            const userRef = doc(db, "users", currentUser.id);
+            const userDoc = await getDoc(userRef);
+
+            if (userDoc.exists()) {
+                const userData = userDoc.data() as User;
+                if (!userData.fcmTokens || !userData.fcmTokens.includes(token)) {
+                    await updateDoc(userRef, {
+                        fcmTokens: arrayUnion(token)
+                    });
+                    console.log('FCM token saved to user profile.');
+                }
+            }
+        }
+    };
+
     const enableNotifications = async (silent = false) => {
+
+        // 0. Check for Native Android Shell
+        if ((window as any).AndroidNative && (window as any).AndroidNative.getFcmToken) {
+            const nativeToken = (window as any).AndroidNative.getFcmToken();
+            console.log("Native Android Token Found:", nativeToken);
+            if (nativeToken) {
+                setFcmToken(nativeToken);
+                await saveTokenToProfile(nativeToken);
+                if (!silent) addToast('Native Notifications enabled!', 'success');
+                return; // Skip Web Push logic
+            }
+        }
+
         if (!('Notification' in window)) {
             console.log('Notification API not supported in this browser.');
             return;
@@ -52,22 +82,8 @@ export const FirebaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                 if (currentToken) {
                     console.log('FCM Token:', currentToken);
                     setFcmToken(currentToken);
-
-                    if (currentUser?.id) {
-                        const userRef = doc(db, "users", currentUser.id);
-                        const userDoc = await getDoc(userRef);
-
-                        if (userDoc.exists()) {
-                            const userData = userDoc.data() as User;
-                            if (!userData.fcmTokens || !userData.fcmTokens.includes(currentToken)) {
-                                await updateDoc(userRef, {
-                                    fcmTokens: arrayUnion(currentToken)
-                                });
-                                console.log('FCM token saved to user profile.');
-                                if (!silent) addToast('Notifications enabled successfully!', 'success');
-                            }
-                        }
-                    }
+                    await saveTokenToProfile(currentToken);
+                    if (!silent) addToast('Notifications enabled successfully!', 'success');
                 }
             } catch (tokenError) {
                 console.error("Error retrieving FCM token:", tokenError);

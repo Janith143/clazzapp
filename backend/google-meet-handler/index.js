@@ -44,7 +44,7 @@ app.get('/googleAuthRedirect', async (req, res) => {
     const GOOGLE_CLIENT_ID = config.GOOGLE_CLIENT_ID;
     const GOOGLE_CLIENT_SECRET = config.GOOGLE_CLIENT_SECRET;
     // Dynamic Redirect URI based on current host
-    const REDIRECT_URI = `https://${req.get('host')}/googleAuthCallback`;
+    const REDIRECT_URI = 'https://asia-south1-clazz2-new.cloudfunctions.net/googleMeetHandler/googleAuthCallback';
 
     if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
         logger.error("Google OAuth credentials missing in settings/system_config.");
@@ -132,8 +132,8 @@ app.post('/createGoogleMeet', async (req, res) => {
         const config = await getConfig();
         const GOOGLE_CLIENT_ID = config.GOOGLE_CLIENT_ID;
         const GOOGLE_CLIENT_SECRET = config.GOOGLE_CLIENT_SECRET;
-        // Redirect URI not strictly needed for refresh flow but required for constructor
-        const REDIRECT_URI = `https://${req.get('host')}/googleAuthCallback`;
+        // Redirect URI must match what was sent during auth flow exactly
+        const REDIRECT_URI = 'https://asia-south1-clazz2-new.cloudfunctions.net/googleMeetHandler/googleAuthCallback';
 
         const oauth2Client = new google.auth.OAuth2(
             GOOGLE_CLIENT_ID,

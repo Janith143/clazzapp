@@ -1,0 +1,342 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="com.clazz.app"
+4    android:versionCode="2"
+5    android:versionName="1.1" >
+6
+7    <uses-sdk
+8        android:minSdkVersion="24"
+9        android:targetSdkVersion="35" />
+10
+11    <uses-permission android:name="android.permission.INTERNET" />
+11-->E:\Business\Websites\ClazzMain\Clazzweb\android_project\app\src\main\AndroidManifest.xml:5:5-67
+11-->E:\Business\Websites\ClazzMain\Clazzweb\android_project\app\src\main\AndroidManifest.xml:5:22-64
+12    <uses-permission android:name="android.permission.CAMERA" />
+12-->E:\Business\Websites\ClazzMain\Clazzweb\android_project\app\src\main\AndroidManifest.xml:6:5-65
+12-->E:\Business\Websites\ClazzMain\Clazzweb\android_project\app\src\main\AndroidManifest.xml:6:22-62
+13    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+13-->E:\Business\Websites\ClazzMain\Clazzweb\android_project\app\src\main\AndroidManifest.xml:7:5-77
+13-->E:\Business\Websites\ClazzMain\Clazzweb\android_project\app\src\main\AndroidManifest.xml:7:22-74
+14    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+14-->E:\Business\Websites\ClazzMain\Clazzweb\android_project\app\src\main\AndroidManifest.xml:8:5-80
+14-->E:\Business\Websites\ClazzMain\Clazzweb\android_project\app\src\main\AndroidManifest.xml:8:22-77
+15    <uses-permission
+15-->E:\Business\Websites\ClazzMain\Clazzweb\android_project\app\src\main\AndroidManifest.xml:9:5-108
+16        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+16-->E:\Business\Websites\ClazzMain\Clazzweb\android_project\app\src\main\AndroidManifest.xml:9:22-78
+17        android:maxSdkVersion="28" />
+17-->E:\Business\Websites\ClazzMain\Clazzweb\android_project\app\src\main\AndroidManifest.xml:9:79-105
+18
+19    <uses-feature
+19-->E:\Business\Websites\ClazzMain\Clazzweb\android_project\app\src\main\AndroidManifest.xml:11:5-85
+20        android:name="android.hardware.camera"
+20-->E:\Business\Websites\ClazzMain\Clazzweb\android_project\app\src\main\AndroidManifest.xml:11:19-57
+21        android:required="false" />
+21-->E:\Business\Websites\ClazzMain\Clazzweb\android_project\app\src\main\AndroidManifest.xml:11:58-82
+22
+23    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+23-->[com.google.firebase:firebase-messaging:25.0.1] C:\Users\Panoralink\.gradle\caches\8.13\transforms\1cbc25f3f6ee5c2908c8caeb7730c6b5\transformed\jetified-firebase-messaging-25.0.1\AndroidManifest.xml:22:5-79
+23-->[com.google.firebase:firebase-messaging:25.0.1] C:\Users\Panoralink\.gradle\caches\8.13\transforms\1cbc25f3f6ee5c2908c8caeb7730c6b5\transformed\jetified-firebase-messaging-25.0.1\AndroidManifest.xml:22:22-76
+24    <uses-permission android:name="android.permission.WAKE_LOCK" /> <!-- Required by older versions of Google Play services to create IID tokens -->
+24-->[com.google.firebase:firebase-messaging:25.0.1] C:\Users\Panoralink\.gradle\caches\8.13\transforms\1cbc25f3f6ee5c2908c8caeb7730c6b5\transformed\jetified-firebase-messaging-25.0.1\AndroidManifest.xml:24:5-68
+24-->[com.google.firebase:firebase-messaging:25.0.1] C:\Users\Panoralink\.gradle\caches\8.13\transforms\1cbc25f3f6ee5c2908c8caeb7730c6b5\transformed\jetified-firebase-messaging-25.0.1\AndroidManifest.xml:24:22-65
+25    <uses-permission android:name="com.google.android.c2dm.permission.RECEIVE" />
+25-->[com.google.firebase:firebase-messaging:25.0.1] C:\Users\Panoralink\.gradle\caches\8.13\transforms\1cbc25f3f6ee5c2908c8caeb7730c6b5\transformed\jetified-firebase-messaging-25.0.1\AndroidManifest.xml:26:5-82
+25-->[com.google.firebase:firebase-messaging:25.0.1] C:\Users\Panoralink\.gradle\caches\8.13\transforms\1cbc25f3f6ee5c2908c8caeb7730c6b5\transformed\jetified-firebase-messaging-25.0.1\AndroidManifest.xml:26:22-79
+26
+27    <permission
+27-->[androidx.core:core:1.9.0] C:\Users\Panoralink\.gradle\caches\8.13\transforms\b0e4a161068c9f6b1544048b5286e068\transformed\core-1.9.0\AndroidManifest.xml:22:5-24:47
+28        android:name="com.clazz.app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+28-->[androidx.core:core:1.9.0] C:\Users\Panoralink\.gradle\caches\8.13\transforms\b0e4a161068c9f6b1544048b5286e068\transformed\core-1.9.0\AndroidManifest.xml:23:9-81
+29        android:protectionLevel="signature" />
+29-->[androidx.core:core:1.9.0] C:\Users\Panoralink\.gradle\caches\8.13\transforms\b0e4a161068c9f6b1544048b5286e068\transformed\core-1.9.0\AndroidManifest.xml:24:9-44
+30
+31    <uses-permission android:name="com.clazz.app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
+31-->[androidx.core:core:1.9.0] C:\Users\Panoralink\.gradle\caches\8.13\transforms\b0e4a161068c9f6b1544048b5286e068\transformed\core-1.9.0\AndroidManifest.xml:26:5-97
+31-->[androidx.core:core:1.9.0] C:\Users\Panoralink\.gradle\caches\8.13\transforms\b0e4a161068c9f6b1544048b5286e068\transformed\core-1.9.0\AndroidManifest.xml:26:22-94
+32
+33    <application
+33-->E:\Business\Websites\ClazzMain\Clazzweb\android_project\app\src\main\AndroidManifest.xml:13:5-49:19
+34        android:allowBackup="true"
+34-->E:\Business\Websites\ClazzMain\Clazzweb\android_project\app\src\main\AndroidManifest.xml:14:9-35
+35        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
+35-->[androidx.core:core:1.9.0] C:\Users\Panoralink\.gradle\caches\8.13\transforms\b0e4a161068c9f6b1544048b5286e068\transformed\core-1.9.0\AndroidManifest.xml:28:18-86
+36        android:debuggable="true"
+37        android:extractNativeLibs="false"
+38        android:icon="@mipmap/ic_launcher"
+38-->E:\Business\Websites\ClazzMain\Clazzweb\android_project\app\src\main\AndroidManifest.xml:15:9-43
+39        android:label="@string/app_name"
+39-->E:\Business\Websites\ClazzMain\Clazzweb\android_project\app\src\main\AndroidManifest.xml:16:9-41
+40        android:roundIcon="@mipmap/ic_launcher_round"
+40-->E:\Business\Websites\ClazzMain\Clazzweb\android_project\app\src\main\AndroidManifest.xml:17:9-54
+41        android:supportsRtl="true"
+41-->E:\Business\Websites\ClazzMain\Clazzweb\android_project\app\src\main\AndroidManifest.xml:18:9-35
+42        android:testOnly="true"
+43        android:theme="@style/Theme.Clazzlk" >
+43-->E:\Business\Websites\ClazzMain\Clazzweb\android_project\app\src\main\AndroidManifest.xml:19:9-45
+44        <provider
+44-->E:\Business\Websites\ClazzMain\Clazzweb\android_project\app\src\main\AndroidManifest.xml:21:9-29:20
+45            android:name="androidx.core.content.FileProvider"
+45-->E:\Business\Websites\ClazzMain\Clazzweb\android_project\app\src\main\AndroidManifest.xml:22:13-62
+46            android:authorities="com.clazz.app.fileprovider"
+46-->E:\Business\Websites\ClazzMain\Clazzweb\android_project\app\src\main\AndroidManifest.xml:23:13-61
+47            android:exported="false"
+47-->E:\Business\Websites\ClazzMain\Clazzweb\android_project\app\src\main\AndroidManifest.xml:24:13-37
+48            android:grantUriPermissions="true" >
+48-->E:\Business\Websites\ClazzMain\Clazzweb\android_project\app\src\main\AndroidManifest.xml:25:13-47
+49            <meta-data
+49-->E:\Business\Websites\ClazzMain\Clazzweb\android_project\app\src\main\AndroidManifest.xml:26:13-28:54
+50                android:name="android.support.FILE_PROVIDER_PATHS"
+50-->E:\Business\Websites\ClazzMain\Clazzweb\android_project\app\src\main\AndroidManifest.xml:27:17-67
+51                android:resource="@xml/file_paths" />
+51-->E:\Business\Websites\ClazzMain\Clazzweb\android_project\app\src\main\AndroidManifest.xml:28:17-51
+52        </provider>
+53
+54        <activity
+54-->E:\Business\Websites\ClazzMain\Clazzweb\android_project\app\src\main\AndroidManifest.xml:31:9-40:20
+55            android:name="com.clazz.app.MainActivity"
+55-->E:\Business\Websites\ClazzMain\Clazzweb\android_project\app\src\main\AndroidManifest.xml:32:13-41
+56            android:configChanges="orientation|screenSize|keyboardHidden|smallestScreenSize|screenLayout|uiMode"
+56-->E:\Business\Websites\ClazzMain\Clazzweb\android_project\app\src\main\AndroidManifest.xml:34:13-113
+57            android:exported="true" >
+57-->E:\Business\Websites\ClazzMain\Clazzweb\android_project\app\src\main\AndroidManifest.xml:33:13-36
+58            <intent-filter>
+58-->E:\Business\Websites\ClazzMain\Clazzweb\android_project\app\src\main\AndroidManifest.xml:35:13-39:29
+59                <action android:name="android.intent.action.MAIN" />
+59-->E:\Business\Websites\ClazzMain\Clazzweb\android_project\app\src\main\AndroidManifest.xml:36:17-69
+59-->E:\Business\Websites\ClazzMain\Clazzweb\android_project\app\src\main\AndroidManifest.xml:36:25-66
+60
+61                <category android:name="android.intent.category.LAUNCHER" />
+61-->E:\Business\Websites\ClazzMain\Clazzweb\android_project\app\src\main\AndroidManifest.xml:38:17-77
+61-->E:\Business\Websites\ClazzMain\Clazzweb\android_project\app\src\main\AndroidManifest.xml:38:27-74
+62            </intent-filter>
+63        </activity>
+64
+65        <service
+65-->E:\Business\Websites\ClazzMain\Clazzweb\android_project\app\src\main\AndroidManifest.xml:42:9-48:19
+66            android:name="com.clazz.app.MyFirebaseMessagingService"
+66-->E:\Business\Websites\ClazzMain\Clazzweb\android_project\app\src\main\AndroidManifest.xml:43:13-55
+67            android:exported="false" >
+67-->E:\Business\Websites\ClazzMain\Clazzweb\android_project\app\src\main\AndroidManifest.xml:44:13-37
+68            <intent-filter>
+68-->E:\Business\Websites\ClazzMain\Clazzweb\android_project\app\src\main\AndroidManifest.xml:45:13-47:29
+69                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+69-->E:\Business\Websites\ClazzMain\Clazzweb\android_project\app\src\main\AndroidManifest.xml:46:17-78
+69-->E:\Business\Websites\ClazzMain\Clazzweb\android_project\app\src\main\AndroidManifest.xml:46:25-75
+70            </intent-filter>
+71        </service>
+72
+73        <receiver
+73-->[com.google.firebase:firebase-messaging:25.0.1] C:\Users\Panoralink\.gradle\caches\8.13\transforms\1cbc25f3f6ee5c2908c8caeb7730c6b5\transformed\jetified-firebase-messaging-25.0.1\AndroidManifest.xml:29:9-40:20
+74            android:name="com.google.firebase.iid.FirebaseInstanceIdReceiver"
+74-->[com.google.firebase:firebase-messaging:25.0.1] C:\Users\Panoralink\.gradle\caches\8.13\transforms\1cbc25f3f6ee5c2908c8caeb7730c6b5\transformed\jetified-firebase-messaging-25.0.1\AndroidManifest.xml:30:13-78
+75            android:exported="true"
+75-->[com.google.firebase:firebase-messaging:25.0.1] C:\Users\Panoralink\.gradle\caches\8.13\transforms\1cbc25f3f6ee5c2908c8caeb7730c6b5\transformed\jetified-firebase-messaging-25.0.1\AndroidManifest.xml:31:13-36
+76            android:permission="com.google.android.c2dm.permission.SEND" >
+76-->[com.google.firebase:firebase-messaging:25.0.1] C:\Users\Panoralink\.gradle\caches\8.13\transforms\1cbc25f3f6ee5c2908c8caeb7730c6b5\transformed\jetified-firebase-messaging-25.0.1\AndroidManifest.xml:32:13-73
+77            <intent-filter>
+77-->[com.google.firebase:firebase-messaging:25.0.1] C:\Users\Panoralink\.gradle\caches\8.13\transforms\1cbc25f3f6ee5c2908c8caeb7730c6b5\transformed\jetified-firebase-messaging-25.0.1\AndroidManifest.xml:33:13-35:29
+78                <action android:name="com.google.android.c2dm.intent.RECEIVE" />
+78-->[com.google.firebase:firebase-messaging:25.0.1] C:\Users\Panoralink\.gradle\caches\8.13\transforms\1cbc25f3f6ee5c2908c8caeb7730c6b5\transformed\jetified-firebase-messaging-25.0.1\AndroidManifest.xml:34:17-81
+78-->[com.google.firebase:firebase-messaging:25.0.1] C:\Users\Panoralink\.gradle\caches\8.13\transforms\1cbc25f3f6ee5c2908c8caeb7730c6b5\transformed\jetified-firebase-messaging-25.0.1\AndroidManifest.xml:34:25-78
+79            </intent-filter>
+80
+81            <meta-data
+81-->[com.google.firebase:firebase-messaging:25.0.1] C:\Users\Panoralink\.gradle\caches\8.13\transforms\1cbc25f3f6ee5c2908c8caeb7730c6b5\transformed\jetified-firebase-messaging-25.0.1\AndroidManifest.xml:37:13-39:40
+82                android:name="com.google.android.gms.cloudmessaging.FINISHED_AFTER_HANDLED"
+82-->[com.google.firebase:firebase-messaging:25.0.1] C:\Users\Panoralink\.gradle\caches\8.13\transforms\1cbc25f3f6ee5c2908c8caeb7730c6b5\transformed\jetified-firebase-messaging-25.0.1\AndroidManifest.xml:38:17-92
+83                android:value="true" />
+83-->[com.google.firebase:firebase-messaging:25.0.1] C:\Users\Panoralink\.gradle\caches\8.13\transforms\1cbc25f3f6ee5c2908c8caeb7730c6b5\transformed\jetified-firebase-messaging-25.0.1\AndroidManifest.xml:39:17-37
+84        </receiver>
+85        <!--
+86             FirebaseMessagingService performs security checks at runtime,
+87             but set to not exported to explicitly avoid allowing another app to call it.
+88        -->
+89        <service
+89-->[com.google.firebase:firebase-messaging:25.0.1] C:\Users\Panoralink\.gradle\caches\8.13\transforms\1cbc25f3f6ee5c2908c8caeb7730c6b5\transformed\jetified-firebase-messaging-25.0.1\AndroidManifest.xml:46:9-53:19
+90            android:name="com.google.firebase.messaging.FirebaseMessagingService"
+90-->[com.google.firebase:firebase-messaging:25.0.1] C:\Users\Panoralink\.gradle\caches\8.13\transforms\1cbc25f3f6ee5c2908c8caeb7730c6b5\transformed\jetified-firebase-messaging-25.0.1\AndroidManifest.xml:47:13-82
+91            android:directBootAware="true"
+91-->[com.google.firebase:firebase-messaging:25.0.1] C:\Users\Panoralink\.gradle\caches\8.13\transforms\1cbc25f3f6ee5c2908c8caeb7730c6b5\transformed\jetified-firebase-messaging-25.0.1\AndroidManifest.xml:48:13-43
+92            android:exported="false" >
+92-->[com.google.firebase:firebase-messaging:25.0.1] C:\Users\Panoralink\.gradle\caches\8.13\transforms\1cbc25f3f6ee5c2908c8caeb7730c6b5\transformed\jetified-firebase-messaging-25.0.1\AndroidManifest.xml:49:13-37
+93            <intent-filter android:priority="-500" >
+93-->E:\Business\Websites\ClazzMain\Clazzweb\android_project\app\src\main\AndroidManifest.xml:45:13-47:29
+94                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+94-->E:\Business\Websites\ClazzMain\Clazzweb\android_project\app\src\main\AndroidManifest.xml:46:17-78
+94-->E:\Business\Websites\ClazzMain\Clazzweb\android_project\app\src\main\AndroidManifest.xml:46:25-75
+95            </intent-filter>
+96        </service>
+97        <service
+97-->[com.google.firebase:firebase-messaging:25.0.1] C:\Users\Panoralink\.gradle\caches\8.13\transforms\1cbc25f3f6ee5c2908c8caeb7730c6b5\transformed\jetified-firebase-messaging-25.0.1\AndroidManifest.xml:54:9-63:19
+98            android:name="com.google.firebase.components.ComponentDiscoveryService"
+98-->[com.google.firebase:firebase-messaging:25.0.1] C:\Users\Panoralink\.gradle\caches\8.13\transforms\1cbc25f3f6ee5c2908c8caeb7730c6b5\transformed\jetified-firebase-messaging-25.0.1\AndroidManifest.xml:55:13-84
+99            android:directBootAware="true"
+99-->[com.google.firebase:firebase-common:22.0.1] C:\Users\Panoralink\.gradle\caches\8.13\transforms\dd7acc2e5fa319d06a2bff8294bde034\transformed\jetified-firebase-common-22.0.1\AndroidManifest.xml:32:13-43
+100            android:exported="false" >
+100-->[com.google.firebase:firebase-messaging:25.0.1] C:\Users\Panoralink\.gradle\caches\8.13\transforms\1cbc25f3f6ee5c2908c8caeb7730c6b5\transformed\jetified-firebase-messaging-25.0.1\AndroidManifest.xml:56:13-37
+101            <meta-data
+101-->[com.google.firebase:firebase-messaging:25.0.1] C:\Users\Panoralink\.gradle\caches\8.13\transforms\1cbc25f3f6ee5c2908c8caeb7730c6b5\transformed\jetified-firebase-messaging-25.0.1\AndroidManifest.xml:57:13-59:85
+102                android:name="com.google.firebase.components:com.google.firebase.messaging.FirebaseMessagingKtxRegistrar"
+102-->[com.google.firebase:firebase-messaging:25.0.1] C:\Users\Panoralink\.gradle\caches\8.13\transforms\1cbc25f3f6ee5c2908c8caeb7730c6b5\transformed\jetified-firebase-messaging-25.0.1\AndroidManifest.xml:58:17-122
+103                android:value="com.google.firebase.components.ComponentRegistrar" />
+103-->[com.google.firebase:firebase-messaging:25.0.1] C:\Users\Panoralink\.gradle\caches\8.13\transforms\1cbc25f3f6ee5c2908c8caeb7730c6b5\transformed\jetified-firebase-messaging-25.0.1\AndroidManifest.xml:59:17-82
+104            <meta-data
+104-->[com.google.firebase:firebase-messaging:25.0.1] C:\Users\Panoralink\.gradle\caches\8.13\transforms\1cbc25f3f6ee5c2908c8caeb7730c6b5\transformed\jetified-firebase-messaging-25.0.1\AndroidManifest.xml:60:13-62:85
+105                android:name="com.google.firebase.components:com.google.firebase.messaging.FirebaseMessagingRegistrar"
+105-->[com.google.firebase:firebase-messaging:25.0.1] C:\Users\Panoralink\.gradle\caches\8.13\transforms\1cbc25f3f6ee5c2908c8caeb7730c6b5\transformed\jetified-firebase-messaging-25.0.1\AndroidManifest.xml:61:17-119
+106                android:value="com.google.firebase.components.ComponentRegistrar" />
+106-->[com.google.firebase:firebase-messaging:25.0.1] C:\Users\Panoralink\.gradle\caches\8.13\transforms\1cbc25f3f6ee5c2908c8caeb7730c6b5\transformed\jetified-firebase-messaging-25.0.1\AndroidManifest.xml:62:17-82
+107            <meta-data
+107-->[com.google.firebase:firebase-installations:19.0.1] C:\Users\Panoralink\.gradle\caches\8.13\transforms\c464ecf240e85559d242e7a4d66fe5da\transformed\jetified-firebase-installations-19.0.1\AndroidManifest.xml:15:13-17:85
+108                android:name="com.google.firebase.components:com.google.firebase.installations.FirebaseInstallationsKtxRegistrar"
+108-->[com.google.firebase:firebase-installations:19.0.1] C:\Users\Panoralink\.gradle\caches\8.13\transforms\c464ecf240e85559d242e7a4d66fe5da\transformed\jetified-firebase-installations-19.0.1\AndroidManifest.xml:16:17-130
+109                android:value="com.google.firebase.components.ComponentRegistrar" />
+109-->[com.google.firebase:firebase-installations:19.0.1] C:\Users\Panoralink\.gradle\caches\8.13\transforms\c464ecf240e85559d242e7a4d66fe5da\transformed\jetified-firebase-installations-19.0.1\AndroidManifest.xml:17:17-82
+110            <meta-data
+110-->[com.google.firebase:firebase-installations:19.0.1] C:\Users\Panoralink\.gradle\caches\8.13\transforms\c464ecf240e85559d242e7a4d66fe5da\transformed\jetified-firebase-installations-19.0.1\AndroidManifest.xml:18:13-20:85
+111                android:name="com.google.firebase.components:com.google.firebase.installations.FirebaseInstallationsRegistrar"
+111-->[com.google.firebase:firebase-installations:19.0.1] C:\Users\Panoralink\.gradle\caches\8.13\transforms\c464ecf240e85559d242e7a4d66fe5da\transformed\jetified-firebase-installations-19.0.1\AndroidManifest.xml:19:17-127
+112                android:value="com.google.firebase.components.ComponentRegistrar" />
+112-->[com.google.firebase:firebase-installations:19.0.1] C:\Users\Panoralink\.gradle\caches\8.13\transforms\c464ecf240e85559d242e7a4d66fe5da\transformed\jetified-firebase-installations-19.0.1\AndroidManifest.xml:20:17-82
+113            <meta-data
+113-->[com.google.firebase:firebase-common:22.0.1] C:\Users\Panoralink\.gradle\caches\8.13\transforms\dd7acc2e5fa319d06a2bff8294bde034\transformed\jetified-firebase-common-22.0.1\AndroidManifest.xml:35:13-37:85
+114                android:name="com.google.firebase.components:com.google.firebase.FirebaseCommonKtxRegistrar"
+114-->[com.google.firebase:firebase-common:22.0.1] C:\Users\Panoralink\.gradle\caches\8.13\transforms\dd7acc2e5fa319d06a2bff8294bde034\transformed\jetified-firebase-common-22.0.1\AndroidManifest.xml:36:17-109
+115                android:value="com.google.firebase.components.ComponentRegistrar" />
+115-->[com.google.firebase:firebase-common:22.0.1] C:\Users\Panoralink\.gradle\caches\8.13\transforms\dd7acc2e5fa319d06a2bff8294bde034\transformed\jetified-firebase-common-22.0.1\AndroidManifest.xml:37:17-82
+116            <meta-data
+116-->[com.google.firebase:firebase-datatransport:18.2.0] C:\Users\Panoralink\.gradle\caches\8.13\transforms\9e5162c2d0b160b30351e8ef6b0c359d\transformed\jetified-firebase-datatransport-18.2.0\AndroidManifest.xml:25:13-27:85
+117                android:name="com.google.firebase.components:com.google.firebase.datatransport.TransportRegistrar"
+117-->[com.google.firebase:firebase-datatransport:18.2.0] C:\Users\Panoralink\.gradle\caches\8.13\transforms\9e5162c2d0b160b30351e8ef6b0c359d\transformed\jetified-firebase-datatransport-18.2.0\AndroidManifest.xml:26:17-115
+118                android:value="com.google.firebase.components.ComponentRegistrar" />
+118-->[com.google.firebase:firebase-datatransport:18.2.0] C:\Users\Panoralink\.gradle\caches\8.13\transforms\9e5162c2d0b160b30351e8ef6b0c359d\transformed\jetified-firebase-datatransport-18.2.0\AndroidManifest.xml:27:17-82
+119        </service>
+120
+121        <provider
+121-->[com.google.firebase:firebase-common:22.0.1] C:\Users\Panoralink\.gradle\caches\8.13\transforms\dd7acc2e5fa319d06a2bff8294bde034\transformed\jetified-firebase-common-22.0.1\AndroidManifest.xml:23:9-28:39
+122            android:name="com.google.firebase.provider.FirebaseInitProvider"
+122-->[com.google.firebase:firebase-common:22.0.1] C:\Users\Panoralink\.gradle\caches\8.13\transforms\dd7acc2e5fa319d06a2bff8294bde034\transformed\jetified-firebase-common-22.0.1\AndroidManifest.xml:24:13-77
+123            android:authorities="com.clazz.app.firebaseinitprovider"
+123-->[com.google.firebase:firebase-common:22.0.1] C:\Users\Panoralink\.gradle\caches\8.13\transforms\dd7acc2e5fa319d06a2bff8294bde034\transformed\jetified-firebase-common-22.0.1\AndroidManifest.xml:25:13-72
+124            android:directBootAware="true"
+124-->[com.google.firebase:firebase-common:22.0.1] C:\Users\Panoralink\.gradle\caches\8.13\transforms\dd7acc2e5fa319d06a2bff8294bde034\transformed\jetified-firebase-common-22.0.1\AndroidManifest.xml:26:13-43
+125            android:exported="false"
+125-->[com.google.firebase:firebase-common:22.0.1] C:\Users\Panoralink\.gradle\caches\8.13\transforms\dd7acc2e5fa319d06a2bff8294bde034\transformed\jetified-firebase-common-22.0.1\AndroidManifest.xml:27:13-37
+126            android:initOrder="100" />
+126-->[com.google.firebase:firebase-common:22.0.1] C:\Users\Panoralink\.gradle\caches\8.13\transforms\dd7acc2e5fa319d06a2bff8294bde034\transformed\jetified-firebase-common-22.0.1\AndroidManifest.xml:28:13-36
+127
+128        <service
+128-->[com.google.android.datatransport:transport-backend-cct:3.1.9] C:\Users\Panoralink\.gradle\caches\8.13\transforms\f8e072247b6accfee946fa6e6178d95e\transformed\jetified-transport-backend-cct-3.1.9\AndroidManifest.xml:28:9-34:19
+129            android:name="com.google.android.datatransport.runtime.backends.TransportBackendDiscovery"
+129-->[com.google.android.datatransport:transport-backend-cct:3.1.9] C:\Users\Panoralink\.gradle\caches\8.13\transforms\f8e072247b6accfee946fa6e6178d95e\transformed\jetified-transport-backend-cct-3.1.9\AndroidManifest.xml:29:13-103
+130            android:exported="false" >
+130-->[com.google.android.datatransport:transport-backend-cct:3.1.9] C:\Users\Panoralink\.gradle\caches\8.13\transforms\f8e072247b6accfee946fa6e6178d95e\transformed\jetified-transport-backend-cct-3.1.9\AndroidManifest.xml:30:13-37
+131            <meta-data
+131-->[com.google.android.datatransport:transport-backend-cct:3.1.9] C:\Users\Panoralink\.gradle\caches\8.13\transforms\f8e072247b6accfee946fa6e6178d95e\transformed\jetified-transport-backend-cct-3.1.9\AndroidManifest.xml:31:13-33:39
+132                android:name="backend:com.google.android.datatransport.cct.CctBackendFactory"
+132-->[com.google.android.datatransport:transport-backend-cct:3.1.9] C:\Users\Panoralink\.gradle\caches\8.13\transforms\f8e072247b6accfee946fa6e6178d95e\transformed\jetified-transport-backend-cct-3.1.9\AndroidManifest.xml:32:17-94
+133                android:value="cct" />
+133-->[com.google.android.datatransport:transport-backend-cct:3.1.9] C:\Users\Panoralink\.gradle\caches\8.13\transforms\f8e072247b6accfee946fa6e6178d95e\transformed\jetified-transport-backend-cct-3.1.9\AndroidManifest.xml:33:17-36
+134        </service>
+135        <service
+135-->[com.google.android.datatransport:transport-runtime:3.1.9] C:\Users\Panoralink\.gradle\caches\8.13\transforms\38491d65fbe19cd56f5733b960e10a04\transformed\jetified-transport-runtime-3.1.9\AndroidManifest.xml:26:9-30:19
+136            android:name="com.google.android.datatransport.runtime.scheduling.jobscheduling.JobInfoSchedulerService"
+136-->[com.google.android.datatransport:transport-runtime:3.1.9] C:\Users\Panoralink\.gradle\caches\8.13\transforms\38491d65fbe19cd56f5733b960e10a04\transformed\jetified-transport-runtime-3.1.9\AndroidManifest.xml:27:13-117
+137            android:exported="false"
+137-->[com.google.android.datatransport:transport-runtime:3.1.9] C:\Users\Panoralink\.gradle\caches\8.13\transforms\38491d65fbe19cd56f5733b960e10a04\transformed\jetified-transport-runtime-3.1.9\AndroidManifest.xml:28:13-37
+138            android:permission="android.permission.BIND_JOB_SERVICE" >
+138-->[com.google.android.datatransport:transport-runtime:3.1.9] C:\Users\Panoralink\.gradle\caches\8.13\transforms\38491d65fbe19cd56f5733b960e10a04\transformed\jetified-transport-runtime-3.1.9\AndroidManifest.xml:29:13-69
+139        </service>
+140
+141        <receiver
+141-->[com.google.android.datatransport:transport-runtime:3.1.9] C:\Users\Panoralink\.gradle\caches\8.13\transforms\38491d65fbe19cd56f5733b960e10a04\transformed\jetified-transport-runtime-3.1.9\AndroidManifest.xml:32:9-34:40
+142            android:name="com.google.android.datatransport.runtime.scheduling.jobscheduling.AlarmManagerSchedulerBroadcastReceiver"
+142-->[com.google.android.datatransport:transport-runtime:3.1.9] C:\Users\Panoralink\.gradle\caches\8.13\transforms\38491d65fbe19cd56f5733b960e10a04\transformed\jetified-transport-runtime-3.1.9\AndroidManifest.xml:33:13-132
+143            android:exported="false" />
+143-->[com.google.android.datatransport:transport-runtime:3.1.9] C:\Users\Panoralink\.gradle\caches\8.13\transforms\38491d65fbe19cd56f5733b960e10a04\transformed\jetified-transport-runtime-3.1.9\AndroidManifest.xml:34:13-37
+144
+145        <activity
+145-->[com.google.android.gms:play-services-base:18.1.0] C:\Users\Panoralink\.gradle\caches\8.13\transforms\2d4b04620269e9eb13c70b6baca204b4\transformed\jetified-play-services-base-18.1.0\AndroidManifest.xml:20:9-22:45
+146            android:name="com.google.android.gms.common.api.GoogleApiActivity"
+146-->[com.google.android.gms:play-services-base:18.1.0] C:\Users\Panoralink\.gradle\caches\8.13\transforms\2d4b04620269e9eb13c70b6baca204b4\transformed\jetified-play-services-base-18.1.0\AndroidManifest.xml:20:19-85
+147            android:exported="false"
+147-->[com.google.android.gms:play-services-base:18.1.0] C:\Users\Panoralink\.gradle\caches\8.13\transforms\2d4b04620269e9eb13c70b6baca204b4\transformed\jetified-play-services-base-18.1.0\AndroidManifest.xml:22:19-43
+148            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+148-->[com.google.android.gms:play-services-base:18.1.0] C:\Users\Panoralink\.gradle\caches\8.13\transforms\2d4b04620269e9eb13c70b6baca204b4\transformed\jetified-play-services-base-18.1.0\AndroidManifest.xml:21:19-78
+149
+150        <provider
+150-->[androidx.emoji2:emoji2:1.2.0] C:\Users\Panoralink\.gradle\caches\8.13\transforms\f3bb65c2fdac59209a6be7cad4f5b585\transformed\jetified-emoji2-1.2.0\AndroidManifest.xml:24:9-32:20
+151            android:name="androidx.startup.InitializationProvider"
+151-->[androidx.emoji2:emoji2:1.2.0] C:\Users\Panoralink\.gradle\caches\8.13\transforms\f3bb65c2fdac59209a6be7cad4f5b585\transformed\jetified-emoji2-1.2.0\AndroidManifest.xml:25:13-67
+152            android:authorities="com.clazz.app.androidx-startup"
+152-->[androidx.emoji2:emoji2:1.2.0] C:\Users\Panoralink\.gradle\caches\8.13\transforms\f3bb65c2fdac59209a6be7cad4f5b585\transformed\jetified-emoji2-1.2.0\AndroidManifest.xml:26:13-68
+153            android:exported="false" >
+153-->[androidx.emoji2:emoji2:1.2.0] C:\Users\Panoralink\.gradle\caches\8.13\transforms\f3bb65c2fdac59209a6be7cad4f5b585\transformed\jetified-emoji2-1.2.0\AndroidManifest.xml:27:13-37
+154            <meta-data
+154-->[androidx.emoji2:emoji2:1.2.0] C:\Users\Panoralink\.gradle\caches\8.13\transforms\f3bb65c2fdac59209a6be7cad4f5b585\transformed\jetified-emoji2-1.2.0\AndroidManifest.xml:29:13-31:52
+155                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+155-->[androidx.emoji2:emoji2:1.2.0] C:\Users\Panoralink\.gradle\caches\8.13\transforms\f3bb65c2fdac59209a6be7cad4f5b585\transformed\jetified-emoji2-1.2.0\AndroidManifest.xml:30:17-75
+156                android:value="androidx.startup" />
+156-->[androidx.emoji2:emoji2:1.2.0] C:\Users\Panoralink\.gradle\caches\8.13\transforms\f3bb65c2fdac59209a6be7cad4f5b585\transformed\jetified-emoji2-1.2.0\AndroidManifest.xml:31:17-49
+157            <meta-data
+157-->[androidx.lifecycle:lifecycle-process:2.6.1] C:\Users\Panoralink\.gradle\caches\8.13\transforms\77296a23f076df1d529468ff942520a8\transformed\jetified-lifecycle-process-2.6.1\AndroidManifest.xml:29:13-31:52
+158                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+158-->[androidx.lifecycle:lifecycle-process:2.6.1] C:\Users\Panoralink\.gradle\caches\8.13\transforms\77296a23f076df1d529468ff942520a8\transformed\jetified-lifecycle-process-2.6.1\AndroidManifest.xml:30:17-78
+159                android:value="androidx.startup" />
+159-->[androidx.lifecycle:lifecycle-process:2.6.1] C:\Users\Panoralink\.gradle\caches\8.13\transforms\77296a23f076df1d529468ff942520a8\transformed\jetified-lifecycle-process-2.6.1\AndroidManifest.xml:31:17-49
+160            <meta-data
+160-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Panoralink\.gradle\caches\8.13\transforms\900c1be8c141cb0ab14f4a1ece999642\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:29:13-31:52
+161                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
+161-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Panoralink\.gradle\caches\8.13\transforms\900c1be8c141cb0ab14f4a1ece999642\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:30:17-85
+162                android:value="androidx.startup" />
+162-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Panoralink\.gradle\caches\8.13\transforms\900c1be8c141cb0ab14f4a1ece999642\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:31:17-49
+163        </provider>
+164
+165        <meta-data
+165-->[com.google.android.gms:play-services-basement:18.3.0] C:\Users\Panoralink\.gradle\caches\8.13\transforms\57e2007d24f2a4a465d3c96c15c59415\transformed\jetified-play-services-basement-18.3.0\AndroidManifest.xml:21:9-23:69
+166            android:name="com.google.android.gms.version"
+166-->[com.google.android.gms:play-services-basement:18.3.0] C:\Users\Panoralink\.gradle\caches\8.13\transforms\57e2007d24f2a4a465d3c96c15c59415\transformed\jetified-play-services-basement-18.3.0\AndroidManifest.xml:22:13-58
+167            android:value="@integer/google_play_services_version" />
+167-->[com.google.android.gms:play-services-basement:18.3.0] C:\Users\Panoralink\.gradle\caches\8.13\transforms\57e2007d24f2a4a465d3c96c15c59415\transformed\jetified-play-services-basement-18.3.0\AndroidManifest.xml:23:13-66
+168
+169        <receiver
+169-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Panoralink\.gradle\caches\8.13\transforms\900c1be8c141cb0ab14f4a1ece999642\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:34:9-52:20
+170            android:name="androidx.profileinstaller.ProfileInstallReceiver"
+170-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Panoralink\.gradle\caches\8.13\transforms\900c1be8c141cb0ab14f4a1ece999642\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:35:13-76
+171            android:directBootAware="false"
+171-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Panoralink\.gradle\caches\8.13\transforms\900c1be8c141cb0ab14f4a1ece999642\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:36:13-44
+172            android:enabled="true"
+172-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Panoralink\.gradle\caches\8.13\transforms\900c1be8c141cb0ab14f4a1ece999642\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:37:13-35
+173            android:exported="true"
+173-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Panoralink\.gradle\caches\8.13\transforms\900c1be8c141cb0ab14f4a1ece999642\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:38:13-36
+174            android:permission="android.permission.DUMP" >
+174-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Panoralink\.gradle\caches\8.13\transforms\900c1be8c141cb0ab14f4a1ece999642\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:39:13-57
+175            <intent-filter>
+175-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Panoralink\.gradle\caches\8.13\transforms\900c1be8c141cb0ab14f4a1ece999642\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:40:13-42:29
+176                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
+176-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Panoralink\.gradle\caches\8.13\transforms\900c1be8c141cb0ab14f4a1ece999642\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:41:17-91
+176-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Panoralink\.gradle\caches\8.13\transforms\900c1be8c141cb0ab14f4a1ece999642\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:41:25-88
+177            </intent-filter>
+178            <intent-filter>
+178-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Panoralink\.gradle\caches\8.13\transforms\900c1be8c141cb0ab14f4a1ece999642\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:43:13-45:29
+179                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
+179-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Panoralink\.gradle\caches\8.13\transforms\900c1be8c141cb0ab14f4a1ece999642\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:44:17-85
+179-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Panoralink\.gradle\caches\8.13\transforms\900c1be8c141cb0ab14f4a1ece999642\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:44:25-82
+180            </intent-filter>
+181            <intent-filter>
+181-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Panoralink\.gradle\caches\8.13\transforms\900c1be8c141cb0ab14f4a1ece999642\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:46:13-48:29
+182                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
+182-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Panoralink\.gradle\caches\8.13\transforms\900c1be8c141cb0ab14f4a1ece999642\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:47:17-88
+182-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Panoralink\.gradle\caches\8.13\transforms\900c1be8c141cb0ab14f4a1ece999642\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:47:25-85
+183            </intent-filter>
+184            <intent-filter>
+184-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Panoralink\.gradle\caches\8.13\transforms\900c1be8c141cb0ab14f4a1ece999642\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:49:13-51:29
+185                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
+185-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Panoralink\.gradle\caches\8.13\transforms\900c1be8c141cb0ab14f4a1ece999642\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:50:17-95
+185-->[androidx.profileinstaller:profileinstaller:1.3.0] C:\Users\Panoralink\.gradle\caches\8.13\transforms\900c1be8c141cb0ab14f4a1ece999642\transformed\jetified-profileinstaller-1.3.0\AndroidManifest.xml:50:25-92
+186            </intent-filter>
+187        </receiver>
+188    </application>
+189
+190</manifest>

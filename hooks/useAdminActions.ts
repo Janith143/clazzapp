@@ -689,6 +689,7 @@ export const useAdminActions = (deps: any) => {
             // Split settings into Client Config and System Config
             const {
                 EMAIL_USER, EMAIL_PASS, NOTIFY_LK_USER_ID, NOTIFY_LK_API_KEY, NOTIFY_LK_SENDER_ID, // Backend keys
+                GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, // Google Auth Keys (Backend)
                 ...clientConfig // Existing client keys (genAiKey, functionUrls, etc.)
             } = settings;
 
@@ -701,7 +702,8 @@ export const useAdminActions = (deps: any) => {
 
             // 2. Update System Config (Backend only / Secure)
             const backendConfig = {
-                EMAIL_USER, EMAIL_PASS, NOTIFY_LK_USER_ID, NOTIFY_LK_API_KEY, NOTIFY_LK_SENDER_ID
+                EMAIL_USER, EMAIL_PASS, NOTIFY_LK_USER_ID, NOTIFY_LK_API_KEY, NOTIFY_LK_SENDER_ID,
+                GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
             };
 
             // Filter out undefined values to avoid overwriting with nothing if not provided

@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "487626975727",
+    "project_id": "clazz2-new",
+    "storage_bucket": "clazz2-new.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:487626975727:android:d6523478f46719d5ddae1a",
+        "android_client_info": {
+          "package_name": "com.clazz.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "487626975727-14dsu96cipcpi7s0t9819g31o9pat0ae.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA7TXoShOdE-kpzzV1muxtlsBrwZC3sAn0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "487626975727-14dsu96cipcpi7s0t9819g31o9pat0ae.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
