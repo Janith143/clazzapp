@@ -1,6 +1,6 @@
 const { onRequest } = require("firebase-functions/v2/https");
 const { setGlobalOptions } = require("firebase-functions/v2");
-setGlobalOptions({ region: "asia-south1", memory: "512MiB" }); // Increased memory for potential HTML processing
+setGlobalOptions({ region: "asia-south1", memory: "512MiB" });
 const express = require('express');
 const admin = require('firebase-admin');
 const axios = require('axios');
@@ -14,7 +14,6 @@ const app = express();
 
 app.use(cors({ origin: true }));
 
-// Cache the index.html content in memory to avoid fetching it on every request
 let cachedIndexHtml = null;
 let lastFetchTime = 0;
 const CACHE_DURATION = 1000 * 60 * 5; // 5 minutes
@@ -26,38 +25,49 @@ const getIndexHtml = async () => {
     }
 
     try {
-        // Fetch from the hosted site. 
-        // NOTE: During local dev, this might point to live. 
-        // In production, it points to itself (static content).
-        // Standard practice: fetch from the public hosting URL.
-        const response = await axios.get('https://clazz.lk/index.html');
+        // Append a timestamp to prevent caching at the edge for this fetch
+        // Use a random query param to ensure we get a fresh copy from the CDN/Storage
+        const response = await axios.get(`https://clazz.lk/index.html?t=${now}`);
         cachedIndexHtml = response.data;
         lastFetchTime = now;
         return cachedIndexHtml;
     } catch (e) {
-        console.error("Failed to fetch index.html", e);
+        console.error("Failed to fetch index.html", e.message);
         return null;
     }
 };
 
 const injectMeta = (html, { title, description, image, url }) => {
     if (!html) return "";
-
     let modified = html;
 
-    // Helper to replace content of a specific meta tag
     const replaceTag = (property, content) => {
-        const regex = new RegExp(`<meta property="${property}" content="[^"]*"`, 'g');
-        modified = modified.replace(regex, `<meta property="${property}" content="${content}"`);
+        // Be robust about quotes and spacing
+        const regex = new RegExp(`<meta\\s+property=["']${property}["']\\s+content=["'][^"']*["']`, 'gi');
+        // Check if exists
+        if (regex.test(modified)) {
+            modified = modified.replace(regex, `<meta property="${property}" content="${content}"`);
+        } else {
+            // Append to head if missing (blind insert before </head>)
+            modified = modified.replace('</head>', `<meta property="${property}" content="${content}"></head>`);
+        }
     };
 
     const replaceNameTag = (name, content) => {
-        const regex = new RegExp(`<meta name="${name}" content="[^"]*"`, 'g');
-        modified = modified.replace(regex, `<meta name="${name}" content="${content}"`);
+        const regex = new RegExp(`<meta\\s+name=["']${name}["']\\s+content=["'][^"']*["']`, 'gi');
+        if (regex.test(modified)) {
+            modified = modified.replace(regex, `<meta name="${name}" content="${content}"`);
+        } else {
+            modified = modified.replace('</head>', `<meta name="${name}" content="${content}"></head>`);
+        }
     };
 
     if (title) {
-        modified = modified.replace(/<title>.*<\/title>/, `<title>${title}</title>`);
+        if (/<title>.*<\/title>/i.test(modified)) {
+            modified = modified.replace(/<title>.*<\/title>/i, `<title>${title}</title>`);
+        } else {
+            modified = modified.replace('</head>', `<title>${title}</title></head>`);
+        }
         replaceTag('og:title', title);
         replaceTag('twitter:title', title);
     }
@@ -80,8 +90,6 @@ const injectMeta = (html, { title, description, image, url }) => {
     return modified;
 };
 
-// Reserved paths that should definitely NOT be treated as teacher profiles
-// 'assets' is handled by hosting priority usually, but good to check.
 const RESERVED_PATHS = [
     'admin', 'teachers', 'courses', 'classes', 'quizzes', 'exams', 'events',
     'store', 'gift-voucher', 'referrals', 'dashboard', 'institute', 'home',
@@ -89,16 +97,14 @@ const RESERVED_PATHS = [
 ];
 
 app.get('**', async (req, res) => {
-    const path = req.path; // e.g. /ChemistryWithRukshanSir or /courses/physics
-    const cleanPath = path.substring(1); // remove leading slash
+    const path = req.path;
+    const cleanPath = path.substring(1);
     const segments = cleanPath.split('/');
 
-    // Ignore static assets if they somehow reached here (though hosting handles them first)
-    if (path.startsWith('/assets/') || path.includes('.')) {
-        // It's likely a file.
-        // If we don't handle it, we should probably output the plain index.html 
-        // so client-side routing detects 404 or handles it.
-        // BUT file extensions usually mean static files.
+    // CRITICAL FIX: Fail fast for assets.
+    // If we don't return 404 here, this function returns HTML for image requests, breaking the site.
+    if (path.startsWith('/assets/') || path.match(/\.(js|css|png|jpg|jpeg|gif|ico|json|map|woff|woff2|txt|xml|svg)$/i)) {
+        return res.status(404).send('Not Found');
     }
 
     let meta = {
@@ -108,63 +114,52 @@ app.get('**', async (req, res) => {
         url: `https://clazz.lk${path}`
     };
 
-    let needsDeepLookup = false;
-
-    // Logic to determine if we need to fetch data
-    if (segments.length === 1 && !RESERVED_PATHS.includes(segments[0]) && segments[0] !== '') {
-        // Potential Teacher Vanity URL: /TeacherName
-        const slug = segments[0];
+    const getTeacherMeta = async (identifier) => {
         try {
-            // Find teacher by username (slug)
-            // Note: In Firestore we might need a query
             const teachersRef = db.collection('teachers');
-            const snapshot = await teachersRef.where('username', '==', slug).limit(1).get();
+            // Try nickname/username first
+            let snapshot = await teachersRef.where('username', '==', identifier).limit(1).get();
+            let teacher = null;
 
             if (!snapshot.empty) {
-                const teacher = snapshot.docs[0].data();
-                meta.title = `${teacher.name} | Clazz.lk`;
-                meta.description = teacher.tagline || teacher.bio?.substring(0, 160) || "View teacher profile on Clazz.lk";
-                meta.image = teacher.profileImage || meta.image;
+                teacher = snapshot.docs[0].data();
             } else {
-                // Fallback: Check if it's a teacher ID?
-                const docSnap = await teachersRef.doc(slug).get();
+                // Try ID direct lookup
+                const docSnap = await teachersRef.doc(identifier).get();
                 if (docSnap.exists) {
-                    const teacher = docSnap.data();
-                    meta.title = `${teacher.name} | Clazz.lk`;
-                    meta.description = teacher.tagline || teacher.bio?.substring(0, 160) || "View teacher profile on Clazz.lk";
-                    meta.image = teacher.profileImage || meta.image;
+                    teacher = docSnap.data();
                 }
             }
-        } catch (e) {
-            console.error("Error fetching teacher", e);
-        }
-    }
-    // Handle specific Detail Pages if needed (Courses, Classes, etc.)
-    else if (segments[0] === 'teacher' && segments[1]) {
-        // /teacher/slug
-        const slug = segments[1];
-        try {
-            const teachersRef = db.collection('teachers');
-            const snapshot = await teachersRef.where('username', '==', slug).limit(1).get();
-            if (!snapshot.empty) {
-                const teacher = snapshot.docs[0].data();
-                meta.title = `${teacher.name} | Clazz.lk`;
-                meta.image = teacher.profileImage || meta.image;
+
+            if (teacher) {
+                return {
+                    title: `${teacher.name} | Clazz.lk`,
+                    description: teacher.tagline || teacher.bio?.substring(0, 160) || "View teacher profile on Clazz.lk",
+                    image: teacher.profileImage || meta.image
+                };
             }
-        } catch (e) { }
-    } else if (segments[0] === 'courses' && segments[1]) {
-        // /courses/slug
-        // Logic similar to above...
+        } catch (e) {
+            console.error("Error fetching teacher:", e);
+        }
+        return null;
+    };
+
+    // 1. Vanity URL: /TeacherName
+    if (segments.length === 1 && !RESERVED_PATHS.includes(segments[0]) && segments[0] !== '') {
+        const data = await getTeacherMeta(segments[0]);
+        if (data) meta = { ...meta, ...data };
+    }
+    // 2. Explicit Teacher Route: /teacher/slug_or_id
+    else if (segments[0] === 'teacher' && segments[1]) {
+        const data = await getTeacherMeta(segments[1]);
+        if (data) meta = { ...meta, ...data };
     }
 
     const indexHtml = await getIndexHtml();
 
     if (!indexHtml) {
-        // If we fail to fetch index.html, we can't do SSR. 
-        // Return 500 or redirect to basic hosting static URL?
-        // Redirecting to index.html might cause loop if rewrite points back here.
-        // Best to send a simple fail message or retry.
-        return res.status(503).send("Service Unavailable");
+        console.error("Could not load index.html from source. Returning basic 503.");
+        return res.status(503).send("Service Unavailable: Could not load app shell.");
     }
 
     const finalHtml = injectMeta(indexHtml, meta);
