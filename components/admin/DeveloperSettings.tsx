@@ -4,9 +4,8 @@ import { useData } from '../../contexts/DataContext';
 import { useUI } from '../../contexts/UIContext';
 import FormInput from '../FormInput';
 import { SaveIcon } from '../Icons';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../firebase';
-
 import { slugify } from '../../utils/slug';
 
 const DeveloperSettings: React.FC = () => {
@@ -14,6 +13,24 @@ const DeveloperSettings: React.FC = () => {
     const { genAiKey, gDriveFetcherApiKey, functionUrls } = useNavigation();
     const { handleUpdateDeveloperSettings, teachers, tuitionInstitutes } = useData();
     const { addToast } = useUI();
+
+    const [settings, setSettings] = useState({
+        genAiKey: '',
+        gDriveFetcherApiKey: '',
+        functionUrls: {} as Record<string, string>,
+        EMAIL_USER: '',
+        EMAIL_PASS: '',
+        NOTIFY_LK_USER_ID: '',
+        NOTIFY_LK_API_KEY: '',
+        NOTIFY_LK_SENDER_ID: '',
+        GOOGLE_CLIENT_ID: '',
+        GOOGLE_CLIENT_SECRET: ''
+    });
+
+    const [isSaving, setIsSaving] = useState(false);
+    const [isInitialized, setIsInitialized] = useState(false);
+    const [debugTeacherId, setDebugTeacherId] = useState('');
+    const [debugResult, setDebugResult] = useState<string | null>(null);
 
     const handleGenerateSitemap = () => {
         try {
@@ -94,9 +111,6 @@ const DeveloperSettings: React.FC = () => {
 
             // 6. Tuition Institutes & Events
             (tuitionInstitutes || []).forEach(inst => {
-                // Institute Profile (if public) - Assuming logic similar to teachers if implemented
-
-                // Events
                 (inst.events || []).forEach(event => {
                     const slug = slugify(event.title);
                     xml += `
@@ -131,21 +145,59 @@ const DeveloperSettings: React.FC = () => {
         }
     };
 
-    const [settings, setSettings] = useState({
-        genAiKey: '',
-        gDriveFetcherApiKey: '',
-        functionUrls: {} as Record<string, string>,
-        EMAIL_USER: '',
-        EMAIL_PASS: '',
-        NOTIFY_LK_USER_ID: '',
-        NOTIFY_LK_API_KEY: '',
-        NOTIFY_LK_SENDER_ID: '',
-        GOOGLE_CLIENT_ID: '',
-        GOOGLE_CLIENT_SECRET: ''
-    });
+    const handleDebugTeacher = async () => {
+        if (!debugTeacherId) return;
+        setDebugResult("Searching...");
+        try {
+            const teachersRef = collection(db, 'teachers');
+            let q = query(teachersRef, where('id', '==', debugTeacherId));
+            let snapshot = await getDocs(q);
 
-    const [isSaving, setIsSaving] = useState(false);
-    const [isInitialized, setIsInitialized] = useState(false);
+            if (snapshot.empty) {
+                // Try username
+                q = query(teachersRef, where('username', '==', debugTeacherId));
+                snapshot = await getDocs(q);
+            }
+
+            // Try Legacy or other IDs if needed, but lets assume ID first.
+            if (snapshot.empty) {
+                // Try manual fetch if it's a doc ID
+                const docRef = doc(db, 'teachers', debugTeacherId);
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    const courses = (data.courses || []).map((c: any) => ({
+                        id: c.id,
+                        title: c.title,
+                        ADMIN_APPROVAL: c.adminApproval,  // Highlighting this
+                        isPublished: c.isPublished,
+                        isDeleted: c.isDeleted
+                    }));
+                    setDebugResult(`FOUND BY DOC ID!\nName: ${data.name}\n\nCOURSES:\n${JSON.stringify(courses, null, 2)}`);
+                    return;
+                }
+            }
+
+            if (snapshot.empty) {
+                setDebugResult("❌ Teacher not found by ID or Username.");
+                return;
+            }
+
+            const docData = snapshot.docs[0].data();
+            const courses = (docData.courses || []).map((c: any) => ({
+                id: c.id,
+                title: c.title,
+                ADMIN_APPROVAL: c.adminApproval, // Highlighting this
+                isPublished: c.isPublished,
+                isDeleted: c.isDeleted
+            }));
+
+            setDebugResult(`✅ FOUND!\nName: ${docData.name} (${snapshot.docs[0].id})\n\nCOURSES:\n${JSON.stringify(courses, null, 2)}`);
+
+        } catch (e: any) {
+            setDebugResult(`Error: ${e.message}`);
+        }
+    };
 
     useEffect(() => {
         const loadConfigs = async () => {
@@ -334,6 +386,34 @@ const DeveloperSettings: React.FC = () => {
                         Download sitemap.xml
                     </button>
                 </div>
+            </div>
+
+            {/* --- Debug Tools --- */}
+            <div className="bg-light-surface dark:bg-dark-surface p-6 rounded-lg shadow-md mt-6 border-2 border-red-500/20">
+                <h2 className="text-xl font-bold mb-4 text-red-600">🎓 Debug Teacher Courses</h2>
+                <div className="flex gap-4 mb-4">
+                    <FormInput
+                        label="Teacher ID / Username"
+                        name="debugTeacherId"
+                        value={debugTeacherId}
+                        onChange={(e) => setDebugTeacherId(e.target.value)}
+                        placeholder="e.g. TID0100RM"
+                    />
+                    <div className="flex items-end pb-1">
+                        <button
+                            onClick={handleDebugTeacher}
+                            className="bg-red-600 text-white px-4 py-2 rounded-lg font-bold"
+                        >
+                            Inspect Courses
+                        </button>
+                    </div>
+                </div>
+
+                {debugResult && (
+                    <div className="bg-black text-green-400 p-4 rounded-lg font-mono text-xs overflow-x-auto max-h-96">
+                        <pre>{debugResult}</pre>
+                    </div>
+                )}
             </div>
 
             <div className="fixed bottom-6 right-8">

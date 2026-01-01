@@ -43,40 +43,60 @@ export const useContentActions = (deps: ContentActionDeps) => {
         // Handle image upload if a new base64 image is present
         if (finalCourseDetails.coverImage && finalCourseDetails.coverImage.startsWith('data:image')) {
             addToast("Uploading cover image...", "info");
-            const downloadURL = await handleImageSave(finalCourseDetails.coverImage, 'course_cover', { teacherId: finalCourseDetails.teacherId });
-            if (downloadURL) {
-                finalCourseDetails.coverImage = downloadURL as string;
-            } else {
-                addToast("Cover image upload failed. Course not saved.", "error");
-                throw new Error("Image upload failed."); // Throw to stop execution
+            try {
+                const downloadURL = await handleImageSave(finalCourseDetails.coverImage, 'course_cover', { teacherId: finalCourseDetails.teacherId });
+                if (downloadURL) {
+                    finalCourseDetails.coverImage = downloadURL as string;
+                } else {
+                    addToast("Cover image upload failed. Course not saved.", "error");
+                    return;
+                }
+            } catch (e) {
+                console.error("Image upload error:", e);
+                addToast("Image upload failed.", "error");
+                return;
             }
         }
 
-        const teacher = teachers.find(t => t.id === finalCourseDetails.teacherId);
-        if (!teacher) {
-            addToast("Error: Associated teacher profile not found.", "error");
-            return;
-        }
-
-        const existingIndex = teacher.courses.findIndex(c => c.id === finalCourseDetails.id);
-        const newCourses = [...teacher.courses];
-        const isNew = existingIndex === -1;
-
-        if (isNew) {
-            newCourses.push(finalCourseDetails);
-        } else {
-            newCourses[existingIndex] = finalCourseDetails;
-        }
+        const teacherId = finalCourseDetails.teacherId;
+        const teacherRef = doc(db, "teachers", teacherId);
 
         try {
-            await handleUpdateTeacher(teacher.id, { courses: newCourses });
-            addToast(isNew ? "Course created successfully!" : "Course updated successfully!", "success");
-            handleNavigate({ name: 'teacher_profile', teacherId: teacher.id });
-        } catch (e) {
-            // Error toast is already shown in handleUpdateTeacher
+            await runTransaction(db, async (transaction) => {
+                const teacherDoc = await transaction.get(teacherRef);
+                if (!teacherDoc.exists()) {
+                    throw new Error("Associated teacher profile not found.");
+                }
+
+                const teacherData = teacherDoc.data() as Teacher;
+                const currentCourses = teacherData.courses || [];
+                const existingIndex = currentCourses.findIndex(c => c.id === finalCourseDetails.id);
+
+                const newCourses = [...currentCourses];
+                const isNew = existingIndex === -1;
+
+                if (isNew) {
+                    newCourses.push(finalCourseDetails);
+                } else {
+                    newCourses[existingIndex] = finalCourseDetails;
+                }
+
+                transaction.update(teacherRef, { courses: newCourses });
+            });
+
+            const isNew = !teachers.find(t => t.id === teacherId)?.courses.some(c => c.id === finalCourseDetails.id); // Check sync state or just assume success
+            // Note: 'isNew' calculation here is slightly approximate since we just wrote it, but good enough for toast msg.
+            // Actually, simplified:
+            addToast("Course saved successfully!", "success");
+
+            // Only navigate if we can confirm it was valid
+            handleNavigate({ name: 'teacher_profile', teacherId: teacherId });
+
+        } catch (e: any) {
             console.error("Failed to save course:", e);
+            addToast(e.message || "Failed to save course.", "error");
         }
-    }, [teachers, handleUpdateTeacher, addToast, handleNavigate, handleImageSave]);
+    }, [teachers, handleImageSave, addToast, handleNavigate]);
 
     const handleSaveProduct = useCallback(async (productDetails: Product) => {
         const teacher = teachers.find(t => t.id === productDetails.teacherId);
