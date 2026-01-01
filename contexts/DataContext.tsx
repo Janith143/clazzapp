@@ -16,8 +16,8 @@ import {
     increment
 } from 'firebase/firestore';
 import { useDataActions } from '../hooks/useDataActions';
-import { getDynamicClassStatus } from '../utils';
-import { useNavigation } from './NavigationContext';
+import { getDynamicClassStatus, getDynamicCourseStatus } from '../utils';
+import { useNavigation, HomePageLayoutConfig } from './NavigationContext';
 
 
 export interface DataContextType {
@@ -45,6 +45,7 @@ export interface DataContextType {
     handleSaveQuiz: (quizDetails: Quiz) => Promise<void>;
     handleCancelItem: (teacherId: string, itemId: string | number, type: 'class' | 'quiz') => void;
     handleTogglePublishState: (teacherId: string, itemId: string | number, type: 'class' | 'course' | 'quiz' | 'product' | 'events', action?: 'request_approval') => void;
+    handleUpdateHomePageLayoutConfig: (config: HomePageLayoutConfig) => Promise<void>;
     // FIX: Updated handleEnroll signature to include selectedMethod and return Promise<void> to match implementation in useEnrollmentActions hook.
     handleEnroll: (item: Course | IndividualClass | Quiz | Event, type: 'course' | 'class' | 'quiz' | 'event', ignoreVerification?: boolean, customPaymentAmount?: number, customPaymentDescription?: string, purchaseMetadata?: Sale['purchaseMetadata'], selectedMethod?: PaymentMethod) => Promise<void>;
     handleRateCourse: (courseId: string, rating: number) => void;
@@ -280,24 +281,44 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             let updatesMade = false;
 
             for (const teacher of teachers) {
-                if (!Array.isArray(teacher.individualClasses)) {
-                    continue;
-                }
                 let teacherNeedsUpdate = false;
-                const updatedClasses = teacher.individualClasses.map(cls => {
-                    if (cls.isPublished && cls.status !== 'finished') {
-                        const dynamicStatus = getDynamicClassStatus(cls);
-                        if (dynamicStatus === 'finished') {
-                            teacherNeedsUpdate = true;
-                            return { ...cls, isPublished: false, status: 'finished' };
+                let updatedClasses = teacher.individualClasses;
+                let updatedCourses = teacher.courses;
+
+                // 1. Check Classes
+                if (Array.isArray(teacher.individualClasses)) {
+                    updatedClasses = teacher.individualClasses.map(cls => {
+                        if (cls.isPublished && cls.status !== 'finished') {
+                            const dynamicStatus = getDynamicClassStatus(cls);
+                            if (dynamicStatus === 'finished') {
+                                teacherNeedsUpdate = true;
+                                return { ...cls, isPublished: false, status: 'finished' };
+                            }
                         }
-                    }
-                    return cls;
-                });
+                        return cls;
+                    });
+                }
+
+                // 2. Check Courses
+                if (Array.isArray(teacher.courses)) {
+                    updatedCourses = teacher.courses.map(course => {
+                        if (course.isPublished && course.type === 'live') {
+                            const status = getDynamicCourseStatus(course); // Function we just added
+                            if (status === 'finished') {
+                                teacherNeedsUpdate = true;
+                                return { ...course, isPublished: false };
+                            }
+                        }
+                        return course;
+                    });
+                }
 
                 if (teacherNeedsUpdate) {
                     const teacherRef = doc(db, 'teachers', teacher.id);
-                    batch.update(teacherRef, { individualClasses: updatedClasses });
+                    batch.update(teacherRef, {
+                        individualClasses: updatedClasses,
+                        courses: updatedCourses
+                    });
                     updatesMade = true;
                 }
             }

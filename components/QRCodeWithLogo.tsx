@@ -45,7 +45,8 @@ const QRCodeWithLogo: React.FC<QRCodeWithLogoProps> = ({
         if (!ctx) return;
 
         const qrImage = new Image();
-        qrImage.crossOrigin = "anonymous";
+        // data URIs don't need crossOrigin
+
         qrImage.src = qrData;
         await new Promise((res, rej) => {
           qrImage.onload = res;
@@ -87,8 +88,12 @@ const QRCodeWithLogo: React.FC<QRCodeWithLogoProps> = ({
 
         // Draw logo with white circular background
         const logoImage = new Image();
-        logoImage.crossOrigin = "anonymous";
-        logoImage.src = getOptimizedImageUrl(logoSrc, 200);
+        // Only set crossOrigin for external URLs to avoid CORS issues with local files served without headers
+        const optimizedLogoSrc = getOptimizedImageUrl(logoSrc, 200);
+        if (optimizedLogoSrc.startsWith('http') || optimizedLogoSrc.startsWith('//')) {
+          logoImage.crossOrigin = "anonymous";
+        }
+        logoImage.src = optimizedLogoSrc;
         await new Promise((res, rej) => {
           logoImage.onload = res;
           logoImage.onerror = rej;

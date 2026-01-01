@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { useData } from '../../contexts/DataContext.tsx';
 import { useUI } from '../../contexts/UIContext.tsx';
-import { useNavigation } from '../../contexts/NavigationContext.tsx';
+import { useNavigation, HomePageLayoutConfig, SectionConfig } from '../../contexts/NavigationContext.tsx';
+import ItemSelector from '../ItemSelector.tsx';
 import { StaticPageKey, HomeSlide, SocialMediaLink, UpcomingExam, PhotoPrintOption, FinancialSettings, SupportSettings, AdditionalService } from '../../types.ts';
 import FormInput from '../FormInput.tsx';
 import FormSelect from '../FormSelect.tsx';
@@ -30,8 +31,8 @@ interface SiteContentManagementProps {
 }
 
 const SiteContentManagement: React.FC<SiteContentManagementProps> = ({ initialKey }) => {
-    const { handleUpdateStaticContent, handleUpdateHomeSlides, handleUpdateSocialMediaLinks, handleUpdateSubjects, handleUpdateStudentCardTaglines, handleUpdateTeacherCardTaglines, handleUpdateHomePageCardCounts, handleUpdateUpcomingExams, handleUpdatePhotoPrintOptions, handleUpdateOgImage, handleImageSave, handleUpdateTeacherDashboardMessage, handleUpdateFinancialSettings, handleUpdateSupportSettings, handleUpdateAdditionalServices } = useData();
-    const { staticPageContent, homeSlides, socialMediaLinks, subjects, studentCardTaglines, teacherCardTaglines, homePageCardCounts, upcomingExams, photoPrintOptions, ogImageUrl, teacherDashboardMessage, financialSettings, supportSettings, additionalServices } = useNavigation();
+    const { handleUpdateStaticContent, handleUpdateHomeSlides, handleUpdateSocialMediaLinks, handleUpdateSubjects, handleUpdateStudentCardTaglines, handleUpdateTeacherCardTaglines, handleUpdateHomePageLayoutConfig, handleUpdateUpcomingExams, handleUpdatePhotoPrintOptions, handleUpdateOgImage, handleImageSave, handleUpdateTeacherDashboardMessage, handleUpdateFinancialSettings, handleUpdateSupportSettings, handleUpdateAdditionalServices, teachers, tuitionInstitutes } = useData();
+    const { staticPageContent, homeSlides, socialMediaLinks, subjects, studentCardTaglines, teacherCardTaglines, homePageLayoutConfig, upcomingExams, photoPrintOptions, ogImageUrl, teacherDashboardMessage, financialSettings, supportSettings, additionalServices } = useNavigation();
     const { addToast } = useUI();
 
     if (!staticPageContent) {
@@ -47,7 +48,13 @@ const SiteContentManagement: React.FC<SiteContentManagementProps> = ({ initialKe
     const [socialLinks, setSocialLinks] = useState<SocialMediaLink[]>([]);
     const [subjectsData, setSubjectsData] = useState<Record<string, { value: string, label: string }[]>>({});
     const [taglinesData, setTaglinesData] = useState<string[]>([]);
-    const [layoutCounts, setLayoutCounts] = useState({ teachers: 3, courses: 3, classes: 3, quizzes: 3, events: 3 });
+    const [layoutConfig, setLayoutConfig] = useState<HomePageLayoutConfig>({
+        teachers: { count: 3, mode: 'latest', selectedIds: [] },
+        courses: { count: 3, mode: 'latest', selectedIds: [] },
+        classes: { count: 3, mode: 'latest', selectedIds: [] },
+        quizzes: { count: 3, mode: 'latest', selectedIds: [] },
+        events: { count: 3, mode: 'latest', selectedIds: [] }
+    });
     const [examsData, setExamsData] = useState<UpcomingExam[]>([]);
     const [photoOptionsData, setPhotoOptionsData] = useState<PhotoPrintOption[]>([]);
     const [ogImage, setOgImage] = useState<string | null>(null);
@@ -81,7 +88,13 @@ const SiteContentManagement: React.FC<SiteContentManagementProps> = ({ initialKe
         } else if (selectedKey === 'teacher_card_taglines') {
             setTaglinesData(teacherCardTaglines ? [...teacherCardTaglines] : []);
         } else if (selectedKey === 'home_page_layout') {
-            setLayoutCounts(homePageCardCounts || { teachers: 3, courses: 3, classes: 3, quizzes: 3, events: 3 });
+            setLayoutConfig(homePageLayoutConfig || {
+                teachers: { count: 3, mode: 'latest', selectedIds: [] },
+                courses: { count: 3, mode: 'latest', selectedIds: [] },
+                classes: { count: 3, mode: 'latest', selectedIds: [] },
+                quizzes: { count: 3, mode: 'latest', selectedIds: [] },
+                events: { count: 3, mode: 'latest', selectedIds: [] }
+            });
         } else if (selectedKey === 'upcoming_exams') {
             setExamsData(upcomingExams ? JSON.parse(JSON.stringify(upcomingExams)) : []);
         } else if (selectedKey === 'photo_print_options') {
@@ -101,7 +114,7 @@ const SiteContentManagement: React.FC<SiteContentManagementProps> = ({ initialKe
         } else {
             setPageData({ title: '', content: '' });
         }
-    }, [selectedKey, staticPageContent, homeSlides, socialMediaLinks, subjects, studentCardTaglines, teacherCardTaglines, homePageCardCounts, upcomingExams, photoPrintOptions, ogImageUrl, teacherDashboardMessage, financialSettings, supportSettings, additionalServices]);
+    }, [selectedKey, staticPageContent, homeSlides, socialMediaLinks, subjects, studentCardTaglines, teacherCardTaglines, homePageLayoutConfig, upcomingExams, photoPrintOptions, ogImageUrl, teacherDashboardMessage, financialSettings, supportSettings, additionalServices]);
 
     const handlePageChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         setPageData(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -146,9 +159,14 @@ const SiteContentManagement: React.FC<SiteContentManagementProps> = ({ initialKe
         }));
     };
 
-    const handleLayoutCountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target;
-        setLayoutCounts(prev => ({ ...prev, [name]: parseInt(value, 10) || 0 }));
+    const handleLayoutConfigChange = (section: keyof HomePageLayoutConfig, field: keyof SectionConfig, value: any) => {
+        setLayoutConfig(prev => ({
+            ...prev,
+            [section]: {
+                ...prev[section],
+                [field]: value
+            }
+        }));
     };
 
     const handleExamChange = (index: number, field: keyof UpcomingExam, value: string | boolean) => {
@@ -224,7 +242,7 @@ const SiteContentManagement: React.FC<SiteContentManagementProps> = ({ initialKe
             } else if (selectedKey === 'teacher_card_taglines') {
                 await handleUpdateTeacherCardTaglines(taglinesData);
             } else if (selectedKey === 'home_page_layout') {
-                await handleUpdateHomePageCardCounts(layoutCounts);
+                await handleUpdateHomePageLayoutConfig(layoutConfig);
             } else if (selectedKey === 'upcoming_exams') {
                 await handleUpdateUpcomingExams(examsData);
             } else if (selectedKey === 'photo_print_options') {
@@ -365,20 +383,84 @@ const SiteContentManagement: React.FC<SiteContentManagementProps> = ({ initialKe
         </div>
     );
 
-    const renderLayoutEditor = () => (
-        <div className="space-y-4">
-            <p className="text-sm text-light-subtle dark:text-dark-subtle">
-                Control how many items appear in each featured section on the home page.
-            </p>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 pt-4">
-                <FormInput label="Featured Teachers" name="teachers" type="number" min={1} max={12} value={layoutCounts.teachers.toString()} onChange={handleLayoutCountChange} />
-                <FormInput label="Popular Courses" name="courses" type="number" min={1} max={12} value={layoutCounts.courses.toString()} onChange={handleLayoutCountChange} />
-                <FormInput label="Upcoming Classes" name="classes" type="number" min={1} max={12} value={layoutCounts.classes.toString()} onChange={handleLayoutCountChange} />
-                <FormInput label="Latest Quizzes" name="quizzes" type="number" min={1} max={12} value={layoutCounts.quizzes.toString()} onChange={handleLayoutCountChange} />
-                <FormInput label="Upcoming Events" name="events" type="number" min={1} max={12} value={(layoutCounts.events || 3).toString()} onChange={handleLayoutCountChange} />
+    const renderLayoutEditor = () => {
+        // Flatten data for selectors
+        const allCourses = teachers.flatMap(t => t.courses.map(c => ({ id: c.id, title: c.title, subtitle: t.name })));
+        const allClasses = teachers.flatMap(t => t.individualClasses.map(c => ({ id: c.id, title: c.title, subtitle: `${t.name} - ${c.date}` })));
+        const allQuizzes = teachers.flatMap(t => t.quizzes.map(q => ({ id: q.id, title: q.title, subtitle: t.name })));
+        const allEvents = tuitionInstitutes.flatMap(ti => (ti.events || []).map(e => ({ id: e.id, title: e.title, subtitle: ti.name })));
+        const allTeachers = teachers.map(t => ({ id: t.id, title: t.name, subtitle: t.tagline }));
+
+        const sections: { key: keyof HomePageLayoutConfig, label: string, items: any[] }[] = [
+            { key: 'teachers', label: 'Featured Teachers', items: allTeachers },
+            { key: 'courses', label: 'Popular Courses', items: allCourses },
+            { key: 'classes', label: 'Upcoming Classes', items: allClasses },
+            { key: 'quizzes', label: 'Latest Quizzes', items: allQuizzes },
+            { key: 'events', label: 'Upcoming Events', items: allEvents },
+        ];
+
+        return (
+            <div className="space-y-8">
+                <p className="text-sm text-light-subtle dark:text-dark-subtle">
+                    Control how items appear on the home page. You can either show the latest items automatically or select specific ones.
+                </p>
+                <div className="space-y-6">
+                    {sections.map(section => (
+                        <div key={section.key} className="p-4 border border-light-border dark:border-dark-border rounded-lg">
+                            <h3 className="text-lg font-semibold mb-3">{section.label}</h3>
+                            <div className="flex flex-col gap-4">
+                                <div className="flex items-center gap-4">
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="radio"
+                                            id={`${section.key}-latest`}
+                                            name={`${section.key}-mode`}
+                                            checked={layoutConfig[section.key].mode === 'latest'}
+                                            onChange={() => handleLayoutConfigChange(section.key, 'mode', 'latest')}
+                                            className="h-4 w-4 text-primary focus:ring-primary border-light-border dark:border-dark-border"
+                                        />
+                                        <label htmlFor={`${section.key}-latest`} className="text-sm font-medium">Automatic (Latest)</label>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="radio"
+                                            id={`${section.key}-selected`}
+                                            name={`${section.key}-mode`}
+                                            checked={layoutConfig[section.key].mode === 'selected'}
+                                            onChange={() => handleLayoutConfigChange(section.key, 'mode', 'selected')}
+                                            className="h-4 w-4 text-primary focus:ring-primary border-light-border dark:border-dark-border"
+                                        />
+                                        <label htmlFor={`${section.key}-selected`} className="text-sm font-medium">Manual (Specific)</label>
+                                    </div>
+                                </div>
+
+                                {layoutConfig[section.key].mode === 'latest' ? (
+                                    <div className="w-48">
+                                        <FormInput
+                                            label="Number of Items"
+                                            name={`${section.key}-count`}
+                                            type="number"
+                                            min={1}
+                                            max={12}
+                                            value={layoutConfig[section.key].count.toString()}
+                                            onChange={(e) => handleLayoutConfigChange(section.key, 'count', parseInt(e.target.value) || 0)}
+                                        />
+                                    </div>
+                                ) : (
+                                    <ItemSelector
+                                        label={`Select ${section.label}`}
+                                        items={section.items}
+                                        selectedIds={layoutConfig[section.key].selectedIds}
+                                        onSelectionChange={(ids) => handleLayoutConfigChange(section.key, 'selectedIds', ids)}
+                                    />
+                                )}
+                            </div>
+                        </div>
+                    ))}
+                </div>
             </div>
-        </div>
-    );
+        );
+    };
 
     const renderExamsEditor = () => (
         <div className="space-y-6">

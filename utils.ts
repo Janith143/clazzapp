@@ -333,6 +333,57 @@ export const getDynamicQuizStatus = (quiz: any): 'scheduled' | 'finished' | 'can
 };
 
 /**
+ * Determines the dynamic status of a course based on its schedule.
+ * Mainly for 'live' courses to auto-unpublish when finished.
+ */
+export const getDynamicCourseStatus = (course: any, now: Date = new Date()): 'ongoing' | 'finished' => {
+    if (course.type === 'recorded') return 'ongoing'; // Recorded courses generally stay available
+
+    if (course.type === 'live') {
+        // Scenario A: Has explicit live sessions
+        if (course.liveSessions && course.liveSessions.length > 0) {
+            // Find the last session
+            // We assume sessions might not be sorted, so we find the max end time.
+            let lastSessionEnd: Date | null = null;
+
+            for (const session of course.liveSessions) {
+                const sessionEnd = new Date(`${session.date}T${session.endTime}`);
+                if (!lastSessionEnd || sessionEnd > lastSessionEnd) {
+                    lastSessionEnd = sessionEnd;
+                }
+            }
+
+            if (lastSessionEnd && now > lastSessionEnd) {
+                return 'finished';
+            }
+        }
+
+        // Scenario B: Has scheduleConfig (e.g. 4 weeks from start date)
+        if (course.scheduleConfig && course.scheduleConfig.startDate) {
+            const startDate = new Date(`${course.scheduleConfig.startDate}T${course.scheduleConfig.startTime || '00:00'}`);
+            // If we have weeks, add checks
+            if (course.scheduleConfig.weekCount) {
+                // Calculate end date: startDate + (weekCount * 7 days)
+                // A simplified approach: adding days. 
+                // Note: If course has specific days, potentially finding the last day of the last week is more accurate,
+                // but roughly (weekCount * 7) days cover the duration.
+                // Let's add a buffer of 1 day to be safe? Or exact? 
+                // Usually weekCount=4 means it runs for 4 weeks.
+                const durationMs = course.scheduleConfig.weekCount * 7 * 24 * 60 * 60 * 1000;
+                const approximateEndDate = new Date(startDate.getTime() + durationMs);
+
+                // If it's comfortably past the end date
+                if (now > approximateEndDate) {
+                    return 'finished';
+                }
+            }
+        }
+    }
+
+    return 'ongoing';
+};
+
+/**
  * Calculates the next upcoming session date and time for a class.
  */
 export const getNextSessionDateTime = (classInfo: IndividualClass, now: Date = new Date()): Date | null => {

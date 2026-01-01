@@ -385,8 +385,8 @@ export const useAdminActions = (deps: any) => {
         await setDoc(doc(db, 'settings', 'appConfig'), { teacherCardTaglines: taglines }, { merge: true });
     }, []);
 
-    const handleUpdateHomePageCardCounts = useCallback(async (counts: { teachers: number, courses: number, classes: number, quizzes: number, events: number }) => {
-        await setDoc(doc(db, 'settings', 'appConfig'), { homePageCardCounts: counts }, { merge: true });
+    const handleUpdateHomePageLayoutConfig = useCallback(async (config: any) => {
+        await setDoc(doc(db, 'settings', 'appConfig'), { homePageLayoutConfig: config }, { merge: true });
     }, []);
 
     const handleUpdateUpcomingExams = useCallback(async (exams: UpcomingExam[]) => {
@@ -745,7 +745,7 @@ export const useAdminActions = (deps: any) => {
         handleUpdateSubjects,
         handleUpdateStudentCardTaglines,
         handleUpdateTeacherCardTaglines,
-        handleUpdateHomePageCardCounts,
+        handleUpdateHomePageLayoutConfig,
         handleUpdateUpcomingExams,
         handleUpdatePhotoPrintOptions,
         handleUpdateAdditionalServices,

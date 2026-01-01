@@ -1,5 +1,5 @@
-
 import React, { useMemo, useState, useEffect } from 'react';
+import { Teacher, Course, IndividualClass, Quiz, Event, TuitionInstitute } from '../types';
 import HomeSlider from '../components/HomeSlider';
 import SearchBar from '../components/SearchBar';
 import TeacherCard from '../components/TeacherCard';
@@ -24,7 +24,7 @@ import SEOHead from '../components/SEOHead';
 const HomePage: React.FC = () => {
     const { teachers, users, tuitionInstitutes } = useData();
     const { currentUser } = useAuth();
-    const { handleNavigate, searchQuery, setSearchQuery, homeSlides, homePageCardCounts } = useNavigation();
+    const { handleNavigate, searchQuery, setSearchQuery, homeSlides, homePageLayoutConfig } = useNavigation();
     const { setModalState } = useUI();
 
     const [now, setNow] = useState(new Date());
@@ -112,70 +112,121 @@ const HomePage: React.FC = () => {
     }, [approvedTeachers, now]);
 
     const featuredTeachers = useMemo(() => {
-        const userMap = new Map(users.map(u => [u.id, u]));
-        return [...approvedTeachers]
-            .sort((a, b) => {
-                const userA = userMap.get(a.userId);
-                const userB = userMap.get(b.userId);
-                return new Date(userB?.createdAt || 0).getTime() - new Date(userA?.createdAt || 0).getTime();
-            })
-            .slice(0, homePageCardCounts.teachers);
-    }, [approvedTeachers, users, homePageCardCounts.teachers]);
+        if (!homePageLayoutConfig) return approvedTeachers.slice(0, 3);
+        const config = homePageLayoutConfig.teachers;
+
+        if (config.mode === 'selected' && config.selectedIds && config.selectedIds.length > 0) {
+            const userMap = new Map(users.map(u => [u.id, u]));
+            return config.selectedIds
+                .map(id => approvedTeachers.find(t => t.id === id))
+                .filter((t): t is Teacher => t !== undefined);
+        } else {
+            const userMap = new Map(users.map(u => [u.id, u]));
+            return [...approvedTeachers]
+                .sort((a, b) => {
+                    const userA = userMap.get(a.userId);
+                    const userB = userMap.get(b.userId);
+                    return new Date(userB?.createdAt || 0).getTime() - new Date(userA?.createdAt || 0).getTime();
+                })
+                .slice(0, config.count || 3);
+        }
+    }, [approvedTeachers, users, homePageLayoutConfig]);
 
     const popularCourses = useMemo(() => {
-        return approvedTeachers
-            .flatMap(t => t.courses.map(c => ({ course: c, teacher: t })))
-            .filter(({ course }) => course.isPublished)
-            .sort((a, b) => b.course.ratings.length - a.course.ratings.length)
-            .slice(0, homePageCardCounts.courses);
-    }, [approvedTeachers, homePageCardCounts.courses]);
+        if (!homePageLayoutConfig) return [];
+        const config = homePageLayoutConfig.courses;
+
+        if (config.mode === 'selected' && config.selectedIds && config.selectedIds.length > 0) {
+            return config.selectedIds
+                .map(id => {
+                    const teacher = approvedTeachers.find(t => t.courses.some(c => c.id === id));
+                    const course = teacher?.courses.find(c => c.id === id);
+                    return course && teacher ? { course, teacher } : null;
+                })
+                .filter((item): item is { course: Course; teacher: Teacher } => item !== null);
+        } else {
+            return approvedTeachers
+                .flatMap(t => t.courses.map(c => ({ course: c, teacher: t })))
+                .filter(({ course }) => course.isPublished)
+                .sort((a, b) => b.course.ratings.length - a.course.ratings.length)
+                .slice(0, config.count || 3);
+        }
+    }, [approvedTeachers, homePageLayoutConfig]);
 
     const upcomingClasses = useMemo(() => {
-        return approvedTeachers
-            .flatMap(t => t.individualClasses.map(c => ({ classInfo: c, teacher: t })))
-            .map(item => {
-                const status = getDynamicClassStatus(item.classInfo, now);
-                const isLive = status === 'live';
-                const nextSession = getNextSessionDateTime(item.classInfo, now);
+        if (!homePageLayoutConfig) return [];
+        const config = homePageLayoutConfig.classes;
 
-                // For sorting, live classes should come first.
-                // If it's live, its sortable date is now. If it's scheduled, it's its next session date.
-                const sortDate = isLive ? now : nextSession;
-
-                return {
-                    ...item,
-                    isLive,
-                    nextSession,
-                    sortDate,
-                };
-            })
-            .filter(({ classInfo, isLive, nextSession }) => {
-                // Include published classes that are either live or have a future session
-                return classInfo.isPublished && (isLive || nextSession);
-            })
-            .sort((a, b) => {
-                // Sort by the calculated sortDate
-                // The filter step should have removed items where sortDate is null.
-                return a.sortDate!.getTime() - b.sortDate!.getTime();
-            })
-            .slice(0, homePageCardCounts.classes);
-    }, [approvedTeachers, now, homePageCardCounts.classes]);
+        if (config.mode === 'selected' && config.selectedIds && config.selectedIds.length > 0) {
+            return config.selectedIds
+                .map(id => {
+                    const teacher = approvedTeachers.find(t => t.individualClasses.some(c => String(c.id) === id));
+                    const classInfo = teacher?.individualClasses.find(c => String(c.id) === id);
+                    if (!classInfo || !teacher) return null;
+                    const status = getDynamicClassStatus(classInfo, now);
+                    const isLive = status === 'live';
+                    const nextSession = getNextSessionDateTime(classInfo, now);
+                    const sortDate = isLive ? now : nextSession;
+                    return { classInfo, teacher, isLive, nextSession, sortDate };
+                })
+                .filter((item): item is { classInfo: IndividualClass; teacher: Teacher; isLive: boolean; nextSession: Date | null; sortDate: Date | null } => item !== null && (item.classInfo.isPublished && (item.isLive || item.nextSession !== null)));
+        } else {
+            return approvedTeachers
+                .flatMap(t => t.individualClasses.map(c => ({ classInfo: c, teacher: t })))
+                .map(item => {
+                    const status = getDynamicClassStatus(item.classInfo, now);
+                    const isLive = status === 'live';
+                    const nextSession = getNextSessionDateTime(item.classInfo, now);
+                    const sortDate = isLive ? now : nextSession;
+                    return { ...item, isLive, nextSession, sortDate };
+                })
+                .filter(({ classInfo, isLive, nextSession }) => classInfo.isPublished && (isLive || nextSession))
+                .sort((a, b) => (a.sortDate && b.sortDate) ? a.sortDate.getTime() - b.sortDate.getTime() : 0)
+                .slice(0, config.count || 3);
+        }
+    }, [approvedTeachers, now, homePageLayoutConfig]);
 
     const latestQuizzes = useMemo(() => {
-        return approvedTeachers
-            .flatMap(t => t.quizzes.map(q => ({ quiz: q, teacher: t })))
-            .filter(({ quiz }) => quiz.isPublished && getDynamicQuizStatus(quiz) === 'scheduled')
-            .sort((a, b) => b.quiz.id.localeCompare(a.quiz.id))
-            .slice(0, homePageCardCounts.quizzes);
-    }, [approvedTeachers, now, homePageCardCounts.quizzes]);
+        if (!homePageLayoutConfig) return [];
+        const config = homePageLayoutConfig.quizzes;
+
+        if (config.mode === 'selected' && config.selectedIds && config.selectedIds.length > 0) {
+            return config.selectedIds
+                .map(id => {
+                    const teacher = approvedTeachers.find(t => t.quizzes.some(q => q.id === id));
+                    const quiz = teacher?.quizzes.find(q => q.id === id);
+                    return quiz && teacher ? { quiz, teacher } : null;
+                })
+                .filter((item): item is { quiz: Quiz; teacher: Teacher } => item !== null && (item.quiz.isPublished && getDynamicQuizStatus(item.quiz) === 'scheduled'));
+        } else {
+            return approvedTeachers
+                .flatMap(t => t.quizzes.map(q => ({ quiz: q, teacher: t })))
+                .filter(({ quiz }) => quiz.isPublished && getDynamicQuizStatus(quiz) === 'scheduled')
+                .sort((a, b) => b.quiz.id.localeCompare(a.quiz.id))
+                .slice(0, config.count || 3);
+        }
+    }, [approvedTeachers, now, homePageLayoutConfig]);
 
     const upcomingEvents = useMemo(() => {
-        return tuitionInstitutes
-            .flatMap(ti => (ti.events || []).map(e => ({ event: e, organizer: ti })))
-            .filter(({ event }) => event.isPublished && getDynamicEventStatus(event) === 'scheduled')
-            .sort((a, b) => new Date(a.event.startDate).getTime() - new Date(b.event.startDate).getTime())
-            .slice(0, homePageCardCounts.events || 3);
-    }, [tuitionInstitutes, now, homePageCardCounts.events]);
+        if (!homePageLayoutConfig) return [];
+        const config = homePageLayoutConfig.events;
+
+        if (config.mode === 'selected' && config.selectedIds && config.selectedIds.length > 0) {
+            return config.selectedIds
+                .map(id => {
+                    const organizer = tuitionInstitutes.find(ti => (ti.events || []).some(e => e.id === id));
+                    const event = organizer?.events?.find(e => e.id === id);
+                    return event && organizer ? { event, organizer } : null;
+                })
+                .filter((item): item is { event: Event; organizer: TuitionInstitute } => item !== null && (item.event.isPublished && getDynamicEventStatus(item.event) === 'scheduled'));
+        } else {
+            return tuitionInstitutes
+                .flatMap(ti => (ti.events || []).map(e => ({ event: e, organizer: ti })))
+                .filter(({ event }) => event.isPublished && getDynamicEventStatus(event) === 'scheduled')
+                .sort((a, b) => new Date(a.event.startDate).getTime() - new Date(b.event.startDate).getTime())
+                .slice(0, config.count || 3);
+        }
+    }, [tuitionInstitutes, now, homePageLayoutConfig]);
 
 
     // --- SEARCH RESULTS ---

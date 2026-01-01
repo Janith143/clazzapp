@@ -78,12 +78,18 @@ const defaultSupportSettings: SupportSettings = {
     isEnabled: true
 };
 
-interface HomePageCardCounts {
-    teachers: number;
-    courses: number;
-    classes: number;
-    quizzes: number;
-    events: number;
+export interface SectionConfig {
+    count: number;
+    mode: 'latest' | 'selected';
+    selectedIds: string[];
+}
+
+export interface HomePageLayoutConfig {
+    teachers: SectionConfig;
+    courses: SectionConfig;
+    classes: SectionConfig;
+    quizzes: SectionConfig;
+    events: SectionConfig;
 }
 
 export interface NavigationContextType {
@@ -97,7 +103,7 @@ export interface NavigationContextType {
     studentCardTaglines: string[];
     teacherCardTaglines: string[];
     financialSettings: FinancialSettings;
-    homePageCardCounts: HomePageCardCounts;
+    homePageLayoutConfig: HomePageLayoutConfig;
     upcomingExams: UpcomingExam[];
     photoPrintOptions: PhotoPrintOption[];
     additionalServices: AdditionalService[];
@@ -284,7 +290,13 @@ export const NavigationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     const [studentCardTaglines, setStudentCardTaglines] = useState<string[]>([]);
     const [teacherCardTaglines, setTeacherCardTaglines] = useState<string[]>([]);
     const [financialSettings, setFinancialSettings] = useState<FinancialSettings>(defaultFinancialSettings);
-    const [homePageCardCounts, setHomePageCardCounts] = useState<HomePageCardCounts>({ teachers: 3, courses: 3, classes: 3, quizzes: 3, events: 3 });
+    const [homePageLayoutConfig, setHomePageLayoutConfig] = useState<HomePageLayoutConfig>({
+        teachers: { count: 3, mode: 'latest', selectedIds: [] },
+        courses: { count: 3, mode: 'latest', selectedIds: [] },
+        classes: { count: 3, mode: 'latest', selectedIds: [] },
+        quizzes: { count: 3, mode: 'latest', selectedIds: [] },
+        events: { count: 3, mode: 'latest', selectedIds: [] }
+    });
     const [upcomingExams, setUpcomingExams] = useState<UpcomingExam[]>([]);
     const [photoPrintOptions, setPhotoPrintOptions] = useState<PhotoPrintOption[]>(mockPhotoPrintOptions);
     const [additionalServices, setAdditionalServices] = useState<AdditionalService[]>([]);
@@ -341,7 +353,30 @@ export const NavigationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
                 setSubjects(data.subjects || defaultSubjectsByAudience);
                 setStudentCardTaglines(data.studentCardTaglines || []);
                 setTeacherCardTaglines(data.teacherCardTaglines || []);
-                setHomePageCardCounts(data.homePageCardCounts || { teachers: 3, courses: 3, classes: 3, quizzes: 3, events: 3 });
+
+                // Migration logic for homePageLayoutConfig
+                let layoutConfig: HomePageLayoutConfig = {
+                    teachers: { count: 3, mode: 'latest', selectedIds: [] },
+                    courses: { count: 3, mode: 'latest', selectedIds: [] },
+                    classes: { count: 3, mode: 'latest', selectedIds: [] },
+                    quizzes: { count: 3, mode: 'latest', selectedIds: [] },
+                    events: { count: 3, mode: 'latest', selectedIds: [] }
+                };
+
+                if (data.homePageLayoutConfig) {
+                    layoutConfig = data.homePageLayoutConfig;
+                } else if (data.homePageCardCounts) {
+                    // Backwards compatibility for old simple structure
+                    layoutConfig = {
+                        teachers: { count: data.homePageCardCounts.teachers || 3, mode: 'latest', selectedIds: [] },
+                        courses: { count: data.homePageCardCounts.courses || 3, mode: 'latest', selectedIds: [] },
+                        classes: { count: data.homePageCardCounts.classes || 3, mode: 'latest', selectedIds: [] },
+                        quizzes: { count: data.homePageCardCounts.quizzes || 3, mode: 'latest', selectedIds: [] },
+                        events: { count: data.homePageCardCounts.events || 3, mode: 'latest', selectedIds: [] }
+                    };
+                }
+                setHomePageLayoutConfig(layoutConfig);
+
                 setUpcomingExams(data.upcomingExams || []);
                 setPhotoPrintOptions(data.photoPrintOptions || mockPhotoPrintOptions);
                 setAdditionalServices(data.additionalServices || []);
@@ -452,7 +487,7 @@ export const NavigationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         studentCardTaglines,
         teacherCardTaglines,
         financialSettings,
-        homePageCardCounts,
+        homePageLayoutConfig,
         upcomingExams,
         photoPrintOptions,
         additionalServices,
@@ -468,7 +503,7 @@ export const NavigationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         setSearchQuery,
     }), [
         pageState, searchQuery, homeSlides, staticPageContent, socialMediaLinks, subjects, allSubjects,
-        studentCardTaglines, teacherCardTaglines, financialSettings, homePageCardCounts, upcomingExams,
+        studentCardTaglines, teacherCardTaglines, financialSettings, homePageLayoutConfig, upcomingExams,
         photoPrintOptions, additionalServices, paymentGatewaySettings, supportSettings, ogImageUrl, teacherDashboardMessage,
         genAiKey, gDriveFetcherApiKey, functionUrls, handleNavigate
     ]);
