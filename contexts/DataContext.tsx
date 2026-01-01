@@ -2,7 +2,7 @@
 import React, { createContext, useState, useContext, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
     User, Teacher, Sale, Course, IndividualClass, Quiz, Lecture, StudentSubmission,
-    Voucher, TopUpRequest, EditableImageType, PayoutDetails, BillingDetails, MonthlyReferralEarning, Withdrawal, PageState, DashboardTab, HomeSlide, StaticPageKey, SocialMediaLink, Notification, TuitionInstitute, UpcomingExam, PhotoPrintOption, Event, Product, ClassGrading,
+    Voucher, TopUpRequest, EditableImageType, PayoutDetails, BillingDetails, MonthlyReferralEarning, Withdrawal, PageState, DashboardTab, HomeSlide, StaticPageKey, SocialMediaLink, Notification, TuitionInstitute, UpcomingExam, PhotoPrintOption, Event, Product, ClassGrading, AdditionalService,
     PaymentGatewaySettings, KnownInstitute, FinancialSettings, SupportSettings, PaymentMethod
 } from '../types';
 import { useAuth } from './AuthContext';
@@ -67,7 +67,9 @@ export interface DataContextType {
     handleTopUpDecision: (requestId: string, decision: 'approved' | 'rejected', reason?: string, newAmount?: number) => void;
     handleUpdateSaleStatus: (saleId: string, status: Sale['status']) => void;
     handleUpdatePhotoOrderStatus: (saleId: string, status: Sale['photoOrderStatus']) => void;
-    handleUpdatePhysicalOrderStatus: (saleId: string, status: Sale['physicalOrderStatus']) => void;
+    handleUpdatePhysicalOrderStatus: (orderId: string, status: Sale['physicalOrderStatus']) => Promise<void>;
+    handlePurchaseService: (service: AdditionalService, customAmount?: number, customDescription?: string, selectedMethod?: PaymentMethod) => Promise<void>;
+    handleUpdateAdditionalServices: (services: AdditionalService[]) => Promise<void>;
     handleRefundSale: (saleId: string) => void;
     handleRedeemReferralEarnings: (year: number, month: number) => void;
     handleRequestAffiliateWithdrawal: (amount: number) => Promise<void>;
@@ -211,14 +213,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const sendLinkReminder = async (teacher: User, cls: IndividualClass, time: string) => {
             const subject = `Reminder: Add Joining Link for '${cls.title}'`;
             const htmlBody = `
-                <div style="font-family: Arial, sans-serif; color: #333;">
+    < div style = "font-family: Arial, sans-serif; color: #333;" >
                     <p>Dear ${teacher.firstName},</p>
                     <p>This is a reminder that your class, <strong>${cls.title}</strong>, is scheduled to start in approximately <strong>${time}</strong>.</p>
                     <p>The joining link for this online/hybrid class has not been added yet. Please add it as soon as possible from your teacher dashboard so that students can join on time.</p>
                     <p>Thank you,</p>
                     <p>The clazz.lk Team</p>
-                </div>
-            `;
+                </div >
+    `;
 
             try {
                 const response = await fetch(functionUrls.notification, {
@@ -233,7 +235,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 if (!response.ok) {
                     throw new Error('Notification API returned an error.');
                 }
-                console.log(`Sent ${time} reminder to ${teacher.email} for class ${cls.id}`);
+                console.log(`Sent ${time} reminder to ${teacher.email} for class $ {cls.id }`);
             } catch (error) {
                 console.error("Failed to send reminder email:", error);
             }
@@ -247,12 +249,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
                 teacher.individualClasses.forEach(cls => {
                     if ((cls.mode === 'Online' || cls.mode === 'Both') && !cls.joiningLink && cls.status === 'scheduled') {
-                        const startDateTime = new Date(`${cls.date}T${cls.startTime}`);
+                        const startDateTime = new Date(`${cls.date}T${cls.startTime} `);
                         if (isNaN(startDateTime.getTime())) return;
 
                         const diffMinutes = (startDateTime.getTime() - now.getTime()) / (1000 * 60);
 
-                        const reminderKey = `${teacher.id}_${cls.id}`;
+                        const reminderKey = `${teacher.id}_${cls.id} `;
 
                         if (diffMinutes > 29 && diffMinutes <= 30 && remindersSent[reminderKey] !== '30min' && remindersSent[reminderKey] !== '5min') {
                             sendLinkReminder(teacherUser, cls, '30 minutes');

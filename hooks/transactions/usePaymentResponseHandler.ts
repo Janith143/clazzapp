@@ -193,6 +193,59 @@ export const usePaymentResponseHandler = (deps: PaymentResponseHandlerDeps) => {
                         };
                         break;
                     }
+                    case 'additional_service': {
+                        const { serviceDetails, amountPaidFromBalance, totalAmount, billingDetails } = customFields;
+                        const existingSaleId = orderId; // Use the returned order_id which is the Sale ID
+
+                        // 1. Update existing Sale record (Convert 'hold' to 'completed')
+                        batch.update(doc(db, "sales", existingSaleId), {
+                            status: 'completed',
+                            paymentMethod: 'gateway',
+                            amountPaidFromBalance: parseFloat(amountPaidFromBalance), // Ensure this is recorded if changed
+                            transactionId: orderId, // Store gateway transaction ID reference if needed
+                            updatedAt: new Date().toISOString()
+                        });
+
+                        // 2. Deduct Balance (if applicable)
+                        if (parseFloat(amountPaidFromBalance) > 0 && currentUser) {
+                            batch.update(doc(db, "users", currentUser.id), { accountBalance: increment(-parseFloat(amountPaidFromBalance)) });
+                        }
+
+                        // 3. Notifications to ALL available contacts
+                        const contactNumbers = new Set<string>();
+                        if (billingDetails?.billingContactNumber) contactNumbers.add(billingDetails.billingContactNumber);
+                        if (currentUser?.contactNumber) contactNumbers.add(currentUser.contactNumber);
+                        // Add any other available contacts from teacher profile if needed
+                        // e.g. if (currentUser?.whatsappNumber) contactNumbers.add(currentUser.whatsappNumber);
+
+                        const primaryEmail = billingDetails?.billingEmail || currentUser?.email;
+
+                        // Send Primary Confirmation (Email + First Mobile)
+                        const primaryMobile = Array.from(contactNumbers)[0]; // Pick first
+                        if (primaryEmail || primaryMobile) {
+                            sendPaymentConfirmation(
+                                functionUrls.notification,
+                                { email: primaryEmail, contactNumber: primaryMobile },
+                                parseFloat(totalAmount),
+                                serviceDetails.title,
+                                existingSaleId
+                            );
+                        }
+
+                        // Send SMS to *other* numbers if any
+                        const otherMobiles = Array.from(contactNumbers).slice(1);
+                        if (otherMobiles.length > 0) {
+                            const smsMessage = `Payment specific for ${serviceDetails.title} confirmed. Amount: ${currencyFormatter.format(parseFloat(totalAmount))}. Ref: ${existingSaleId}`;
+                            for (const mobile of otherMobiles) {
+                                // Direct SMS notification call
+                                sendNotification(functionUrls.notification, { contactNumber: mobile }, `Payment: ${serviceDetails.title}`, "", smsMessage);
+                            }
+                        }
+
+                        ui.addToast('Payment successful!', 'success');
+                        pageToNavigateTo = { name: 'student_dashboard', initialTab: 'earnings' };
+                        break;
+                    }
                 }
                 await batch.commit();
             } else {

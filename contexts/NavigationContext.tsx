@@ -1,6 +1,6 @@
 
 import React, { createContext, useState, useContext, useCallback, useEffect, useMemo } from 'react';
-import { PageState, StaticPageKey, HomeSlide, SocialMediaLink, FinancialSettings, UpcomingExam, PhotoPrintOption, PaymentGatewaySettings, SupportSettings } from '../types';
+import { PageState, StaticPageKey, HomeSlide, SocialMediaLink, FinancialSettings, UpcomingExam, PhotoPrintOption, PaymentGatewaySettings, SupportSettings, AdditionalService } from '../types';
 import { homeSlides as mockHomeSlides, mockSocialMediaLinks, defaultSubjectsByAudience, mockPhotoPrintOptions } from '../data/mockData';
 import { staticPageContent as mockStaticPageContent } from '../data/staticContent';
 import { db } from '../firebase';
@@ -100,6 +100,7 @@ export interface NavigationContextType {
     homePageCardCounts: HomePageCardCounts;
     upcomingExams: UpcomingExam[];
     photoPrintOptions: PhotoPrintOption[];
+    additionalServices: AdditionalService[];
     paymentGatewaySettings: PaymentGatewaySettings;
     supportSettings: SupportSettings;
     ogImageUrl: string;
@@ -286,6 +287,7 @@ export const NavigationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     const [homePageCardCounts, setHomePageCardCounts] = useState<HomePageCardCounts>({ teachers: 3, courses: 3, classes: 3, quizzes: 3, events: 3 });
     const [upcomingExams, setUpcomingExams] = useState<UpcomingExam[]>([]);
     const [photoPrintOptions, setPhotoPrintOptions] = useState<PhotoPrintOption[]>(mockPhotoPrintOptions);
+    const [additionalServices, setAdditionalServices] = useState<AdditionalService[]>([]);
     const [paymentGatewaySettings, setPaymentGatewaySettings] = useState<PaymentGatewaySettings>(defaultPaymentGatewaySettings);
     const [supportSettings, setSupportSettings] = useState<SupportSettings>(defaultSupportSettings);
     const [ogImageUrl, setOgImageUrl] = useState<string>('');
@@ -342,6 +344,7 @@ export const NavigationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
                 setHomePageCardCounts(data.homePageCardCounts || { teachers: 3, courses: 3, classes: 3, quizzes: 3, events: 3 });
                 setUpcomingExams(data.upcomingExams || []);
                 setPhotoPrintOptions(data.photoPrintOptions || mockPhotoPrintOptions);
+                setAdditionalServices(data.additionalServices || []);
                 setFinancialSettings({ ...defaultFinancialSettings, ...(data.financialSettings || {}) });
                 setSupportSettings(data.supportSettings || defaultSupportSettings);
                 setOgImageUrl(data.ogImageUrl || '');
@@ -452,6 +455,7 @@ export const NavigationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         homePageCardCounts,
         upcomingExams,
         photoPrintOptions,
+        additionalServices,
         paymentGatewaySettings,
         supportSettings,
         ogImageUrl,
@@ -465,7 +469,7 @@ export const NavigationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }), [
         pageState, searchQuery, homeSlides, staticPageContent, socialMediaLinks, subjects, allSubjects,
         studentCardTaglines, teacherCardTaglines, financialSettings, homePageCardCounts, upcomingExams,
-        photoPrintOptions, paymentGatewaySettings, supportSettings, ogImageUrl, teacherDashboardMessage,
+        photoPrintOptions, additionalServices, paymentGatewaySettings, supportSettings, ogImageUrl, teacherDashboardMessage,
         genAiKey, gDriveFetcherApiKey, functionUrls, handleNavigate
     ]);
 

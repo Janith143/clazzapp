@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo } from 'react';
 // FIX: Import PaymentGatewaySettings
-import { Teacher, Withdrawal, TopUpRequest, Sale, StaticPageKey, HomeSlide, SocialMediaLink, User, TuitionInstitute, PayoutDetails, Notification, UpcomingExam, PhotoPrintOption, PaymentGatewaySettings, KnownInstitute, Voucher, FinancialSettings, SupportSettings } from '../types';
+import { Teacher, Withdrawal, TopUpRequest, Sale, StaticPageKey, HomeSlide, SocialMediaLink, User, TuitionInstitute, PayoutDetails, Notification, UpcomingExam, PhotoPrintOption, PaymentGatewaySettings, KnownInstitute, Voucher, FinancialSettings, SupportSettings, AdditionalService } from '../types';
 import { UIContextType } from '../contexts/UIContext';
 import { NavigationContextType } from '../contexts/NavigationContext';
 import { db } from '../firebase';
@@ -397,6 +397,10 @@ export const useAdminActions = (deps: any) => {
         await setDoc(doc(db, 'settings', 'appConfig'), { photoPrintOptions: options }, { merge: true });
     }, []);
 
+    const handleUpdateAdditionalServices = useCallback(async (services: AdditionalService[]) => {
+        await setDoc(doc(db, 'settings', 'appConfig'), { additionalServices: services }, { merge: true });
+    }, []);
+
     const handleUpdatePaymentGatewaySettings = useCallback(async (settings: PaymentGatewaySettings) => {
         await updateDoc(doc(db, 'settings', 'clientAppConfig'), { paymentGatewaySettings: settings });
     }, []);
@@ -744,6 +748,7 @@ export const useAdminActions = (deps: any) => {
         handleUpdateHomePageCardCounts,
         handleUpdateUpcomingExams,
         handleUpdatePhotoPrintOptions,
+        handleUpdateAdditionalServices,
         handleUpdatePaymentGatewaySettings,
         handleUpdateTeacherDashboardMessage,
         handleUpdateFinancialSettings,

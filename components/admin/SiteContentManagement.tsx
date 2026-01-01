@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useData } from '../../contexts/DataContext.tsx';
 import { useUI } from '../../contexts/UIContext.tsx';
 import { useNavigation } from '../../contexts/NavigationContext.tsx';
-import { StaticPageKey, HomeSlide, SocialMediaLink, UpcomingExam, PhotoPrintOption, FinancialSettings, SupportSettings } from '../../types.ts';
+import { StaticPageKey, HomeSlide, SocialMediaLink, UpcomingExam, PhotoPrintOption, FinancialSettings, SupportSettings, AdditionalService } from '../../types.ts';
 import FormInput from '../FormInput.tsx';
 import FormSelect from '../FormSelect.tsx';
 import { SaveIcon, PlusIcon, TrashIcon } from '../Icons.tsx';
@@ -23,15 +23,15 @@ const availablePlatforms: Omit<SocialMediaLink, 'url'>[] = [
     { id: 'whatsapp', name: 'WhatsApp', icon: 'WhatsAppIcon' },
 ];
 
-type EditorKey = StaticPageKey | 'home_slides' | 'social_media_links' | 'subjects' | 'student_card_taglines' | 'teacher_card_taglines' | 'home_page_layout' | 'upcoming_exams' | 'photo_print_options' | 'og_image' | 'teacher_dashboard_message' | 'financial_settings' | 'support_settings';
+type EditorKey = StaticPageKey | 'home_slides' | 'social_media_links' | 'subjects' | 'student_card_taglines' | 'teacher_card_taglines' | 'home_page_layout' | 'upcoming_exams' | 'photo_print_options' | 'og_image' | 'teacher_dashboard_message' | 'financial_settings' | 'support_settings' | 'additional_services';
 
 interface SiteContentManagementProps {
     initialKey?: string;
 }
 
 const SiteContentManagement: React.FC<SiteContentManagementProps> = ({ initialKey }) => {
-    const { handleUpdateStaticContent, handleUpdateHomeSlides, handleUpdateSocialMediaLinks, handleUpdateSubjects, handleUpdateStudentCardTaglines, handleUpdateTeacherCardTaglines, handleUpdateHomePageCardCounts, handleUpdateUpcomingExams, handleUpdatePhotoPrintOptions, handleUpdateOgImage, handleImageSave, handleUpdateTeacherDashboardMessage, handleUpdateFinancialSettings, handleUpdateSupportSettings } = useData();
-    const { staticPageContent, homeSlides, socialMediaLinks, subjects, studentCardTaglines, teacherCardTaglines, homePageCardCounts, upcomingExams, photoPrintOptions, ogImageUrl, teacherDashboardMessage, financialSettings, supportSettings } = useNavigation();
+    const { handleUpdateStaticContent, handleUpdateHomeSlides, handleUpdateSocialMediaLinks, handleUpdateSubjects, handleUpdateStudentCardTaglines, handleUpdateTeacherCardTaglines, handleUpdateHomePageCardCounts, handleUpdateUpcomingExams, handleUpdatePhotoPrintOptions, handleUpdateOgImage, handleImageSave, handleUpdateTeacherDashboardMessage, handleUpdateFinancialSettings, handleUpdateSupportSettings, handleUpdateAdditionalServices } = useData();
+    const { staticPageContent, homeSlides, socialMediaLinks, subjects, studentCardTaglines, teacherCardTaglines, homePageCardCounts, upcomingExams, photoPrintOptions, ogImageUrl, teacherDashboardMessage, financialSettings, supportSettings, additionalServices } = useNavigation();
     const { addToast } = useUI();
 
     if (!staticPageContent) {
@@ -39,7 +39,7 @@ const SiteContentManagement: React.FC<SiteContentManagementProps> = ({ initialKe
     }
 
     const contentKeys = Object.keys(staticPageContent) as StaticPageKey[];
-    const allKeys: EditorKey[] = [...contentKeys.sort(), 'home_slides', 'social_media_links', 'subjects', 'student_card_taglines', 'teacher_card_taglines', 'home_page_layout', 'upcoming_exams', 'photo_print_options', 'og_image', 'teacher_dashboard_message', 'financial_settings', 'support_settings'];
+    const allKeys: EditorKey[] = [...contentKeys.sort(), 'home_slides', 'social_media_links', 'subjects', 'student_card_taglines', 'teacher_card_taglines', 'home_page_layout', 'upcoming_exams', 'photo_print_options', 'additional_services', 'og_image', 'teacher_dashboard_message', 'financial_settings', 'support_settings'];
 
     const [selectedKey, setSelectedKey] = useState<EditorKey>(allKeys[0] || 'home_slides');
     const [pageData, setPageData] = useState({ title: '', content: '' });
@@ -55,6 +55,7 @@ const SiteContentManagement: React.FC<SiteContentManagementProps> = ({ initialKe
     const [financeSettings, setFinanceSettings] = useState<FinancialSettings>(financialSettings);
     const [supportConf, setSupportConf] = useState<SupportSettings>(supportSettings);
     const [selectedAudience, setSelectedAudience] = useState(targetAudienceOptions[0].value);
+    const [servicesData, setServicesData] = useState<AdditionalService[]>([]);
     const [isSaving, setIsSaving] = useState(false);
 
     // Deep linking effect
@@ -93,12 +94,14 @@ const SiteContentManagement: React.FC<SiteContentManagementProps> = ({ initialKe
             setFinanceSettings(financialSettings ? { ...financialSettings } : {} as FinancialSettings);
         } else if (selectedKey === 'support_settings') {
             setSupportConf(supportSettings ? { ...supportSettings } : { telegramBotToken: '', telegramChatId: '', isEnabled: true });
+        } else if (selectedKey === 'additional_services') {
+            setServicesData(additionalServices ? JSON.parse(JSON.stringify(additionalServices)) : []);
         } else if (staticPageContent[selectedKey]) {
             setPageData(JSON.parse(JSON.stringify(staticPageContent[selectedKey])));
         } else {
             setPageData({ title: '', content: '' });
         }
-    }, [selectedKey, staticPageContent, homeSlides, socialMediaLinks, subjects, studentCardTaglines, teacherCardTaglines, homePageCardCounts, upcomingExams, photoPrintOptions, ogImageUrl, teacherDashboardMessage, financialSettings, supportSettings]);
+    }, [selectedKey, staticPageContent, homeSlides, socialMediaLinks, subjects, studentCardTaglines, teacherCardTaglines, homePageCardCounts, upcomingExams, photoPrintOptions, ogImageUrl, teacherDashboardMessage, financialSettings, supportSettings, additionalServices]);
 
     const handlePageChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         setPageData(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -134,7 +137,7 @@ const SiteContentManagement: React.FC<SiteContentManagementProps> = ({ initialKe
     const removeSocialLink = (index: number) => {
         setSocialLinks(prev => prev.filter((_, i) => i !== index));
     };
-    
+
     const handleAudienceSubjectsChange = (tags: string[]) => {
         const newSubjectsForAudience = tags.map(t => ({ value: t, label: t }));
         setSubjectsData(prev => ({
@@ -142,12 +145,12 @@ const SiteContentManagement: React.FC<SiteContentManagementProps> = ({ initialKe
             [selectedAudience]: newSubjectsForAudience
         }));
     };
-    
+
     const handleLayoutCountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setLayoutCounts(prev => ({ ...prev, [name]: parseInt(value, 10) || 0 }));
     };
-    
+
     const handleExamChange = (index: number, field: keyof UpcomingExam, value: string | boolean) => {
         const newExams = [...examsData];
         (newExams[index] as any)[field] = value;
@@ -179,7 +182,7 @@ const SiteContentManagement: React.FC<SiteContentManagementProps> = ({ initialKe
     const handleTeacherMessageChange = (e: { target: { value: string } }) => {
         setTeacherMessage(e.target.value);
     };
-    
+
     const handleFinancialSettingChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setFinanceSettings(prev => ({ ...prev, [name]: parseFloat(value) || 0 }));
@@ -191,6 +194,20 @@ const SiteContentManagement: React.FC<SiteContentManagementProps> = ({ initialKe
             ...prev,
             [name]: type === 'checkbox' ? checked : value
         }));
+    };
+
+    const handleServiceChange = (index: number, field: keyof AdditionalService, value: string | number) => {
+        const newServices = [...servicesData];
+        (newServices[index] as any)[field] = value;
+        setServicesData(newServices);
+    };
+
+    const addService = () => {
+        setServicesData(prev => [...prev, { id: uuidv4(), title: '', description: '', cost: 0 }]);
+    };
+
+    const removeService = (index: number) => {
+        setServicesData(prev => prev.filter((_, i) => i !== index));
     };
 
     const handleSave = async () => {
@@ -227,6 +244,8 @@ const SiteContentManagement: React.FC<SiteContentManagementProps> = ({ initialKe
                         throw new Error("Image upload failed.");
                     }
                 }
+            } else if (selectedKey === 'additional_services') {
+                await handleUpdateAdditionalServices(servicesData);
             } else {
                 await handleUpdateStaticContent(selectedKey, pageData);
             }
@@ -256,7 +275,7 @@ const SiteContentManagement: React.FC<SiteContentManagementProps> = ({ initialKe
             </div>
         </div>
     );
-    
+
     const renderSlidesEditor = () => (
         <div className="space-y-6">
             {slidesData.map((slide, index) => (
@@ -268,7 +287,7 @@ const SiteContentManagement: React.FC<SiteContentManagementProps> = ({ initialKe
                         <FormInput label="Subtitle" name="subtitle" value={slide.subtitle} onChange={(e) => handleSlideChange(index, 'subtitle', e.target.value)} />
                         <FormInput label="CTA Button Text" name="ctaText" value={slide.ctaText} onChange={(e) => handleSlideChange(index, 'ctaText', e.target.value)} />
                     </div>
-                     <button onClick={() => removeSlide(index)} className="absolute top-2 right-2 p-1 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-full"><TrashIcon className="w-5 h-5"/></button>
+                    <button onClick={() => removeSlide(index)} className="absolute top-2 right-2 p-1 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-full"><TrashIcon className="w-5 h-5" /></button>
                 </div>
             ))}
             <button onClick={addSlide} className="w-full flex items-center justify-center space-x-2 px-4 py-3 text-sm font-medium text-primary border-2 border-dashed border-primary/50 rounded-md hover:bg-primary/10 transition-colors">
@@ -277,7 +296,7 @@ const SiteContentManagement: React.FC<SiteContentManagementProps> = ({ initialKe
             </button>
         </div>
     );
-    
+
     const renderSocialLinksEditor = () => {
         const currentPlatformIds = new Set(socialLinks.map(l => l.id));
         const platformsToAdd = availablePlatforms.filter(p => !currentPlatformIds.has(p.id));
@@ -288,14 +307,14 @@ const SiteContentManagement: React.FC<SiteContentManagementProps> = ({ initialKe
                         <div className="flex-grow">
                             <FormInput label={link.name} name={`url-${link.id}`} value={link.url} onChange={(e) => handleSocialLinkChange(index, e.target.value)} placeholder={`https://...`} />
                         </div>
-                        <button onClick={() => removeSocialLink(index)} className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-md"><TrashIcon className="w-5 h-5"/></button>
+                        <button onClick={() => removeSocialLink(index)} className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-md"><TrashIcon className="w-5 h-5" /></button>
                     </div>
                 ))}
                 {platformsToAdd.length > 0 && (
                     <div className="flex items-end gap-4 p-4 border-2 border-dashed border-light-border dark:border-dark-border rounded-lg">
                         <div className="flex-grow">
                             <label className="block text-sm font-medium text-light-text dark:text-dark-text mb-1">Add New Platform</label>
-                             <select onChange={e => addSocialLink(e.target.value)} className="w-full px-3 py-2 border border-light-border dark:border-dark-border text-light-text dark:text-dark-text bg-light-background dark:bg-dark-background rounded-md focus:outline-none focus:ring-primary focus:border-primary sm:text-sm">
+                            <select onChange={e => addSocialLink(e.target.value)} className="w-full px-3 py-2 border border-light-border dark:border-dark-border text-light-text dark:text-dark-text bg-light-background dark:bg-dark-background rounded-md focus:outline-none focus:ring-primary focus:border-primary sm:text-sm">
                                 <option value="">Select a platform...</option>
                                 {platformsToAdd.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                             </select>
@@ -322,7 +341,7 @@ const SiteContentManagement: React.FC<SiteContentManagementProps> = ({ initialKe
                     {targetAudienceOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                 </select>
             </div>
-            
+
             <div className="mt-4">
                 <TagInput
                     label={`Subjects for "${selectedAudience}"`}
@@ -332,7 +351,7 @@ const SiteContentManagement: React.FC<SiteContentManagementProps> = ({ initialKe
             </div>
         </div>
     );
-    
+
     const renderTaglinesEditor = (description: string) => (
         <div className="space-y-4">
             <p className="text-sm text-light-subtle dark:text-dark-subtle">
@@ -373,7 +392,7 @@ const SiteContentManagement: React.FC<SiteContentManagementProps> = ({ initialKe
                         <input type="checkbox" id={`priority-${index}`} checked={exam.isHighPriority} onChange={(e) => handleExamChange(index, 'isHighPriority', e.target.checked)} className="h-4 w-4 text-primary focus:ring-primary border-light-border dark:border-dark-border rounded" />
                         <label htmlFor={`priority-${index}`} className="text-sm font-medium text-light-text dark:text-dark-text">Mark as High Priority</label>
                     </div>
-                    <button onClick={() => removeExam(index)} className="absolute top-2 right-2 p-1 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-full"><TrashIcon className="w-5 h-5"/></button>
+                    <button onClick={() => removeExam(index)} className="absolute top-2 right-2 p-1 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-full"><TrashIcon className="w-5 h-5" /></button>
                 </div>
             ))}
             <button onClick={addExam} className="w-full flex items-center justify-center space-x-2 px-4 py-3 text-sm font-medium text-primary border-2 border-dashed border-primary/50 rounded-md hover:bg-primary/10 transition-colors">
@@ -395,7 +414,7 @@ const SiteContentManagement: React.FC<SiteContentManagementProps> = ({ initialKe
                             <FormInput label="Print Size (e.g., 4x6, A4)" name={`size-${index}`} value={option.size} onChange={(e) => handlePhotoOptionChange(index, 'size', e.target.value)} />
                             <FormInput label="Price (LKR)" name={`price-${index}`} type="number" min={0} value={option.price.toString()} onChange={(e) => handlePhotoOptionChange(index, 'price', e.target.value)} />
                         </div>
-                        <button onClick={() => removePhotoOption(index)} className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-md"><TrashIcon className="w-5 h-5"/></button>
+                        <button onClick={() => removePhotoOption(index)} className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-md"><TrashIcon className="w-5 h-5" /></button>
                     </div>
                 ))}
             </div>
@@ -405,7 +424,7 @@ const SiteContentManagement: React.FC<SiteContentManagementProps> = ({ initialKe
             </button>
         </div>
     );
-    
+
     const renderOgImageEditor = () => (
         <div className="space-y-4">
             <p className="text-sm text-light-subtle dark:text-dark-subtle">
@@ -422,7 +441,7 @@ const SiteContentManagement: React.FC<SiteContentManagementProps> = ({ initialKe
 
     const renderTeacherDashboardMessageEditor = () => (
         <div className="space-y-4">
-             <p className="text-sm text-light-subtle dark:text-dark-subtle">
+            <p className="text-sm text-light-subtle dark:text-dark-subtle">
                 The message entered here will be displayed at the top of every teacher's dashboard. Use this for announcements, maintenance updates, or general news for your educators.
             </p>
             <MarkdownEditor
@@ -436,52 +455,52 @@ const SiteContentManagement: React.FC<SiteContentManagementProps> = ({ initialKe
             />
         </div>
     );
-    
+
     const renderFinancialSettingsEditor = () => {
         // Safe access in case manualPaymentPlatformFee is missing on the object yet
         const manualFee = financeSettings.manualPaymentPlatformFee !== undefined ? financeSettings.manualPaymentPlatformFee : 50;
 
         return (
-        <div className="space-y-6">
-            <p className="text-sm text-light-subtle dark:text-dark-subtle">
-                Adjust platform-wide financial variables used in revenue calculations.
-            </p>
-            
-            <h3 className="font-semibold text-lg border-b border-light-border dark:border-dark-border pb-2">Manual Payments</h3>
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormInput 
-                    label="Platform Fee (LKR) per Manual Transaction" 
-                    name="manualPaymentPlatformFee" 
-                    type="number" 
-                    value={manualFee.toString()} 
-                    onChange={handleFinancialSettingChange} 
-                />
-            </div>
+            <div className="space-y-6">
+                <p className="text-sm text-light-subtle dark:text-dark-subtle">
+                    Adjust platform-wide financial variables used in revenue calculations.
+                </p>
 
-            <h3 className="font-semibold text-lg border-b border-light-border dark:border-dark-border pb-2">Referral System Base Rates</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormInput label="Gateway Fee Rate (0.04 = 4%)" name="referralGatewayFeeRate" type="number" step={0.01} value={financeSettings.referralGatewayFeeRate.toString()} onChange={handleFinancialSettingChange} />
-                <FormInput label="Platform Costs Rate (0.04 = 4%)" name="referralPlatformCostRate" type="number" step={0.01} value={financeSettings.referralPlatformCostRate.toString()} onChange={handleFinancialSettingChange} />
-                <FormInput label="Max Earning per Teacher (LKR)" name="referralMaxEarning" type="number" value={financeSettings.referralMaxEarning.toString()} onChange={handleFinancialSettingChange} />
-                <FormInput label="Base Commission Rate (Tier 1)" name="referralBaseRate" type="number" step={0.01} value={financeSettings.referralBaseRate.toString()} onChange={handleFinancialSettingChange} />
-            </div>
+                <h3 className="font-semibold text-lg border-b border-light-border dark:border-dark-border pb-2">Manual Payments</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormInput
+                        label="Platform Fee (LKR) per Manual Transaction"
+                        name="manualPaymentPlatformFee"
+                        type="number"
+                        value={manualFee.toString()}
+                        onChange={handleFinancialSettingChange}
+                    />
+                </div>
 
-            <h3 className="font-semibold text-lg border-b border-light-border dark:border-dark-border pb-2">Referral Tiers</h3>
-            <div className="space-y-4">
-                 <div className="grid grid-cols-2 gap-4">
-                    <FormInput label="Tier 1 Threshold (LKR)" name="referralTier1Threshold" type="number" value={financeSettings.referralTier1Threshold.toString()} onChange={handleFinancialSettingChange} />
-                    <FormInput label="Tier 1 Rate" name="referralTier1Rate" type="number" step={0.01} value={financeSettings.referralTier1Rate.toString()} onChange={handleFinancialSettingChange} />
+                <h3 className="font-semibold text-lg border-b border-light-border dark:border-dark-border pb-2">Referral System Base Rates</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormInput label="Gateway Fee Rate (0.04 = 4%)" name="referralGatewayFeeRate" type="number" step={0.01} value={financeSettings.referralGatewayFeeRate.toString()} onChange={handleFinancialSettingChange} />
+                    <FormInput label="Platform Costs Rate (0.04 = 4%)" name="referralPlatformCostRate" type="number" step={0.01} value={financeSettings.referralPlatformCostRate.toString()} onChange={handleFinancialSettingChange} />
+                    <FormInput label="Max Earning per Teacher (LKR)" name="referralMaxEarning" type="number" value={financeSettings.referralMaxEarning.toString()} onChange={handleFinancialSettingChange} />
+                    <FormInput label="Base Commission Rate (Tier 1)" name="referralBaseRate" type="number" step={0.01} value={financeSettings.referralBaseRate.toString()} onChange={handleFinancialSettingChange} />
                 </div>
-                 <div className="grid grid-cols-2 gap-4">
-                    <FormInput label="Tier 2 Threshold (LKR)" name="referralTier2Threshold" type="number" value={financeSettings.referralTier2Threshold.toString()} onChange={handleFinancialSettingChange} />
-                    <FormInput label="Tier 2 Rate" name="referralTier2Rate" type="number" step={0.01} value={financeSettings.referralTier2Rate.toString()} onChange={handleFinancialSettingChange} />
-                </div>
-                 <div className="grid grid-cols-2 gap-4">
-                    <FormInput label="Tier 3 Threshold (LKR)" name="referralTier3Threshold" type="number" value={financeSettings.referralTier3Threshold.toString()} onChange={handleFinancialSettingChange} />
-                    <FormInput label="Tier 3 Rate" name="referralTier3Rate" type="number" step={0.01} value={financeSettings.referralTier3Rate.toString()} onChange={handleFinancialSettingChange} />
+
+                <h3 className="font-semibold text-lg border-b border-light-border dark:border-dark-border pb-2">Referral Tiers</h3>
+                <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                        <FormInput label="Tier 1 Threshold (LKR)" name="referralTier1Threshold" type="number" value={financeSettings.referralTier1Threshold.toString()} onChange={handleFinancialSettingChange} />
+                        <FormInput label="Tier 1 Rate" name="referralTier1Rate" type="number" step={0.01} value={financeSettings.referralTier1Rate.toString()} onChange={handleFinancialSettingChange} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <FormInput label="Tier 2 Threshold (LKR)" name="referralTier2Threshold" type="number" value={financeSettings.referralTier2Threshold.toString()} onChange={handleFinancialSettingChange} />
+                        <FormInput label="Tier 2 Rate" name="referralTier2Rate" type="number" step={0.01} value={financeSettings.referralTier2Rate.toString()} onChange={handleFinancialSettingChange} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <FormInput label="Tier 3 Threshold (LKR)" name="referralTier3Threshold" type="number" value={financeSettings.referralTier3Threshold.toString()} onChange={handleFinancialSettingChange} />
+                        <FormInput label="Tier 3 Rate" name="referralTier3Rate" type="number" step={0.01} value={financeSettings.referralTier3Rate.toString()} onChange={handleFinancialSettingChange} />
+                    </div>
                 </div>
             </div>
-        </div>
         );
     };
 
@@ -491,35 +510,66 @@ const SiteContentManagement: React.FC<SiteContentManagementProps> = ({ initialKe
                 Configure settings for the support chat widget, including Telegram integration.
             </p>
             <div className="flex items-center mb-4">
-                 <input 
-                    type="checkbox" 
-                    id="supportEnabled" 
-                    name="isEnabled" 
-                    checked={supportConf.isEnabled} 
-                    onChange={handleSupportSettingChange} 
+                <input
+                    type="checkbox"
+                    id="supportEnabled"
+                    name="isEnabled"
+                    checked={supportConf.isEnabled}
+                    onChange={handleSupportSettingChange}
                     className="h-4 w-4 text-primary focus:ring-primary border-light-border dark:border-dark-border rounded"
                 />
                 <label htmlFor="supportEnabled" className="ml-2 block text-sm text-light-text dark:text-dark-text">Enable Chat Widget</label>
             </div>
-            
-            <FormInput 
-                label="Telegram Bot Token" 
-                name="telegramBotToken" 
-                value={supportConf.telegramBotToken} 
-                onChange={handleSupportSettingChange} 
+
+            <FormInput
+                label="Telegram Bot Token"
+                name="telegramBotToken"
+                value={supportConf.telegramBotToken}
+                onChange={handleSupportSettingChange}
                 placeholder="e.g. 123456789:AbC..."
             />
-            <FormInput 
-                label="Telegram Chat ID" 
-                name="telegramChatId" 
-                value={supportConf.telegramChatId} 
-                onChange={handleSupportSettingChange} 
+            <FormInput
+                label="Telegram Chat ID"
+                name="telegramChatId"
+                value={supportConf.telegramChatId}
+                onChange={handleSupportSettingChange}
                 placeholder="e.g. -100123456789"
             />
             <p className="text-xs text-light-subtle dark:text-dark-subtle italic">
                 * To get these, create a bot via @BotFather on Telegram, create a group, add the bot, and get the Chat ID.
                 Set your webhook URL to: <code>https://telegram-bot-service-[PROJECT_ID].cloudfunctions.net/telegramWebhook</code>
             </p>
+        </div>
+    );
+
+    const renderServicesEditor = () => (
+        <div className="space-y-6">
+            <p className="text-sm text-light-subtle dark:text-dark-subtle">
+                Define the additional services available for teachers to purchase.
+            </p>
+            {servicesData.map((service, index) => (
+                <div key={service.id} className="p-4 border border-light-border dark:border-dark-border rounded-lg relative space-y-3">
+                    <h3 className="font-semibold mb-2">Service {index + 1}</h3>
+                    <FormInput label="Title" name="title" value={service.title} onChange={(e) => handleServiceChange(index, 'title', e.target.value)} />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="md:col-span-2">
+                            <label className="block text-sm font-medium text-light-text dark:text-dark-text mb-1">Description</label>
+                            <textarea
+                                value={service.description || ''}
+                                onChange={(e) => handleServiceChange(index, 'description', e.target.value)}
+                                className="w-full px-3 py-2 border border-light-border dark:border-dark-border rounded-md bg-light-background dark:bg-dark-background focus:outline-none focus:ring-primary focus:border-primary"
+                                rows={2}
+                            />
+                        </div>
+                        <FormInput label="Cost (LKR)" name="cost" type="number" min={0} value={service.cost.toString()} onChange={(e) => handleServiceChange(index, 'cost', parseFloat(e.target.value) || 0)} />
+                    </div>
+                    <button onClick={() => removeService(index)} className="absolute top-2 right-2 p-1 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-full"><TrashIcon className="w-5 h-5" /></button>
+                </div>
+            ))}
+            <button onClick={addService} className="w-full flex items-center justify-center space-x-2 px-4 py-3 text-sm font-medium text-primary border-2 border-dashed border-primary/50 rounded-md hover:bg-primary/10 transition-colors">
+                <PlusIcon className="h-5 h-5" />
+                <span>Add Service</span>
+            </button>
         </div>
     );
 
@@ -537,6 +587,7 @@ const SiteContentManagement: React.FC<SiteContentManagementProps> = ({ initialKe
             case 'teacher_dashboard_message': return renderTeacherDashboardMessageEditor();
             case 'financial_settings': return renderFinancialSettingsEditor();
             case 'support_settings': return renderSupportSettingsEditor();
+            case 'additional_services': return renderServicesEditor();
             default: return renderPageEditor();
         }
     }

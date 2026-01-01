@@ -159,6 +159,30 @@ const PaymentRedirectPage: React.FC<PaymentRedirectPageProps> = ({ user: context
                     };
                     break;
                 }
+                case 'additional_service': {
+                    const { customDetails, sale } = payload;
+                    customFieldsObject = {
+                        type: 'additional_service',
+                        serviceDetails: customDetails.serviceDetails,
+                        amountPaidFromBalance: customDetails.amountPaidFromBalance,
+                        totalAmount: customDetails.totalAmount,
+                        billingDetails: {
+                            billingFirstName: baseUserDetails.first_name,
+                            billingLastName: baseUserDetails.last_name,
+                            billingEmail: baseUserDetails.email,
+                            billingContactNumber: baseUserDetails.contact_number,
+                            billingAddressLineOne: baseUserDetails.address_line_one,
+                            billingCity: baseUserDetails.city,
+                            billingCountry: baseUserDetails.country
+                        },
+                        frontend_url
+                    };
+                    order_id = sale.id;
+                    items = customDetails.serviceDetails.title;
+                    amount = customDetails.totalAmount;
+                    data = { ...baseUserDetails, items };
+                    break;
+                }
                 default:
                     setError("Invalid payment type.");
                     return;

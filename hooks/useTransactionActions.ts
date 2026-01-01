@@ -12,6 +12,7 @@ import { useVoucherActions } from './transactions/useVoucherActions';
 import { usePaymentResponseHandler } from './transactions/usePaymentResponseHandler';
 import { useFinancialManagementActions } from './transactions/useFinancialManagementActions';
 import { useExternalPaymentActions } from './transactions/useExternalPaymentActions';
+import { useServicePurchaseActions } from './transactions/useServicePurchaseActions';
 
 interface TransactionActionDeps {
     currentUser: User | null;
@@ -35,6 +36,7 @@ export const useTransactionActions = (deps: TransactionActionDeps) => {
     const { handlePaymentResponse } = usePaymentResponseHandler(deps);
     const { handleRequestAffiliateWithdrawal, handleRefundSale } = useFinancialManagementActions(deps);
     const { handleExternalTopUpRequest } = useExternalPaymentActions(deps);
+    const { handlePurchaseService } = useServicePurchaseActions({ currentUser: deps.currentUser, ui: deps.ui, nav: deps.nav });
 
     return {
         handleEnroll,
@@ -46,5 +48,6 @@ export const useTransactionActions = (deps: TransactionActionDeps) => {
         handleExternalTopUpRequest,
         handleRequestAffiliateWithdrawal,
         handleRefundSale,
+        handlePurchaseService,
     };
 };
