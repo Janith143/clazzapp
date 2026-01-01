@@ -24,6 +24,7 @@ import DeveloperSettings from '../components/admin/DeveloperSettings';
 import { useAuth } from '../contexts/AuthContext';
 import DataRepairTool from '../components/admin/DataRepairTool';
 import RequestsManagement from '../components/admin/RequestsManagement';
+import CommunicationsManagement from '../components/admin/CommunicationsManagement';
 
 const AdminDashboard: React.FC = () => {
     const {
@@ -143,6 +144,8 @@ const AdminDashboard: React.FC = () => {
                 return <DeveloperSettings />;
             case 'requests':
                 return <RequestsManagement />;
+            case 'communications':
+                return <CommunicationsManagement />;
             default:
                 return <div>Select a view</div>;
         }

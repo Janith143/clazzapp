@@ -173,11 +173,7 @@ const TeacherProfilePage: React.FC<TeacherProfilePageProps> = ({ teacherId, slug
 
     const { percentage: profileCompletion, missing: missingItems } = calculateTeacherProfileCompletion(teacher);
 
-    // useSEO(
-    //     teacher ? `${teacher.name} | clazz.lk` : 'Teacher Profile | clazz.lk',
-    //     teacher ? teacher.tagline || teacher.bio.substring(0, 160) : 'View teacher profile on clazz.lk',
-    //     teacher ? teacher.profileImage : undefined
-    // );
+
 
     const structuredData = useMemo(() => {
         if (!teacher) return null;
@@ -195,6 +191,17 @@ const TeacherProfilePage: React.FC<TeacherProfilePageProps> = ({ teacherId, slug
     const isOwnProfile = currentUser?.id === teacher?.userId;
     const isAdminView = currentUser?.role === 'admin';
     const canEdit = isOwnProfile || isAdminView;
+
+    // ... (existing code)
+
+    // SEO Implementation
+    const seoTitle = teacher ? `${teacher.name} | Clazz.lk` : 'Teacher Profile | Clazz.lk';
+    const seoDescription = teacher ? (teacher.tagline || teacher.bio?.substring(0, 160) || "View teacher profile on Clazz.lk") : 'Connect with the best tutors in Sri Lanka.';
+    const seoImage = teacher?.profileImage || '/Logo3.png';
+
+    if (!teacher && !dataLoading) {
+        // Fallback or 404 handled by render
+    }
 
     const followerCount = isOwnProfile ? teacher?.followers?.length || 0 : undefined;
 
@@ -603,6 +610,13 @@ const TeacherProfilePage: React.FC<TeacherProfilePageProps> = ({ teacherId, slug
             case 'overview':
                 return (
                     <div className="space-y-12">
+                        <SEOHead
+                            title={seoTitle}
+                            description={seoDescription}
+                            image={seoImage}
+                            url={window.location.href}
+                            structuredData={structuredData}
+                        />
                         {teacher.bio && (
                             <div className="bg-light-surface dark:bg-dark-surface p-6 md:p-8 rounded-lg shadow-md animate-fadeIn">
                                 <h2 className="text-2xl font-bold mb-4 text-light-text dark:text-dark-text">About {teacher.name.split(' ')[0]}</h2>

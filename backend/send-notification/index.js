@@ -217,5 +217,185 @@ app.post('/verify-otp', async (req, res) => {
     }
 });
 
+// Bulk Send Endpoint
+app.post('/bulk-send', async (req, res) => {
+    const { recipients, messageData, validChannels } = req.body; // recipients: { id, email, phoneNumber, name }[], validChannels: ['email', 'sms', 'push']
+    const { subject, htmlBody, smsMessage } = messageData;
+
+    if (!recipients || !recipients.length) {
+        return res.status(400).send({ success: false, message: 'No recipients provided.' });
+    }
+
+    const config = await getConfig();
+    const { EMAIL_USER, EMAIL_PASS, NOTIFY_LK_USER_ID, NOTIFY_LK_API_KEY, NOTIFY_LK_SENDER_ID } = config;
+
+    let emailTransporter;
+    if (validChannels.includes('email')) {
+        if (!EMAIL_USER || !EMAIL_PASS) {
+            return res.status(500).send({ success: false, message: 'Email configuration missing.' });
+        }
+        emailTransporter = nodemailer.createTransport({ service: 'gmail', auth: { user: EMAIL_USER, pass: EMAIL_PASS } });
+    }
+
+    const results = {
+        email: { success: 0, failed: 0 },
+        sms: { success: 0, failed: 0 },
+        push: { success: 0, failed: 0 }
+    };
+
+    // Process in batches to avoid timeouts or rate limits
+    const BATCH_SIZE = 20;
+
+    try {
+        // 3. Create Global Notification Document (One for the batch/bulk op)
+        // We do this ONCE if there are push recipients.
+        let notificationId = null;
+        if (validChannels.includes('push')) {
+            const notificationRef = db.collection('notifications').doc();
+            notificationId = notificationRef.id;
+            await notificationRef.set({
+                id: notificationId,
+                teacherId: 'admin', // Sender is Admin
+                teacherName: 'Clazz Admin',
+                teacherAvatar: 'https://clazz.lk/Logo3.png',
+                content: messageData.pushBody, // Store raw body with {{name}} for reference
+                target: { type: 'bulk', recipients: recipients.length },
+                createdAt: new Date().toISOString(),
+                recipientCount: recipients.length,
+            });
+        }
+
+        for (let i = 0; i < recipients.length; i += BATCH_SIZE) {
+            const batch = recipients.slice(i, i + BATCH_SIZE);
+
+            await Promise.all(batch.map(async (user) => {
+                // Determine channels for this user: use override if present, else fallback to global ValidChannels
+                const userChannels = user.allowedChannels && user.allowedChannels.length > 0
+                    ? user.allowedChannels
+                    : validChannels;
+
+                // Send Email
+                if (validChannels.includes('email') && userChannels.includes('email') && user.email) {
+                    try {
+                        const unsubscribeLink = `https://clazz.lk/?page=unsubscribe&type=email&email=${encodeURIComponent(user.email)}`;
+                        const personalizedHtml = `${htmlBody.replace('{{name}}', user.name || 'User')}<br/><br/><hr/><small><a href="${unsubscribeLink}">Unsubscribe</a></small>`;
+
+                        await emailTransporter.sendMail({
+                            from: `"Clazz.lk" <${EMAIL_USER}>`,
+                            to: user.email,
+                            subject: subject.replace('{{name}}', user.name || 'User'),
+                            html: personalizedHtml
+                        });
+                        results.email.success++;
+                    } catch (e) {
+                        console.error(`Failed to send email to ${user.email}:`, e);
+                        results.email.failed++;
+                    }
+                }
+
+                // Send SMS
+                if (validChannels.includes('sms') && userChannels.includes('sms') && user.phoneNumber) {
+                    try {
+                        if (NOTIFY_LK_USER_ID && NOTIFY_LK_API_KEY && NOTIFY_LK_SENDER_ID) {
+                            const notifyNumber = user.phoneNumber.replace(/^\+/, '');
+                            const fullUnsubLink = `https://clazz.lk/?page=unsubscribe&type=sms`;
+                            const personalizedSms = `${smsMessage.replace('{{name}}', user.name || 'User')}\n\nOpt-out: ${fullUnsubLink}`;
+                            const url = `https://app.notify.lk/api/v1/send?user_id=${NOTIFY_LK_USER_ID}&api_key=${NOTIFY_LK_API_KEY}&sender_id=${encodeURIComponent(NOTIFY_LK_SENDER_ID)}&to=${notifyNumber}&message=${encodeURIComponent(personalizedSms)}`;
+                            const response = await fetch(url);
+                            const json = await response.json();
+                            if (json.status === 'success') results.sms.success++;
+                            else throw new Error(json.message);
+                        } else {
+                            results.sms.failed++; // Config missing
+                        }
+                    } catch (e) {
+                        console.error(`Failed to send SMS to ${user.phoneNumber}:`, e);
+                        results.sms.failed++;
+                    }
+                }
+
+                // Send Push
+                if (validChannels.includes('push') && userChannels.includes('push') && notificationId) {
+                    try {
+                        const userRef = db.collection('users').doc(user.id);
+                        const userDoc = await userRef.get();
+
+                        if (userDoc.exists) {
+                            const userData = userDoc.data();
+                            const fcmTokens = userData.fcmTokens || [];
+
+                            // 1. Persist to User's Notifications
+                            await userRef.update({
+                                notifications: admin.firestore.FieldValue.arrayUnion({
+                                    notificationId: notificationId,
+                                    isRead: false
+                                })
+                            });
+
+                            // 2. Send FCM
+                            if (fcmTokens.length > 0) {
+                                const { pushTitle, pushBody } = messageData;
+                                const personalizedTitle = pushTitle.replace('{{name}}', user.name || 'User');
+                                const personalizedBody = pushBody.replace('{{name}}', user.name || 'User');
+                                const clickLink = `https://clazz.lk/?notification_id=${notificationId}`; // Open app to notification
+
+                                const message = {
+                                    data: {
+                                        type: 'teacher_notification', // Keeping type consistent
+                                        title: personalizedTitle,
+                                        body: personalizedBody,
+                                        message: personalizedBody,
+                                        url: clickLink,
+                                        teacherId: 'admin',
+                                        notificationId: notificationId
+                                    },
+                                    webpush: {
+                                        notification: {
+                                            title: personalizedTitle,
+                                            body: personalizedBody,
+                                            icon: 'https://clazz.lk/Logo3.png',
+                                            requireInteraction: true,
+                                            fcm_options: {
+                                                link: clickLink
+                                            }
+                                        }
+                                    },
+                                    tokens: fcmTokens
+                                };
+                                const pushResponse = await admin.messaging().sendEachForMulticast(message);
+                                results.push.success += pushResponse.successCount;
+                                results.push.failed += pushResponse.failureCount;
+                            }
+                        }
+                    } catch (e) {
+                        console.error(`Failed to send Push to ${user.id}:`, e);
+                        results.push.failed++;
+                    }
+                }
+            }));
+        }
+
+        // 4. Log the Operation to 'communication_logs'
+        await db.collection('communication_logs').add({
+            timestamp: new Date().toISOString(),
+            sender: 'admin',
+            channels: validChannels,
+            stats: results,
+            recipientCount: recipients.length,
+            messagePreview: {
+                subject: subject || '',
+                sms: smsMessage || '',
+                push: messageData.pushTitle || ''
+            }
+        });
+
+        res.status(200).send({ success: true, results });
+
+    } catch (error) {
+        console.error('Bulk send error:', error);
+        res.status(500).send({ success: false, message: error.message });
+    }
+});
+
 // Export the Express app for Google Cloud Functions to handle.
 exports.sendNotification = onRequest({ cors: true }, app);

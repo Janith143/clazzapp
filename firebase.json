@@ -54,6 +54,11 @@
       "source": "backend/database-triggers",
       "codebase": "database-triggers",
       "runtime": "nodejs20"
+    },
+    {
+      "source": "backend/ssr-handler",
+      "codebase": "ssr-handler",
+      "runtime": "nodejs20"
     }
   ],
   "firestore": {
@@ -93,7 +98,7 @@
     "rewrites": [
       {
         "source": "**",
-        "destination": "/index.html"
+        "function": "ssrHandler"
       }
     ]
   }

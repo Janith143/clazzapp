@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { ChartBarIcon, UsersIcon, BookOpenIcon, BanknotesIcon, TicketIcon, ShareIcon, CurrencyDollarIcon, DocumentTextIcon, CalculatorIcon, PrinterIcon, CreditCardIcon, ShieldCheckIcon, CodeBracketIcon, MailIcon } from '../Icons.tsx';
 import { AdminView } from '../../types.ts';
 import { useAuth } from '../../contexts/AuthContext.tsx';
+import { useData } from '../../contexts/DataContext.tsx';
 
 const ShoppingBagIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
@@ -17,13 +18,22 @@ interface AdminSidebarProps {
 
 const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeView, setActiveView }) => {
   const { currentUser } = useAuth();
+  const { teachers } = useData();
+
+  const pendingCount = useMemo(() => {
+    if (!teachers) return 0;
+    return teachers.reduce((acc, teacher) => {
+      const teacherPending = (teacher.courses || []).filter(c => c.adminApproval === 'pending').length;
+      return acc + teacherPending;
+    }, 0);
+  }, [teachers]);
 
   const navItems = useMemo(() => {
     const allItems: { id: AdminView; label: string; icon: React.ReactNode }[] = [
       { id: 'analytics', label: 'Analytics', icon: <ChartBarIcon className="w-5 h-5 mr-3" /> },
       { id: 'users', label: 'User Management', icon: <UsersIcon className="w-5 h-5 mr-3" /> },
       { id: 'staff', label: 'Team & Permissions', icon: <ShieldCheckIcon className="w-5 h-5 mr-3" /> },
-      { id: 'content', label: 'Content (Legacy)', icon: <BookOpenIcon className="w-5 h-5 mr-3" /> },
+      { id: 'content', label: 'Content & Approvals', icon: <BookOpenIcon className="w-5 h-5 mr-3" /> },
       { id: 'products', label: 'Products', icon: <ShoppingBagIcon className="w-5 h-5 mr-3" /> },
       { id: 'allsales', label: 'All Sales', icon: <BanknotesIcon className="w-5 h-5 mr-3" /> },
       { id: 'photo_orders', label: 'Photo Orders', icon: <PrinterIcon className="w-5 h-5 mr-3" /> },
@@ -35,6 +45,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeView, setActiveView }
       { id: 'site_content', label: 'Site Content', icon: <DocumentTextIcon className="w-5 h-5 mr-3" /> },
       { id: 'calculation_guide', label: 'Calculation Guide', icon: <CalculatorIcon className="w-5 h-5 mr-3" /> },
       { id: 'requests', label: 'Requests', icon: <MailIcon className="w-5 h-5 mr-3" /> },
+      { id: 'communications', label: 'Communications', icon: <ShareIcon className="w-5 h-5 mr-3" /> },
       { id: 'developer', label: 'Developer', icon: <CodeBracketIcon className="w-5 h-5 mr-3" /> },
     ];
 
@@ -56,13 +67,20 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeView, setActiveView }
           <button
             key={item.id}
             onClick={() => setActiveView(item.id)}
-            className={`w-full flex items-center text-left px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${activeView === item.id
+            className={`w-full flex items-center justify-between text-left px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${activeView === item.id
               ? 'bg-primary text-white'
               : 'text-light-text dark:text-dark-text hover:bg-light-border dark:hover:bg-dark-border'
               }`}
           >
-            {item.icon}
-            {item.label}
+            <div className="flex items-center">
+              {item.icon}
+              {item.label}
+            </div>
+            {item.id === 'content' && pendingCount > 0 && (
+              <span className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm animate-pulse">
+                {pendingCount}
+              </span>
+            )}
           </button>
         ))}
       </nav>

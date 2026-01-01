@@ -12,6 +12,7 @@ import ConfirmationModal from '../components/ConfirmationModal.tsx';
 import { getDynamicQuizStatus, getOptimizedImageUrl } from '../utils.ts';
 import MarkdownDisplay from '../components/MarkdownDisplay.tsx';
 import { useSEO } from '../hooks/useSEO.ts';
+import SEOHead from '../components/SEOHead.tsx';
 
 import { slugify } from '../utils/slug.ts';
 
@@ -82,11 +83,7 @@ const QuizDetailPage: React.FC<QuizDetailPageProps> = ({ quizId, instanceId, slu
         );
     }, [currentUser, submissions, quiz]);
 
-    useSEO(
-        quiz ? quiz.title : 'Quiz Details',
-        quiz ? quiz.description.substring(0, 160) : 'View quiz details on clazz.lk',
-        teacher ? teacher.profileImage : undefined
-    );
+
 
     const dynamicStatus = useMemo(() => (quiz && 'questions' in quiz) ? getDynamicQuizStatus(quiz) : 'scheduled', [quiz]);
 
@@ -211,6 +208,11 @@ const QuizDetailPage: React.FC<QuizDetailPageProps> = ({ quizId, instanceId, slu
 
     return (
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-slideInUp">
+            <SEOHead
+                title={quiz ? quiz.title : 'Quiz Details'}
+                description={quiz ? quiz.description.substring(0, 160) : 'Take this quiz on Clazz.lk'}
+                image={teacher ? teacher.profileImage : undefined}
+            />
             <div className="mb-4">
                 {instanceId ? (
                     <button onClick={() => handleNavigate({ name: 'student_dashboard', initialTab: 'quizzes' })} className="flex items-center space-x-2 text-sm font-medium text-primary hover:text-primary-dark transition-colors">

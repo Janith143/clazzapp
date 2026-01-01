@@ -7,11 +7,129 @@ import { SaveIcon } from '../Icons';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
 
+import { slugify } from '../../utils/slug';
+
 const DeveloperSettings: React.FC = () => {
     // Active Configs (from Context)
     const { genAiKey, gDriveFetcherApiKey, functionUrls } = useNavigation();
-    const { handleUpdateDeveloperSettings } = useData();
+    const { handleUpdateDeveloperSettings, teachers, tuitionInstitutes } = useData();
     const { addToast } = useUI();
+
+    const handleGenerateSitemap = () => {
+        try {
+            const baseUrl = "https://clazz.lk";
+            const date = new Date().toISOString();
+
+            let xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`;
+
+            // 1. Static Routes
+            const staticRoutes = [
+                '', // Home
+                'courses',
+                'classes',
+                'teachers',
+                'about', // Assuming exists
+                'contact' // Assuming exists
+            ];
+
+            staticRoutes.forEach(route => {
+                xml += `
+    <url>
+        <loc>${baseUrl}/${route}</loc>
+        <lastmod>${date}</lastmod>
+        <changefreq>daily</changefreq>
+        <priority>${route === '' ? '1.0' : '0.8'}</priority>
+    </url>`;
+            });
+
+            // 2. Teachers
+            teachers.forEach(teacher => {
+                const teacherSlug = teacher.username || teacher.id; // Prefer username
+                const lastMod = new Date().toISOString(); // Ideal: teacher.updatedAt
+                xml += `
+    <url>
+        <loc>${baseUrl}/teacher/${teacherSlug}</loc>
+        <lastmod>${lastMod}</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.9</priority>
+    </url>`;
+
+                // 3. Courses (Published)
+                (teacher.courses || []).filter(c => c.isPublished && !c.isDeleted).forEach(course => {
+                    const slug = slugify(course.title);
+                    xml += `
+    <url>
+        <loc>${baseUrl}/course/${slug}</loc>
+        <lastmod>${lastMod}</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+    </url>`;
+                });
+
+                // 4. Classes (Published)
+                (teacher.individualClasses || []).filter(c => c.isPublished && !c.isDeleted).forEach(cls => {
+                    const slug = slugify(cls.title);
+                    xml += `
+    <url>
+        <loc>${baseUrl}/class/${slug}</loc>
+        <lastmod>${lastMod}</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+    </url>`;
+                });
+
+                // 5. Quizzes (Scheduled/Visible)
+                (teacher.quizzes || []).filter(q => q.status !== 'canceled').forEach(quiz => {
+                    const slug = slugify(quiz.title);
+                    xml += `
+    <url>
+        <loc>${baseUrl}/quiz/${slug}</loc>
+        <lastmod>${lastMod}</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.7</priority>
+    </url>`;
+                });
+            });
+
+            // 6. Tuition Institutes & Events
+            (tuitionInstitutes || []).forEach(inst => {
+                // Institute Profile (if public) - Assuming logic similar to teachers if implemented
+
+                // Events
+                (inst.events || []).forEach(event => {
+                    const slug = slugify(event.title);
+                    xml += `
+    <url>
+        <loc>${baseUrl}/event/${slug}</loc>
+        <lastmod>${date}</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+    </url>`;
+                });
+            });
+
+            xml += `
+</urlset>`;
+
+            // Download Logic
+            const blob = new Blob([xml], { type: 'text/xml' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'sitemap.xml';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            addToast(`Sitemap generated with ${Math.round(xml.length / 1024)}KB of data!`, 'success');
+
+        } catch (e) {
+            console.error("Sitemap generation error", e);
+            addToast("Failed to generate sitemap", "error");
+        }
+    };
 
     const [settings, setSettings] = useState({
         genAiKey: '',
@@ -195,6 +313,26 @@ const DeveloperSettings: React.FC = () => {
                         onChange={e => handleKeyChange('GOOGLE_CLIENT_SECRET', e.target.value)}
                         type="password"
                     />
+                </div>
+            </div>
+
+            {/* --- SEO Tools --- */}
+            <div className="bg-light-surface dark:bg-dark-surface p-6 rounded-lg shadow-md">
+                <h2 className="text-xl font-bold mb-4">SEO Tools</h2>
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h3 className="font-semibold text-lg">Sitemap Generation</h3>
+                        <p className="text-sm text-light-subtle dark:text-dark-subtle">
+                            Generate a sitemap.xml file based on current live data (Teachers, Courses, Classes).
+                            Upload this file to the public root of your hosting or verify in Google Search Console.
+                        </p>
+                    </div>
+                    <button
+                        onClick={handleGenerateSitemap}
+                        className="px-6 py-2 bg-green-600 text-white font-bold rounded-lg hover:bg-green-700 transition-colors"
+                    >
+                        Download sitemap.xml
+                    </button>
                 </div>
             </div>
 

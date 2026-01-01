@@ -9,6 +9,7 @@ import MarkdownDisplay from '../components/MarkdownDisplay.tsx';
 import { useSEO } from '../hooks/useSEO.ts';
 import { ProductCartItem, Product, Teacher } from '../types.ts';
 import ProductImageCarousel from "../components/ProductImageCarousel.tsx";
+import SEOHead from '../components/SEOHead.tsx';
 
 import { slugify } from '../utils/slug.ts';
 
@@ -38,11 +39,7 @@ const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ productId, slug }
     // Explicitly cast the item to Product since useFetchItem returns a union
     const product = fetchedProduct as Product | null;
 
-    useSEO(
-        product ? product.title : 'Product Details',
-        product ? product.description.substring(0, 160) : 'View product details on clazz.lk',
-        product && product.coverImages && product.coverImages.length > 0 ? product.coverImages[0] : undefined
-    );
+
 
     if (dataLoading) {
         return (
@@ -74,6 +71,11 @@ const ProductDetailPage: React.FC<ProductDetailPageProps> = ({ productId, slug }
 
     return (
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-slideInUp">
+            <SEOHead
+                title={product ? product.title : 'Product Details'}
+                description={product ? product.description.substring(0, 160) : 'Class materials and resources'}
+                image={product && product.coverImages && product.coverImages.length > 0 ? product.coverImages[0] : undefined}
+            />
             <div className="mb-4">
                 <button onClick={handleBack} className="flex items-center space-x-2 text-sm font-medium text-primary hover:text-primary-dark transition-colors">
                     <ChevronLeftIcon className="h-5 w-5" />
