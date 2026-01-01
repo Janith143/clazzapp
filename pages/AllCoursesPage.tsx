@@ -30,8 +30,30 @@ const AllCoursesPage: React.FC = () => {
   const [subjectFilter, setSubjectFilter] = useState('all');
   const [sortOption, setSortOption] = useState<string>('newest');
   const [visibleCount, setVisibleCount] = useState(ITEMS_PER_PAGE);
+  const [isFilterVisible, setIsFilterVisible] = useState(true);
   const isLoadingMore = useRef(false);
   const loader = useRef(null);
+
+  // Scroll Logic for Sticky Header
+  const lastScrollY = useRef(0);
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+
+      if (currentScrollY < 50) {
+        setIsFilterVisible(true);
+      } else if (currentScrollY > lastScrollY.current + 5) { // Threshold to avoid jitter
+        setIsFilterVisible(false);
+      } else if (currentScrollY < lastScrollY.current - 5) {
+        setIsFilterVisible(true);
+      }
+
+      lastScrollY.current = currentScrollY;
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   useSEO(
     'All Courses | clazz.lk',
@@ -189,7 +211,7 @@ const AllCoursesPage: React.FC = () => {
         <p className="mt-2 text-lg text-light-subtle dark:text-dark-subtle">Deepen your knowledge with structured courses from top educators.</p>
       </div>
 
-      <div className="sticky top-16 z-20 py-4 bg-light-background/80 dark:bg-dark-background/80 backdrop-blur-sm -mx-4 sm:px-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 mb-8">
+      <div className={`sticky top-16 z-20 py-4 bg-light-background/80 dark:bg-dark-background/80 backdrop-blur-sm -mx-4 sm:px-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 mb-8 transition-transform duration-300 ${isFilterVisible ? 'translate-y-0' : '-translate-y-full'}`}>
         <div className="max-w-5xl mx-auto space-y-4">
           <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

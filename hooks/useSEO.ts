@@ -21,7 +21,7 @@ function setLinkTag(rel: string, href: string) {
   (element as HTMLLinkElement).href = href;
 }
 
-const defaultTitle = 'clazz.lk - Online Learning Platform for Sri Lanka';
+const defaultTitle = "clazz.lk - Sri Lanka's Biggest Online Teachers Directory";
 const defaultDescription = 'Connect with the best tutors, enroll in online classes, and excel in your studies.';
 const defaultImage = '/Logo3.png';
 

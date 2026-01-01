@@ -44,6 +44,27 @@ const AllClassesPage: React.FC = () => {
   const isLoadingMore = useRef(false);
   const loader = useRef(null);
 
+  // Scroll Logic for Sticky Header
+  const lastScrollY = useRef(0);
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+
+      if (currentScrollY < 50) {
+        setIsFilterVisible(true);
+      } else if (currentScrollY > lastScrollY.current + 5) { // Threshold to avoid jitter
+        setIsFilterVisible(false);
+      } else if (currentScrollY < lastScrollY.current - 5) {
+        setIsFilterVisible(true);
+      }
+
+      lastScrollY.current = currentScrollY;
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   const onViewClass = (classInfo: any, teacher: any) => handleNavigate({ name: 'class_detail_slug', slug: slugify(classInfo.title) });
   const onBack = () => handleNavigate({ name: 'home' });
 
