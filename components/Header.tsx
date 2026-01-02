@@ -11,6 +11,10 @@ import { db } from '../firebase.ts';
 import { collection, query, where, getDocs, doc, onSnapshot } from 'firebase/firestore';
 import { getOptimizedImageUrl, getDynamicEventStatus, getDynamicQuizStatus } from '../utils.ts';
 import { slugify } from '../utils/slug.ts';
+import { useBroadcastData } from '../hooks/useBroadcastData.ts';
+import { BroadcastGroup } from '../types/broadcast.ts';
+import { Teacher } from '../types.ts';
+import { UserGroupIcon } from './Icons.tsx';
 
 const BellIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
@@ -19,34 +23,43 @@ const BellIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
 );
 
 
-const NotificationsPanel: React.FC<{ userNotifications: UserNotification[], onClose: () => void, onMarkAllRead: () => void }> = ({ userNotifications, onClose, onMarkAllRead }) => {
-    const [notifications, setNotifications] = useState<Notification[]>([]);
+const NotificationsPanel: React.FC<{ userNotifications: UserNotification[], broadcastGroups: BroadcastGroup[], onClose: () => void, onMarkAllRead: () => void, teachers: Teacher[] }> = ({ userNotifications, broadcastGroups, onClose, onMarkAllRead, teachers }) => {
+    const [notifications, setNotifications] = useState<(Notification | (BroadcastGroup & { isBroadcast: true }))[]>([]);
     const [loading, setLoading] = useState(true);
     const { handleNavigate } = useNavigation();
     const panelRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const fetchNotifications = async () => {
-            if (userNotifications.length === 0) {
-                setNotifications([]);
-                setLoading(false);
-                return;
-            }
             setLoading(true);
             try {
-                // Reverse to get newest notifications first
-                const recentNotifications = [...userNotifications].reverse().slice(0, 10);
-                const notifIds = recentNotifications.map(n => n.notificationId);
+                let mixedNotifications: (Notification | (BroadcastGroup & { isBroadcast: true }))[] = [];
 
-                const q = query(collection(db, 'notifications'), where('id', 'in', notifIds));
-                const querySnapshot = await getDocs(q);
+                // 1. Fetch System Notifications
+                if (userNotifications.length > 0) {
+                    const recentNotifications = [...userNotifications].reverse().slice(0, 10);
+                    const notifIds = recentNotifications.map(n => n.notificationId);
+                    const q = query(collection(db, 'notifications'), where('id', 'in', notifIds));
+                    const querySnapshot = await getDocs(q);
+                    const systemNotifs = querySnapshot.docs.map(doc => doc.data() as Notification);
+                    mixedNotifications = [...systemNotifs];
+                }
 
-                const notifs = querySnapshot.docs.map(doc => doc.data() as Notification);
+                // 2. Add Broadcast Notifications
+                const unreadBroadcasts = broadcastGroups
+                    .filter(g => g.hasUnread)
+                    .map(g => ({ ...g, isBroadcast: true as const }));
 
-                // Sort by createdAt descending
-                notifs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+                mixedNotifications = [...mixedNotifications, ...unreadBroadcasts];
 
-                setNotifications(notifs);
+                // 3. Sort by Date (newest first)
+                mixedNotifications.sort((a, b) => {
+                    const dateA = 'createdAt' in a ? a.createdAt : (a as any).lastMessageAt || '';
+                    const dateB = 'createdAt' in b ? b.createdAt : (b as any).lastMessageAt || '';
+                    return new Date(dateB).getTime() - new Date(dateA).getTime();
+                });
+
+                setNotifications(mixedNotifications);
             } catch (error) {
                 console.error("Error fetching notifications headers:", error);
             } finally {
@@ -54,7 +67,7 @@ const NotificationsPanel: React.FC<{ userNotifications: UserNotification[], onCl
             }
         };
         fetchNotifications();
-    }, [userNotifications]);
+    }, [userNotifications, broadcastGroups]);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -66,13 +79,18 @@ const NotificationsPanel: React.FC<{ userNotifications: UserNotification[], onCl
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [onClose]);
 
-    const handleNotificationClick = (notification: Notification) => {
-        handleNavigate({ name: 'teacher_profile', teacherId: notification.teacherId });
+    const handleNotificationClick = (item: Notification | (BroadcastGroup & { isBroadcast: true })) => {
+        if ('isBroadcast' in item) {
+            // Navigate to Groups Tab
+            handleNavigate({ name: 'student_dashboard', initialTab: 'groups' });
+        } else {
+            handleNavigate({ name: 'teacher_profile', teacherId: item.teacherId });
+        }
         onClose();
     };
 
     return (
-        <div ref={panelRef} className="absolute top-16 right-0 w-80 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg shadow-lg z-50">
+        <div ref={panelRef} className="w-80 max-w-[92vw] bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg shadow-lg z-50">
             <div className="p-3 flex justify-between items-center border-b border-light-border dark:border-dark-border">
                 <h3 className="font-semibold text-light-text dark:text-dark-text">Notifications</h3>
                 {userNotifications.length > 0 && <button onClick={onMarkAllRead} className="text-xs text-primary hover:underline">Mark all as read</button>}
@@ -80,20 +98,51 @@ const NotificationsPanel: React.FC<{ userNotifications: UserNotification[], onCl
             <div className="max-h-96 overflow-y-auto">
                 {loading ? <div className="p-4 text-center text-light-subtle dark:text-dark-subtle">Loading...</div> :
                     notifications.length === 0 ? <div className="p-4 text-center text-light-subtle dark:text-dark-subtle">No new notifications.</div> :
-                        notifications.map(notif => {
-                            const userNotif = userNotifications.find(un => un.notificationId === notif.id);
-                            const isRead = userNotif?.isRead || false;
-                            return (
-                                <button key={notif.id} onClick={() => handleNotificationClick(notif)} className={`w-full text-left p-3 flex items-start space-x-3 hover:bg-light-border dark:hover:bg-dark-border ${!isRead ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}>
-                                    <img src={getOptimizedImageUrl(notif.teacherAvatar, 32, 32)} alt={notif.teacherName} className="w-8 h-8 rounded-full" />
-                                    <div className="flex-1">
-                                        <p className="text-sm font-semibold">{notif.teacherName}</p>
-                                        <p className="text-xs text-light-subtle dark:text-dark-subtle">{notif.content}</p>
-                                        <p className="text-xs text-light-subtle dark:text-dark-subtle mt-1">{new Date(notif.createdAt).toLocaleString()}</p>
-                                    </div>
-                                    {!isRead && <div className="w-2.5 h-2.5 bg-primary rounded-full mt-1 flex-shrink-0"></div>}
-                                </button>
-                            )
+                        notifications.map(item => {
+                            if ('isBroadcast' in item) {
+                                // Broadcast Item
+                                const group = item;
+                                const teacher = teachers.find(t => t.userId === group.teacherId);
+                                const avatar = teacher?.avatar || teacher?.profileImage; // Fallback
+
+                                return (
+                                    <button key={`bg_${group.id}`} onClick={() => handleNotificationClick(group)} className="w-full text-left p-3 flex items-start space-x-3 hover:bg-light-border dark:hover:bg-dark-border bg-blue-50 dark:bg-blue-900/20">
+                                        <div className="relative">
+                                            <img src={getOptimizedImageUrl(avatar, 32, 32)} alt={group.teacherName} className="w-8 h-8 rounded-full" />
+                                            <div className="absolute -bottom-1 -right-1 bg-green-500 rounded-full p-0.5 border border-white dark:border-gray-800">
+                                                <UserGroupIcon className="w-2 h-2 text-white" />
+                                            </div>
+                                        </div>
+                                        <div className="flex-1">
+                                            <p className="text-sm font-semibold">{group.name}</p>
+                                            <p className="text-xs text-light-subtle dark:text-dark-subtle">
+                                                {group.lastMessagePreview ?
+                                                    (group.lastMessagePreview.includes('http') ? 'Sent an attachment' : group.lastMessagePreview.substring(0, 40) + (group.lastMessagePreview.length > 40 ? '...' : ''))
+                                                    : 'New activity'
+                                                }
+                                            </p>
+                                            <p className="text-xs text-light-subtle dark:text-dark-subtle mt-1">{group.lastMessageAt ? new Date(group.lastMessageAt).toLocaleString() : ''}</p>
+                                        </div>
+                                        <div className="w-2.5 h-2.5 bg-primary rounded-full mt-1 flex-shrink-0 animate-pulse"></div>
+                                    </button>
+                                );
+                            } else {
+                                // System Notification
+                                const notif = item;
+                                const userNotif = userNotifications.find(un => un.notificationId === notif.id);
+                                const isRead = userNotif?.isRead || false;
+                                return (
+                                    <button key={notif.id} onClick={() => handleNotificationClick(notif)} className={`w-full text-left p-3 flex items-start space-x-3 hover:bg-light-border dark:hover:bg-dark-border ${!isRead ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}>
+                                        <img src={getOptimizedImageUrl(notif.teacherAvatar, 32, 32)} alt={notif.teacherName} className="w-8 h-8 rounded-full" />
+                                        <div className="flex-1">
+                                            <p className="text-sm font-semibold">{notif.teacherName}</p>
+                                            <p className="text-xs text-light-subtle dark:text-dark-subtle">{notif.content}</p>
+                                            <p className="text-xs text-light-subtle dark:text-dark-subtle mt-1">{new Date(notif.createdAt).toLocaleString()}</p>
+                                        </div>
+                                        {!isRead && <div className="w-2.5 h-2.5 bg-primary rounded-full mt-1 flex-shrink-0"></div>}
+                                    </button>
+                                );
+                            }
                         })
                 }
             </div>
@@ -294,6 +343,7 @@ const Header: React.FC = () => {
     const { currentUser, handleLogout } = useAuth();
     const { pageState, handleNavigate, homePageCardCounts, searchQuery, setSearchQuery } = useNavigation();
     const { teachers, tuitionInstitutes, handleMarkAllAsRead } = useData();
+    const { groups: broadcastGroups, unreadTotal: broadcastUnreadCount } = useBroadcastData(undefined, undefined, currentUser && currentUser.role !== 'teacher' && currentUser.role !== 'admin' && currentUser.role !== 'tuition_institute' ? currentUser.id : undefined);
 
     const publishedEventsCount = useMemo(() => {
         const teacherEvents = teachers.flatMap(t => t.events || []).filter(e => e.isPublished && e.status !== 'canceled' && getDynamicEventStatus(e) !== 'finished').length;
@@ -327,8 +377,8 @@ const Header: React.FC = () => {
     }, [isSearchOpen]);
 
     const unreadCount = useMemo(() => {
-        return currentUser?.notifications?.filter(n => !n.isRead).length || 0;
-    }, [currentUser]);
+        return (currentUser?.notifications?.filter(n => !n.isRead).length || 0) + broadcastUnreadCount;
+    }, [currentUser, broadcastUnreadCount]);
 
     const onViewDashboard = () => {
         if (currentUser?.role === 'admin') {
@@ -429,18 +479,33 @@ const Header: React.FC = () => {
 
                             <ThemeToggle theme={theme} toggleTheme={toggleTheme} />
 
-                            {/* Desktop Auth & Notifications */}
-                            <div className="hidden md:flex items-center space-x-4">
-                                {currentUser && (
-                                    <div className="relative">
-                                        <button onClick={() => setIsNotificationsOpen(prev => !prev)} className="p-2 rounded-full text-light-subtle dark:text-dark-subtle hover:bg-light-border dark:hover:bg-dark-border">
-                                            <BellIcon className="h-6 w-6" />
-                                            {unreadCount > 0 && <span className="absolute top-0 right-0 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white dark:ring-dark-surface"></span>}
-                                        </button>
-                                        {isNotificationsOpen && <NotificationsPanel userNotifications={currentUser.notifications || []} onClose={() => setIsNotificationsOpen(false)} onMarkAllRead={handleMarkAllAsRead} />}
-                                    </div>
-                                )}
+                            {/* Notifications (Visible on Mobile & Desktop) */}
+                            {currentUser && (
+                                <div className="relative">
+                                    <button onClick={() => setIsNotificationsOpen(prev => !prev)} className="p-2 rounded-full text-light-subtle dark:text-dark-subtle hover:bg-light-border dark:hover:bg-dark-border">
+                                        <BellIcon className="h-6 w-6" />
+                                        {unreadCount > 0 && <span className="absolute top-0 right-0 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white dark:ring-dark-surface"></span>}
+                                    </button>
+                                    {isNotificationsOpen && (
+                                        <div className="fixed inset-0 z-50 flex flex-col items-end pt-16 pr-2 md:block md:absolute md:inset-auto md:top-16 md:right-0 md:bg-transparent md:p-0">
+                                            {/* Mobile Overlay to close */}
+                                            <div className="fixed inset-0 bg-black/50 md:hidden" onClick={() => setIsNotificationsOpen(false)}></div>
+                                            <div className="relative z-10">
+                                                <NotificationsPanel
+                                                    userNotifications={currentUser.notifications || []}
+                                                    broadcastGroups={broadcastGroups}
+                                                    teachers={teachers}
+                                                    onClose={() => setIsNotificationsOpen(false)}
+                                                    onMarkAllRead={handleMarkAllAsRead}
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
+                            {/* Desktop Auth & Cart */}
+                            <div className="hidden md:flex items-center space-x-4">
                                 {cart.length > 0 && (
                                     <div className="relative">
                                         <button onClick={() => setModalState({ name: 'cart' })} className="p-2 rounded-full text-light-subtle dark:text-dark-subtle hover:bg-light-border dark:hover:bg-dark-border">
