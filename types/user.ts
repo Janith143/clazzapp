@@ -55,6 +55,8 @@ export interface User {
     role: UserRole;
     avatar: string;
     contactNumber?: string;
+    guardianEmail?: string;
+    guardianPhone?: string;
     address?: Address;
     status: 'active' | 'pending' | 'suspended';
     enrolledCourseIds?: string[];

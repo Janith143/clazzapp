@@ -33,11 +33,11 @@ const StudentProfileModal: React.FC = () => {
     const { currentUser, handleResendVerificationEmail, linkPhoneNumber, verifyPhoneNumberLink, updateUserAuthEmail, handlePasswordReset } = useAuth();
     const { handleUpdateUser } = useData();
     const { modalState, setModalState, addToast } = useUI();
-    
+
     const [formData, setFormData] = useState<Partial<User>>({});
     const [step, setStep] = useState(0);
     const [isSaving, setIsSaving] = useState(false);
-    
+
     const [phoneOtpStep, setPhoneOtpStep] = useState<'enter_number' | 'enter_otp'>('enter_number');
     const [phoneOtp, setPhoneOtp] = useState('');
     const [phoneResendCooldown, setPhoneResendCooldown] = useState(0);
@@ -70,7 +70,7 @@ const StudentProfileModal: React.FC = () => {
                     ...userForModal,
                     address: userForModal.address || emptyAddress
                 };
-                
+
                 const isPredefined = targetAudienceOptions.some(opt => opt.value === userForModal.targetAudience);
                 if (isPredefined && userForModal.targetAudience !== 'Other') {
                     initialFormData.targetAudience = userForModal.targetAudience;
@@ -79,7 +79,7 @@ const StudentProfileModal: React.FC = () => {
                     initialFormData.targetAudience = 'Other';
                     setCustomTargetAudience(userForModal.targetAudience || '');
                 }
-        
+
                 setFormData(initialFormData);
                 const initialStep = modalState.initialStep || 0;
                 setStep(initialStep);
@@ -90,15 +90,15 @@ const StudentProfileModal: React.FC = () => {
     // Sync Verification Status from Background Updates
     useEffect(() => {
         if (isOwnProfile && currentUser && formData.id === currentUser.id) {
-             setFormData(prev => ({
-                 ...prev,
-                 isEmailVerified: currentUser.isEmailVerified,
-                 isMobileVerified: currentUser.isMobileVerified,
-                 // We sync these in case they were updated by the verification flow
-                 // But we use the values from currentUser which comes from Firestore
-                 email: currentUser.email,
-                 contactNumber: currentUser.contactNumber
-             }));
+            setFormData(prev => ({
+                ...prev,
+                isEmailVerified: currentUser.isEmailVerified,
+                isMobileVerified: currentUser.isMobileVerified,
+                // We sync these in case they were updated by the verification flow
+                // But we use the values from currentUser which comes from Firestore
+                email: currentUser.email,
+                contactNumber: currentUser.contactNumber
+            }));
         }
     }, [currentUser?.isEmailVerified, currentUser?.isMobileVerified, currentUser?.email, currentUser?.contactNumber, isOwnProfile]);
 
@@ -110,7 +110,7 @@ const StudentProfileModal: React.FC = () => {
         }
         return () => clearTimeout(timer);
     }, [phoneResendCooldown]);
-    
+
     // Auto-check email verification
     useEffect(() => {
         if (isOwnProfile && modalState.name === 'edit_student_profile' && formData && !formData.isEmailVerified && formData.email) {
@@ -120,7 +120,7 @@ const StudentProfileModal: React.FC = () => {
                     if (auth.currentUser.emailVerified) {
                         const userRef = doc(db, "users", currentUser!.id);
                         // Sync the verified email to the profile as well
-                        await updateDoc(userRef, { 
+                        await updateDoc(userRef, {
                             isEmailVerified: true,
                             email: auth.currentUser.email
                         });
@@ -134,7 +134,7 @@ const StudentProfileModal: React.FC = () => {
     }, [modalState.name, formData.email, formData.isEmailVerified, addToast, currentUser, isOwnProfile]);
 
     const { percentage: progress } = calculateStudentProfileCompletion(formData as User);
-    
+
     const steps = [
         { name: "Personal Information" },
         { name: "Contact & Verification" },
@@ -173,11 +173,11 @@ const StudentProfileModal: React.FC = () => {
             default:
                 break;
         }
-        
+
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
-    
+
     const handleNextStep = () => {
         if (!validateStep(step)) {
             if (isMandatoryFlow) {
@@ -195,7 +195,7 @@ const StudentProfileModal: React.FC = () => {
         const newErrors: Record<string, string> = {};
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         let firstErrorStep = -1;
-    
+
         // Step 0
         if (!formData.firstName?.trim()) {
             newErrors.firstName = "First name is required.";
@@ -205,7 +205,7 @@ const StudentProfileModal: React.FC = () => {
             newErrors.lastName = "Last name is required.";
             if (firstErrorStep === -1) firstErrorStep = 0;
         }
-    
+
         // Step 1
         if (!formData.email?.trim()) {
             newErrors.email = "Email is mandatory for payments.";
@@ -218,7 +218,7 @@ const StudentProfileModal: React.FC = () => {
             newErrors.contactNumber = "Contact number is mandatory for payments.";
             if (firstErrorStep === -1) firstErrorStep = 1;
         }
-        
+
         // Step 2
         if (!formData.address?.line1?.trim()) {
             newErrors.line1 = "Address Line 1 is mandatory for payments.";
@@ -228,25 +228,25 @@ const StudentProfileModal: React.FC = () => {
             newErrors.city = "City is mandatory for payments.";
             if (firstErrorStep === -1) firstErrorStep = 2;
         }
-    
+
         setErrors(newErrors);
-        
+
         if (firstErrorStep !== -1) {
             setStep(firstErrorStep);
             addToast("Please complete all mandatory fields before finishing.", "error");
             return false;
         }
-        
+
         return true;
     };
-    
+
     const handleFinish = async () => {
         if (isMandatoryFlow) {
             if (!validateAllMandatorySteps()) {
                 return;
             }
         } else {
-             if(!validateStep(step)) {
+            if (!validateStep(step)) {
                 addToast("Please fill all mandatory fields to continue.", "error");
                 return;
             }
@@ -255,7 +255,7 @@ const StudentProfileModal: React.FC = () => {
         setIsSaving(true);
         try {
             const userToUpdateId = (modalState.name === 'edit_student_profile' && modalState.userToEdit?.id) || currentUser?.id;
-            
+
             // Capture the latest state of formData to pass to the callback
             const finalData = { ...formData };
             if (finalData.targetAudience === 'Other') {
@@ -266,9 +266,9 @@ const StudentProfileModal: React.FC = () => {
                 await handleUpdateUser({ id: userToUpdateId, ...finalData });
             }
             addToast("Profile updated successfully!", "success");
-            
+
             const continueAction = (modalState.name === 'edit_student_profile' && modalState.onSaveAndContinue) ? modalState.onSaveAndContinue : null;
-        
+
             setModalState({ name: 'none' });
 
             if (continueAction) {
@@ -282,7 +282,7 @@ const StudentProfileModal: React.FC = () => {
             setIsSaving(false);
         }
     };
-    
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         if (errors[name]) {
@@ -301,7 +301,7 @@ const StudentProfileModal: React.FC = () => {
     // ... (rest of the component logic remains unchanged)
     // Redacted for brevity since no other logic changes are needed in the rest of the file
     // Only the handleFinish function and the types import needed updates.
-    
+
     const handleNewExamChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setNewExam(prev => ({ ...prev, [name]: value }));
@@ -326,7 +326,7 @@ const StudentProfileModal: React.FC = () => {
             customExams: (prev.customExams || []).filter(exam => exam.id !== id)
         }));
     };
-    
+
     const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         if (errors[name]) {
@@ -336,9 +336,9 @@ const StudentProfileModal: React.FC = () => {
                 return newErrors;
             });
         }
-        setFormData(prev => ({ ...prev, address: { ...(prev.address as Address), [name]: value }}));
+        setFormData(prev => ({ ...prev, address: { ...(prev.address as Address), [name]: value } }));
     };
-    
+
     const handleTagsChange = (name: keyof User, tags: string[]) => {
         setFormData(prev => ({ ...prev, [name]: tags }));
     };
@@ -354,7 +354,7 @@ const StudentProfileModal: React.FC = () => {
         try {
             if (formData.email !== currentUser?.email && formData.email) {
                 await updateUserAuthEmail(formData.email);
-                
+
                 // Immediately save the new email to the database profile to ensure consistency,
                 // in case the user closes the modal before clicking 'Finish'.
                 if (currentUser) {
@@ -368,7 +368,7 @@ const StudentProfileModal: React.FC = () => {
             }
         } catch (e: any) {
             if (e.message && e.message.includes("already associated")) {
-                 setError("This email is already in use by another account. Please use a different email or contact support.");
+                setError("This email is already in use by another account. Please use a different email or contact support.");
             } else if (e.message && (e.message.toLowerCase().includes('firebase:') || e.code?.toLowerCase().includes('auth/'))) {
                 setError("An unexpected error occurred while processing your email update. Please try again or contact support if the issue persists.");
             } else {
@@ -438,7 +438,7 @@ const StudentProfileModal: React.FC = () => {
             setPhoneOtp('');
         } catch (e: any) {
             if (e.message && e.message.toLowerCase().includes("already in use")) {
-                 setError("This phone number is already in use by another account. Please use a different number or contact support.");
+                setError("This phone number is already in use by another account. Please use a different number or contact support.");
             } else if (e.message && (e.message.toLowerCase().includes('firebase:') || e.code?.toLowerCase().includes('auth/'))) {
                 setError("An unexpected error occurred during phone verification. Please try again or contact support.");
             } else {
@@ -448,7 +448,7 @@ const StudentProfileModal: React.FC = () => {
             setLoading(prev => ({ ...prev, phone: false }));
         }
     };
-    
+
     type ListName = 'education' | 'experience' | 'projects' | 'references';
     type ListItem = EducationEntry | ExperienceEntry | ProjectEntry | ReferenceEntry;
 
@@ -464,7 +464,7 @@ const StudentProfileModal: React.FC = () => {
 
     const handleAddItem = (listName: ListName) => {
         let newItem: ListItem;
-        switch(listName) {
+        switch (listName) {
             case 'education': newItem = { id: uuidv4(), qualification: '', institution: '', period: '' }; break;
             case 'experience': newItem = { id: uuidv4(), role: '', organization: '', period: '', description: '' }; break;
             case 'projects': newItem = { id: uuidv4(), name: '', description: '' }; break;
@@ -476,26 +476,26 @@ const StudentProfileModal: React.FC = () => {
             [listName]: [...(prev[listName] as any[] || []), newItem]
         }));
     };
-    
+
     const handleRemoveItem = (listName: ListName, id: string) => {
         setFormData(prev => ({
             ...prev,
             [listName]: (prev[listName] as any[] || []).filter(item => item.id !== id)
         }));
     };
-    
+
     const renderStepContent = () => {
-        switch(step) {
+        switch (step) {
             case 0: return (
                 <div className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <FormInput label="First Name" name="firstName" value={formData.firstName || ''} onChange={handleChange} required error={errors.firstName} />
                         <FormInput label="Last Name" name="lastName" value={formData.lastName || ''} onChange={handleChange} required error={errors.lastName} />
                     </div>
-                     <FormSelect 
-                        label="Gender" 
-                        name="gender" 
-                        value={formData.gender || ''} 
+                    <FormSelect
+                        label="Gender"
+                        name="gender"
+                        value={formData.gender || ''}
                         onChange={handleChange}
                         options={[
                             { value: 'Male', label: 'Male' },
@@ -505,7 +505,7 @@ const StudentProfileModal: React.FC = () => {
                         ]}
                     />
                     <FormInput label="Date of Birth" name="dateOfBirth" type="date" value={formData.dateOfBirth || ''} onChange={handleChange} />
-                    <FormSelect 
+                    <FormSelect
                         label="Preferred Language"
                         name="preferredLanguage"
                         value={formData.preferredLanguage || ''}
@@ -516,7 +516,7 @@ const StudentProfileModal: React.FC = () => {
                             { value: 'Tamil', label: 'Tamil' },
                         ]}
                     />
-                    <FormSelect 
+                    <FormSelect
                         label="Which category best describes you?"
                         name="targetAudience"
                         value={formData.targetAudience || ''}
@@ -525,7 +525,7 @@ const StudentProfileModal: React.FC = () => {
                         required
                     />
                     {formData.targetAudience === 'Other' && (
-                         <FormInput
+                        <FormInput
                             label="Please specify"
                             name="customTargetAudience"
                             value={customTargetAudience}
@@ -537,14 +537,14 @@ const StudentProfileModal: React.FC = () => {
                 </div>
             );
             case 1: return (
-                 <div className="space-y-4">
+                <div className="space-y-4">
                     {error && <p className="text-sm text-center text-red-500">{error}</p>}
                     <div className="p-3 bg-light-background dark:bg-dark-background rounded-md border border-light-border dark:border-dark-border">
                         <FormInput label={`Email Address ${isMandatoryFlow ? '(Mandatory for payments)' : ''}`} name="email" type="email" value={formData.email || ''} onChange={handleChange} placeholder="Add your email" error={errors.email} />
                         {isOwnProfile && (
                             <div className="mt-2 flex items-center space-x-4">
                                 {formData.isEmailVerified ? (
-                                    <p className="text-sm font-medium text-green-600 dark:text-green-400 flex items-center"><CheckCircleIcon className="w-4 h-4 mr-1"/>Verified</p>
+                                    <p className="text-sm font-medium text-green-600 dark:text-green-400 flex items-center"><CheckCircleIcon className="w-4 h-4 mr-1" />Verified</p>
                                 ) : formData.email ? (
                                     <button type="button" onClick={handleSendVerificationEmail} disabled={loading.email} className="text-sm font-medium text-primary hover:text-primary-dark disabled:opacity-50">
                                         {loading.email ? 'Sending...' : 'Send Verification Link'}
@@ -558,7 +558,7 @@ const StudentProfileModal: React.FC = () => {
                             </div>
                         )}
                         {!isOwnProfile && (
-                             <p className="mt-2 text-xs text-light-subtle dark:text-dark-subtle italic">Verification options are disabled when editing another user's profile.</p>
+                            <p className="mt-2 text-xs text-light-subtle dark:text-dark-subtle italic">Verification options are disabled when editing another user's profile.</p>
                         )}
                     </div>
                     <div className="p-3 bg-light-background dark:bg-dark-background rounded-md border border-light-border dark:border-dark-border">
@@ -569,7 +569,7 @@ const StudentProfileModal: React.FC = () => {
                         )}
                         {isOwnProfile && (
                             formData.isMobileVerified ? (
-                                <p className="mt-2 text-sm font-medium text-green-600 dark:text-green-400 flex items-center"><CheckCircleIcon className="w-4 h-4 mr-1"/>Verified</p>
+                                <p className="mt-2 text-sm font-medium text-green-600 dark:text-green-400 flex items-center"><CheckCircleIcon className="w-4 h-4 mr-1" />Verified</p>
                             ) : formData.contactNumber ? (
                                 phoneOtpStep === 'enter_number' ? (
                                     <button type="button" onClick={handleSendOtp} disabled={loading.phone} className="mt-2 text-sm font-medium text-primary hover:text-primary-dark disabled:opacity-50">{loading.phone ? 'Sending...' : 'Verify Number'}</button>
@@ -582,6 +582,16 @@ const StudentProfileModal: React.FC = () => {
                             ) : null
                         )}
                     </div>
+
+                    <div className="p-3 bg-light-background dark:bg-dark-background rounded-md border border-light-border dark:border-dark-border">
+                        <h4 className="text-sm font-semibold mb-3 text-light-text dark:text-dark-text">Guardian Contact Details (Optional)</h4>
+                        <div className="space-y-3">
+                            <FormInput label="Guardian Email" name="guardianEmail" type="email" value={formData.guardianEmail || ''} onChange={handleChange} placeholder="parent@example.com" />
+                            <FormInput label="Guardian Phone" name="guardianPhone" type="tel" value={formData.guardianPhone || ''} onChange={handleChange} placeholder="+9477..." />
+                            <p className="text-xs text-light-subtle dark:text-dark-subtle">We will send attendance notifications to these contacts.</p>
+                        </div>
+                    </div>
+
                 </div>
             );
             case 2: return (
@@ -603,7 +613,7 @@ const StudentProfileModal: React.FC = () => {
                     <TagInput label="Current & Previous Schools" tags={formData.schools || []} onTagsChange={(tags) => handleTagsChange('schools', tags)} />
                     <TagInput label="Learning Institutes (Online or Physical)" tags={formData.learningInstitutes || []} onTagsChange={(tags) => handleTagsChange('learningInstitutes', tags)} />
                     <TagInput label="Awards & Achievements" tags={formData.achievements || []} onTagsChange={(tags) => handleTagsChange('achievements', tags)} />
-                     <MarkdownEditor
+                    <MarkdownEditor
                         label="Career Aspirations"
                         id="careerAspirations"
                         name="careerAspirations"
@@ -622,7 +632,7 @@ const StudentProfileModal: React.FC = () => {
                                         <p className="font-medium text-sm">{exam.name}</p>
                                         <p className="text-xs text-light-subtle dark:text-dark-subtle">{new Date(exam.date).toLocaleDateString()}</p>
                                     </div>
-                                    <button type="button" onClick={() => handleRemoveExam(exam.id)} className="p-1 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-full"><TrashIcon className="w-4 h-4"/></button>
+                                    <button type="button" onClick={() => handleRemoveExam(exam.id)} className="p-1 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-full"><TrashIcon className="w-4 h-4" /></button>
                                 </div>
                             ))}
                             {(formData.customExams || []).length === 0 && <p className="text-center text-xs text-light-subtle dark:text-dark-subtle py-4">No personal exams added yet.</p>}
@@ -633,7 +643,7 @@ const StudentProfileModal: React.FC = () => {
                             <FormInput label="Date" name="date" type="date" value={newExam.date} onChange={handleNewExamChange} />
                             <FormSelect label="Audience" name="targetAudience" value={newExam.targetAudience} onChange={handleNewExamChange} options={targetAudienceOptions} />
                             <button type="button" onClick={handleAddExam} className="w-full flex items-center justify-center gap-2 text-sm font-medium text-primary border border-primary rounded-md py-2 hover:bg-primary/10">
-                                <PlusIcon className="w-4 h-4"/> Add Exam
+                                <PlusIcon className="w-4 h-4" /> Add Exam
                             </button>
                         </div>
                     </div>
@@ -646,7 +656,7 @@ const StudentProfileModal: React.FC = () => {
                     <TagInput label="Soft Skills" tags={formData.softSkills || []} onTagsChange={(tags) => handleTagsChange('softSkills', tags)} />
                     <TagInput label="Languages" tags={formData.languages || []} onTagsChange={(tags) => handleTagsChange('languages', tags)} />
                     <TagInput label="Certifications & Trainings" tags={formData.certifications || []} onTagsChange={(tags) => handleTagsChange('certifications', tags)} />
-                    
+
                     {/* Work Experience */}
                     <div className="pt-4 border-t border-light-border dark:border-dark-border">
                         <h4 className="font-semibold mb-2 text-light-text dark:text-dark-text">Work Experience</h4>
@@ -655,14 +665,14 @@ const StudentProfileModal: React.FC = () => {
                                 <div key={exp.id} className="p-3 bg-light-surface dark:bg-dark-surface rounded-md border border-light-border dark:border-dark-border relative space-y-2">
                                     <FormInput label="Role" name="role" value={exp.role} onChange={e => handleDynamicListChange('experience', exp.id, 'role', e.target.value)} />
                                     <FormInput label="Organization" name="organization" value={exp.organization} onChange={e => handleDynamicListChange('experience', exp.id, 'organization', e.target.value)} />
-                                    <FormInput label="Period" name="period" value={exp.period} onChange={e => handleDynamicListChange('experience', exp.id, 'period', e.target.value)} placeholder="e.g., 2023 - Present"/>
+                                    <FormInput label="Period" name="period" value={exp.period} onChange={e => handleDynamicListChange('experience', exp.id, 'period', e.target.value)} placeholder="e.g., 2023 - Present" />
                                     <MarkdownEditor label="Description" id={`exp-desc-${exp.id}`} name="description" value={exp.description} onChange={e => handleDynamicListChange('experience', exp.id, 'description', e.target.value)} rows={3} />
-                                    <button type="button" onClick={() => handleRemoveItem('experience', exp.id)} className="absolute top-2 right-2 p-1 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-full"><TrashIcon className="w-4 h-4"/></button>
+                                    <button type="button" onClick={() => handleRemoveItem('experience', exp.id)} className="absolute top-2 right-2 p-1 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-full"><TrashIcon className="w-4 h-4" /></button>
                                 </div>
                             ))}
                         </div>
                         <button type="button" onClick={() => handleAddItem('experience')} className="mt-2 w-full flex items-center justify-center gap-2 text-sm font-medium text-primary border-2 border-dashed border-primary/50 rounded-md py-2 hover:bg-primary/10">
-                            <PlusIcon className="w-4 h-4"/> Add Experience
+                            <PlusIcon className="w-4 h-4" /> Add Experience
                         </button>
                     </div>
 
@@ -675,36 +685,36 @@ const StudentProfileModal: React.FC = () => {
                                     <FormInput label="Qualification" name="qualification" value={edu.qualification} onChange={e => handleDynamicListChange('education', edu.id, 'qualification', e.target.value)} />
                                     <FormInput label="Institution" name="institution" value={edu.institution} onChange={e => handleDynamicListChange('education', edu.id, 'institution', e.target.value)} />
                                     <FormInput label="Period" name="period" value={edu.period} onChange={e => handleDynamicListChange('education', edu.id, 'period', e.target.value)} placeholder="e.g., 2020 - 2024" />
-                                    <button type="button" onClick={() => handleRemoveItem('education', edu.id)} className="absolute top-2 right-2 p-1 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-full"><TrashIcon className="w-4 h-4"/></button>
+                                    <button type="button" onClick={() => handleRemoveItem('education', edu.id)} className="absolute top-2 right-2 p-1 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-full"><TrashIcon className="w-4 h-4" /></button>
                                 </div>
                             ))}
                         </div>
-                         <button type="button" onClick={() => handleAddItem('education')} className="mt-2 w-full flex items-center justify-center gap-2 text-sm font-medium text-primary border-2 border-dashed border-primary/50 rounded-md py-2 hover:bg-primary/10">
-                            <PlusIcon className="w-4 h-4"/> Add Education
+                        <button type="button" onClick={() => handleAddItem('education')} className="mt-2 w-full flex items-center justify-center gap-2 text-sm font-medium text-primary border-2 border-dashed border-primary/50 rounded-md py-2 hover:bg-primary/10">
+                            <PlusIcon className="w-4 h-4" /> Add Education
                         </button>
                     </div>
 
                     {/* Projects */}
-                     <div className="pt-4 border-t border-light-border dark:border-dark-border">
+                    <div className="pt-4 border-t border-light-border dark:border-dark-border">
                         <h4 className="font-semibold mb-2 text-light-text dark:text-dark-text">Projects</h4>
-                         <div className="space-y-4 max-h-60 overflow-y-auto pr-2">
+                        <div className="space-y-4 max-h-60 overflow-y-auto pr-2">
                             {(formData.projects || []).map(proj => (
                                 <div key={proj.id} className="p-3 bg-light-surface dark:bg-dark-surface rounded-md border border-light-border dark:border-dark-border relative space-y-2">
                                     <FormInput label="Project Name" name="name" value={proj.name} onChange={e => handleDynamicListChange('projects', proj.id, 'name', e.target.value)} />
                                     <MarkdownEditor label="Description" id={`proj-desc-${proj.id}`} name="description" value={proj.description} onChange={e => handleDynamicListChange('projects', proj.id, 'description', e.target.value)} rows={3} />
-                                    <button type="button" onClick={() => handleRemoveItem('projects', proj.id)} className="absolute top-2 right-2 p-1 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-full"><TrashIcon className="w-4 h-4"/></button>
+                                    <button type="button" onClick={() => handleRemoveItem('projects', proj.id)} className="absolute top-2 right-2 p-1 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-full"><TrashIcon className="w-4 h-4" /></button>
                                 </div>
                             ))}
                         </div>
-                         <button type="button" onClick={() => handleAddItem('projects')} className="mt-2 w-full flex items-center justify-center gap-2 text-sm font-medium text-primary border-2 border-dashed border-primary/50 rounded-md py-2 hover:bg-primary/10">
-                            <PlusIcon className="w-4 h-4"/> Add Project
+                        <button type="button" onClick={() => handleAddItem('projects')} className="mt-2 w-full flex items-center justify-center gap-2 text-sm font-medium text-primary border-2 border-dashed border-primary/50 rounded-md py-2 hover:bg-primary/10">
+                            <PlusIcon className="w-4 h-4" /> Add Project
                         </button>
                     </div>
-                    
+
                     {/* References */}
                     <div className="pt-4 border-t border-light-border dark:border-dark-border">
                         <h4 className="font-semibold mb-2 text-light-text dark:text-dark-text">References</h4>
-                         <div className="space-y-4 max-h-60 overflow-y-auto pr-2">
+                        <div className="space-y-4 max-h-60 overflow-y-auto pr-2">
                             {(formData.references || []).map(ref => (
                                 <div key={ref.id} className="p-3 bg-light-surface dark:bg-dark-surface rounded-md border border-light-border dark:border-dark-border relative space-y-2">
                                     <FormInput label="Full Name" name="name" value={ref.name} onChange={e => handleDynamicListChange('references', ref.id, 'name', e.target.value)} />
@@ -712,12 +722,12 @@ const StudentProfileModal: React.FC = () => {
                                     <FormInput label="Organization" name="organization" value={ref.organization} onChange={e => handleDynamicListChange('references', ref.id, 'organization', e.target.value)} />
                                     <FormInput label="Email" name="email" value={ref.email} onChange={e => handleDynamicListChange('references', ref.id, 'email', e.target.value)} />
                                     <FormInput label="Phone" name="phone" value={ref.phone} onChange={e => handleDynamicListChange('references', ref.id, 'phone', e.target.value)} />
-                                    <button type="button" onClick={() => handleRemoveItem('references', ref.id)} className="absolute top-2 right-2 p-1 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-full"><TrashIcon className="w-4 h-4"/></button>
+                                    <button type="button" onClick={() => handleRemoveItem('references', ref.id)} className="absolute top-2 right-2 p-1 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-full"><TrashIcon className="w-4 h-4" /></button>
                                 </div>
                             ))}
                         </div>
-                         <button type="button" onClick={() => handleAddItem('references')} className="mt-2 w-full flex items-center justify-center gap-2 text-sm font-medium text-primary border-2 border-dashed border-primary/50 rounded-md py-2 hover:bg-primary/10">
-                            <PlusIcon className="w-4 h-4"/> Add Reference
+                        <button type="button" onClick={() => handleAddItem('references')} className="mt-2 w-full flex items-center justify-center gap-2 text-sm font-medium text-primary border-2 border-dashed border-primary/50 rounded-md py-2 hover:bg-primary/10">
+                            <PlusIcon className="w-4 h-4" /> Add Reference
                         </button>
                     </div>
                 </div>
@@ -751,7 +761,7 @@ const StudentProfileModal: React.FC = () => {
                     </button>
                     <button onClick={step < steps.length - 1 ? handleNextStep : handleFinish} disabled={isSaving} className="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-white bg-primary rounded-md hover:bg-primary-dark transition-colors disabled:opacity-50">
                         <span>{isSaving ? 'Saving...' : (step === steps.length - 1 ? 'Finish' : 'Continue')}</span>
-                        {step < steps.length - 1 ? <ChevronRightIcon className="w-4 h-4" /> : <CheckCircleIcon className="w-4 h-4"/>}
+                        {step < steps.length - 1 ? <ChevronRightIcon className="w-4 h-4" /> : <CheckCircleIcon className="w-4 h-4" />}
                     </button>
                 </div>
             </div>

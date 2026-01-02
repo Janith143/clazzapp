@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { Teacher, IndividualClass, Quiz, EditableImageType, ScheduleItem, Notification as SystemNotification, Product, Sale, Photo } from '../types';
+import { Teacher, IndividualClass, Quiz, EditableImageType, ScheduleItem, Notification as SystemNotification, Product, Sale, Photo, User } from '../types';
 import ProfileHeader from '../components/ProfileHeader';
 import ProfileTabs from '../components/ProfileTabs';
 import { DownloadIcon, UserPlusIcon, CheckCircleIcon, SpinnerIcon, XIcon, PlayCircleIcon, ChevronLeftIcon, ChevronRightIcon } from '../components/Icons';
@@ -39,6 +39,7 @@ import EarningsDashboard from '../components/teacherProfile/EarningsDashboard';
 import TimeTable from '../components/teacherProfile/TimeTable';
 import ContactSection from '../components/teacherProfile/ContactSection';
 import AttendanceSummaryTable from '../components/ti/AttendanceSummaryTable';
+import AttendanceManager from '../components/ti/AttendanceManager';
 import TeacherEventsTab from '../components/teacherProfile/TeacherEventsTab';
 import TeacherPastClassesTab from '../components/teacherProfile/TeacherPastClassesTab';
 import TeacherGroupsTab from '../components/broadcast/TeacherGroupsTab';
@@ -218,7 +219,14 @@ const TeacherProfilePage: React.FC<TeacherProfilePageProps> = ({ teacherId, slug
     const [isScheduleQuizModalOpen, setIsScheduleQuizModalOpen] = useState(false);
     const [itemToCancel, setItemToCancel] = useState<{ id: number | string, type: 'class' | 'quiz' } | null>(null);
     const [itemToDelete, setItemToDelete] = useState<{ id: string | number, type: 'course' | 'product' | 'class' | 'event', enrollmentCount?: number } | null>(null);
-    const [selectedClassForAttendance, setSelectedClassForAttendance] = useState<IndividualClass | null>(null);
+    // Fix: Store ID instead of object to keep data fresh
+    const [selectedClassIdForAttendance, setSelectedClassIdForAttendance] = useState<number | null>(null);
+
+    const derivedClassForAttendance = useMemo(() => {
+        if (!selectedClassIdForAttendance || !teacher) return null;
+        return teacher.individualClasses.find(c => c.id === selectedClassIdForAttendance) || null;
+    }, [teacher, selectedClassIdForAttendance]);
+
     const [isCompletionModalOpen, setIsCompletionModalOpen] = useState(false);
     const [isCheckingPayouts, setIsCheckingPayouts] = useState(true);
     const [isMessageDismissed, setIsMessageDismissed] = useState(true);
@@ -816,18 +824,28 @@ const TeacherProfilePage: React.FC<TeacherProfilePageProps> = ({ teacherId, slug
                                 {teacher.individualClasses.filter(c => c.status !== 'canceled').map(c => (
                                     <button
                                         key={c.id}
-                                        onClick={() => setSelectedClassForAttendance(c)}
-                                        className={`w-full text-left p-3 border rounded-lg transition-colors ${selectedClassForAttendance?.id === c.id ? 'bg-primary/10 border-primary' : 'border-light-border dark:border-dark-border hover:bg-light-border dark:hover:bg-dark-border'}`}
+                                        onClick={() => setSelectedClassIdForAttendance(c.id)}
+                                        className={`w-full text-left p-3 border rounded-lg transition-colors ${selectedClassIdForAttendance === c.id ? 'bg-primary/10 border-primary' : 'border-light-border dark:border-dark-border hover:bg-light-border dark:hover:bg-dark-border'}`}
                                     >
                                         <p className="font-bold">{c.title}</p>
-                                        <p className="text-sm text-light-subtle dark:text-dark-subtle">{c.subject} - {new Date(c.date).toLocaleDateString()}</p>
+                                        <p className="text-sm text-light-subtle dark:text-dark-subtle">{new Date(c.date).toLocaleDateString()}</p>
                                     </button>
                                 ))}
                             </div>
                         </div>
                         <div className="md:col-span-2">
-                            {selectedClassForAttendance ? (
-                                <AttendanceSummaryTable classInfo={selectedClassForAttendance} />
+                            {derivedClassForAttendance ? (
+                                <AttendanceManager
+                                    classInfo={derivedClassForAttendance}
+                                    enrolledStudents={sales
+                                        .filter(s => s.itemId === derivedClassForAttendance.id && s.itemType === 'class' && (s.status === 'completed' || s.paymentMethod === 'manual_at_venue'))
+                                        .map(s => {
+                                            const student = users.find(u => u.id === s.studentId);
+                                            return student ? { student, sale: s } : null;
+                                        })
+                                        .filter((item): item is { student: User; sale: Sale } => item !== null)
+                                    }
+                                />
                             ) : (
                                 <div className="h-full flex items-center justify-center text-center p-8 bg-light-background dark:bg-dark-background rounded-lg">
                                     <p className="text-light-subtle dark:text-dark-subtle">Select a class from the left to view attendance records.</p>

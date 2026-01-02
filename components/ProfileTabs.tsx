@@ -46,11 +46,6 @@ const ProfileTabs: React.FC<ProfileTabsProps> = ({ activeTab, setActiveTab, isOw
     // @ts-ignore
     return !tab.ownerOnly || isOwnProfile;
   });
-  console.log('ProfileTabs render:', {
-    isOwnProfile,
-    hasEvents,
-    visibleTabIds: visibleTabs.map(t => t.id)
-  });
 
   const handleTabClick = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();

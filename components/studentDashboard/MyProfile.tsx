@@ -141,6 +141,8 @@ const MyProfile: React.FC<MyProfileProps> = ({ user, isAdminView = false }) => {
                     </div>
                     <ProfileDetail label="Email Address" value={user.email} />
                     <ProfileDetail label="Contact Number" value={user.contactNumber} />
+                    <ProfileDetail label="Guardian Email" value={user.guardianEmail} />
+                    <ProfileDetail label="Guardian Phone" value={user.guardianPhone} />
 
                     <div className="md:col-span-2">
                         <ProfileDetail label="Address" value={fullAddress} />

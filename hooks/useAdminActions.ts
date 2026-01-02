@@ -282,6 +282,17 @@ export const useAdminActions = (deps: any) => {
         }
     }, [addToast]);
 
+    const handleUpdateHomePageCardCounts = useCallback(async (counts: { teachers: number, courses: number, classes: number, quizzes: number, events: number }) => {
+        try {
+            const settingsRef = doc(db, "settings", "appConfig");
+            await setDoc(settingsRef, { homePageCardCounts: counts }, { merge: true });
+            addToast("Home page card counts updated.", "success");
+        } catch (e) {
+            console.error(e);
+            addToast("Failed to update card counts.", "error");
+        }
+    }, [addToast]);
+
     // FIX: Implement handleUpdatePhysicalOrderStatus
     const handleUpdatePhysicalOrderStatus = useCallback(async (saleId: string, status: Sale['physicalOrderStatus']) => {
         try {
@@ -430,7 +441,7 @@ export const useAdminActions = (deps: any) => {
         const payoutIdentifier = `${payoutYear}-${String(payoutMonth + 1).padStart(2, '0')}`;
 
         if (!isPayoutDay) {
-            console.log(`Payout processing for ${payoutIdentifier} is scheduled for the 15th.`);
+
             return;
         }
 
@@ -440,7 +451,7 @@ export const useAdminActions = (deps: any) => {
         try {
             const userDoc = await getDoc(docRef); // Read before transaction
             if (!userDoc.exists()) {
-                console.warn(`${userType} ${userId} not found for payout check.`);
+
                 return;
             }
 
@@ -449,7 +460,7 @@ export const useAdminActions = (deps: any) => {
 
             if (processedPayouts.includes(payoutIdentifier)) {
                 // This console log can be spammy, so let's quiet it down.
-                // console.log(`Payout for ${payoutIdentifier} has already been processed for ${userId}. Skipping.`);
+
                 return; // Exit before transaction and toast
             }
 
@@ -816,6 +827,8 @@ export const useAdminActions = (deps: any) => {
         handleGenerateVouchers,
         handleDeleteVoucher,
         handleUpdateVoucher,
-        handleUpdateDeveloperSettings
+        handleUpdateVoucher,
+        handleUpdateDeveloperSettings,
+        handleUpdateHomePageCardCounts
     };
 };

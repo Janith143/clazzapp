@@ -27,7 +27,7 @@ const ClassDetailPage: React.FC<ClassDetailPageProps> = ({ classId, slug }) => {
     const { currentUser } = useAuth();
     const { handleBack, handleNavigate } = useNavigation();
     const { setModalState, setVideoPlayerState } = useUI();
-    const { handleRateTeacher, handleEnroll, loading: dataLoading, teachers } = useData();
+    const { handleRateTeacher, handleEnroll, loading: dataLoading, teachers, sales, markAttendance } = useData();
 
     const resolvedClassId = useMemo(() => {
         if (classId) return classId;
@@ -186,6 +186,38 @@ const ClassDetailPage: React.FC<ClassDetailPageProps> = ({ classId, slug }) => {
         setVideoPlayerState({ isOpen: true, lecture: mockLecture, course: mockCourseShell, isEnrolled: true });
     };
 
+    const handleJoinClass = async () => {
+        if (!classInfo.joiningLink) return;
+
+        // Auto-mark attendance
+        if (currentUser) {
+            const studentSale = sales.find(s => s.studentId === currentUser.id && s.itemId === classInfo.id && s.itemType === 'class' && s.status === 'completed');
+
+            // Determine likely payment status based on sale
+            // If they have a completed sale, they are 'paid'. 
+            // If manual_at_venue was selected but potentially not "paid" yet? 
+            // Generally if sale.status is completed, they are good. 
+            // We use the same logic as StudentAttendanceModal roughly.
+            let paymentStatus: 'paid' | 'paid_at_venue' | 'unpaid' = 'unpaid';
+
+            if (studentSale) {
+                if (studentSale.paymentMethod === 'manual_at_venue') {
+                    // For manual at venue, we might assume 'paid_at_venue' if they are joining?
+                    // Or strictly 'unpaid' until teacher marks it?
+                    // Let's assume 'paid_at_venue' if the sale exists and is completed (verified manual payment or trusted).
+                    paymentStatus = 'paid_at_venue';
+                } else {
+                    paymentStatus = 'paid';
+                }
+            }
+
+            // We do this asynchronously without awaiting to not delay the join
+            markAttendance(classInfo.id, currentUser, paymentStatus, studentSale?.id).catch(err => console.error("Failed to auto-mark attendance", err));
+        }
+
+        window.open(classInfo.joiningLink, '_blank');
+    };
+
     const currencyFormatter = new Intl.NumberFormat('en-LK', { style: 'currency', currency: 'LKR' });
     const isManualPayment = classInfo.paymentMethod === 'manual' && classInfo.fee > 0;
     const balanceToApply = Math.min(currentUser?.accountBalance || 0, classInfo.fee);
@@ -269,7 +301,14 @@ const ClassDetailPage: React.FC<ClassDetailPageProps> = ({ classId, slug }) => {
                             </div>
                         )}
                         <div className="mt-4 space-y-2">
-                            {isEnrolled && dynamicStatus === 'live' && classInfo.joiningLink && <a href={classInfo.joiningLink} target="_blank" rel="noopener noreferrer" className="w-full text-center block bg-green-600 text-white font-bold py-3 rounded-md hover:bg-green-700 transition-colors">Join Class Now</a>}
+                            {isEnrolled && dynamicStatus === 'live' && classInfo.joiningLink && (
+                                <button
+                                    onClick={handleJoinClass}
+                                    className="w-full text-center block bg-green-600 text-white font-bold py-3 rounded-md hover:bg-green-700 transition-colors"
+                                >
+                                    Join Class Now
+                                </button>
+                            )}
                             <button onClick={handleEnrollClick} disabled={isEnrolled || (dynamicStatus !== 'scheduled' && dynamicStatus !== 'live') || currentUser?.role === 'teacher' || currentUser?.role === 'admin'} className="w-full bg-primary text-white font-bold py-3 rounded-md hover:bg-primary-dark transition-colors disabled:bg-gray-500 disabled:cursor-not-allowed">{getButtonText()}</button>
                             {isEnrolled && classInfo.documentLink && <a href={classInfo.documentLink} target="_blank" rel="noopener noreferrer" className="w-full text-center flex items-center justify-center gap-2 bg-blue-600 text-white font-bold py-3 rounded-md hover:bg-blue-700 transition-colors"><LinkIcon className="w-5 h-5" />View Class Documents</a>}
                         </div>

@@ -94,7 +94,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                         }
 
                         if (potentialMatch) {
-                            console.log("AuthContext: Found orphaned profile. Merging...", potentialMatch.id);
+
                             // This 'potentialMatch' is likely the real data.
                             // 1. Update potentialMatch with the new UID
                             await updateDoc(potentialMatch.ref, { uid: firebaseUser.uid });
@@ -141,7 +141,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                         const emailSnapshot2 = await getDocs(emailQuery2);
 
                         if (!emailSnapshot2.empty) {
-                            console.log("AuthContext: Found profile by Email (UID mismatch). Relinking...");
+
                             const orphanedDoc = emailSnapshot2.docs[0];
                             // Relink: Update orphan with new UID
                             await updateDoc(orphanedDoc.ref, { uid: firebaseUser.uid });
@@ -186,7 +186,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const handleLogin = useCallback(async (email: string, password: string): Promise<User | null> => {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        console.log("[AuthContext] Auth Login Success. UID:", userCredential.user?.uid);
+
 
         if (!userCredential.user!.emailVerified) {
             console.warn("[AuthContext] Email not verified.");

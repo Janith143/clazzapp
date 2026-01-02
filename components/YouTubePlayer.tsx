@@ -53,7 +53,7 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({ videoId, currentUs
     const createPlayer = () => {
       if (!window.YT) return; // Guard against race conditions
 
-      console.log(`[YouTubePlayer.tsx] Creating player for videoId: ${videoId}`);
+
       // Ensure any existing player is destroyed before creating a new one.
       if (playerRef.current) {
         playerRef.current.destroy();
@@ -73,7 +73,7 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({ videoId, currentUs
         },
         events: {
           onReady: () => {
-            console.log("[YouTubePlayer.tsx] Player is ready.");
+
             playerRef.current?.setVolume(100); // Set volume to max
             setIsReady(true);
           },
@@ -101,7 +101,7 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({ videoId, currentUs
     } else {
       // Avoid adding multiple script tags to the document.
       if (!document.querySelector('script[src="https://www.youtube.com/iframe_api"]')) {
-        console.log("[YouTubePlayer.tsx] Loading YouTube IFrame API script.");
+
         const tag = document.createElement('script');
         tag.src = "https://www.youtube.com/iframe_api";
         document.body.appendChild(tag);
@@ -112,7 +112,7 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({ videoId, currentUs
     return () => {
       playerRef.current?.destroy();
       playerRef.current = null;
-      console.log("[YouTubePlayer.tsx] Player destroyed on cleanup.");
+
     };
   }, [videoId]);
 
@@ -132,7 +132,7 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({ videoId, currentUs
         setSecurityPaused(false);
       }
     };
-    
+
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden') {
         handlePotentialRecording();
@@ -154,36 +154,36 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({ videoId, currentUs
 
   // Effect for simulated active analysis
   useEffect(() => {
-      const startAnalysis = () => {
+    const startAnalysis = () => {
+      if (analysisIntervalRef.current) clearInterval(analysisIntervalRef.current);
+      analysisIntervalRef.current = window.setInterval(() => {
+        // Randomly trigger a security pause.
+        // Average of 1 trigger every 5 minutes (2 times per 10 minutes).
+        // Interval is 2.5s. 5 mins = 300s. 300 / 2.5 = 120 intervals.
+        // Probability per interval = 1/120.
+        if (Math.random() < (1 / 120)) {
+          console.warn('[Security] Active analysis detected potential screen capture. Pausing video.');
+          playerRef.current?.pauseVideo();
+          setAnalysisPaused(true);
           if (analysisIntervalRef.current) clearInterval(analysisIntervalRef.current);
-          analysisIntervalRef.current = window.setInterval(() => {
-              // Randomly trigger a security pause.
-              // Average of 1 trigger every 5 minutes (2 times per 10 minutes).
-              // Interval is 2.5s. 5 mins = 300s. 300 / 2.5 = 120 intervals.
-              // Probability per interval = 1/120.
-              if (Math.random() < (1 / 120)) { 
-                  console.warn('[Security] Active analysis detected potential screen capture. Pausing video.');
-                  playerRef.current?.pauseVideo();
-                  setAnalysisPaused(true);
-                  if (analysisIntervalRef.current) clearInterval(analysisIntervalRef.current);
-              }
-          }, 2500); // Run check every 2.5 seconds
-      };
+        }
+      }, 2500); // Run check every 2.5 seconds
+    };
 
-      const stopAnalysis = () => {
-          if (analysisIntervalRef.current) {
-              clearInterval(analysisIntervalRef.current);
-              analysisIntervalRef.current = null;
-          }
-      };
-      
-      if (isPlaying && !securityPaused && !analysisPaused) {
-          startAnalysis();
-      } else {
-          stopAnalysis();
+    const stopAnalysis = () => {
+      if (analysisIntervalRef.current) {
+        clearInterval(analysisIntervalRef.current);
+        analysisIntervalRef.current = null;
       }
+    };
 
-      return () => stopAnalysis();
+    if (isPlaying && !securityPaused && !analysisPaused) {
+      startAnalysis();
+    } else {
+      stopAnalysis();
+    }
+
+    return () => stopAnalysis();
   }, [isPlaying, securityPaused, analysisPaused]);
 
 
@@ -203,7 +203,7 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({ videoId, currentUs
   const handlePause = () => {
     playerRef.current?.pauseVideo();
   };
-  
+
   const handleStop = () => {
     playerRef.current?.stopVideo();
   };
@@ -241,12 +241,12 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({ videoId, currentUs
 
   return (
     <div>
-      <div 
+      <div
         ref={playerWrapperRef}
         className="relative aspect-video w-full rounded-lg bg-black shadow-2xl overflow-hidden">
         {/* This div is the mount point for the YouTube IFrame Player */}
         <div id={PLAYER_DIV_ID} className="absolute top-0 left-0 w-full h-full"></div>
-        
+
         {/* This overlay prevents all interaction with the iframe, including right-clicks, and displays the watermark */}
         <div
           className="absolute top-0 left-0 w-full h-full overflow-hidden"
@@ -254,24 +254,24 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({ videoId, currentUs
         >
           {isPlaying && currentUser && (
             <>
-                <div
-                    className="absolute text-white/30 text-xl font-mono whitespace-nowrap select-none pointer-events-none"
-                    style={{ animation: 'flow-watermark 20s linear infinite', animationDelay: '0s' }}
-                >
-                    {watermarkText}
-                </div>
-                <div
-                    className="absolute text-white/30 text-xl font-mono whitespace-nowrap select-none pointer-events-none"
-                    style={{ animation: 'flow-watermark-reverse 18s linear infinite', animationDelay: '-10s' }}
-                >
-                    {watermarkText}
-                </div>
-                <div
-                    className="absolute text-white/30 text-xl font-mono whitespace-nowrap select-none pointer-events-none"
-                    style={{ animation: 'flow-watermark 22s linear infinite', animationDelay: '-5s' }}
-                >
-                    {watermarkText}
-                </div>
+              <div
+                className="absolute text-white/30 text-xl font-mono whitespace-nowrap select-none pointer-events-none"
+                style={{ animation: 'flow-watermark 20s linear infinite', animationDelay: '0s' }}
+              >
+                {watermarkText}
+              </div>
+              <div
+                className="absolute text-white/30 text-xl font-mono whitespace-nowrap select-none pointer-events-none"
+                style={{ animation: 'flow-watermark-reverse 18s linear infinite', animationDelay: '-10s' }}
+              >
+                {watermarkText}
+              </div>
+              <div
+                className="absolute text-white/30 text-xl font-mono whitespace-nowrap select-none pointer-events-none"
+                style={{ animation: 'flow-watermark 22s linear infinite', animationDelay: '-5s' }}
+              >
+                {watermarkText}
+              </div>
             </>
           )}
         </div>
@@ -284,11 +284,11 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({ videoId, currentUs
             </svg>
             <h3 className="text-2xl font-bold text-yellow-400 mt-4">Playback Paused</h3>
             {analysisPaused ? (
-               <p className="text-gray-300 mt-2 max-w-md">
+              <p className="text-gray-300 mt-2 max-w-md">
                 Active security monitoring has detected a potential screen recording threat. Playback has been stopped.
               </p>
             ) : (
-               <p className="text-gray-300 mt-2 max-w-md">
+              <p className="text-gray-300 mt-2 max-w-md">
                 For security reasons, video playback is paused when the tab is not active.
                 <br />
                 Please use the controls to resume.
@@ -332,7 +332,7 @@ export const YouTubePlayer: React.FC<YouTubePlayerProps> = ({ videoId, currentUs
 
         <button
           onClick={handleStop}
-          disabled={!isReady} 
+          disabled={!isReady}
           aria-label="Stop video"
           className="w-28 flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 disabled:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg transition-all duration-200 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-75"
         >

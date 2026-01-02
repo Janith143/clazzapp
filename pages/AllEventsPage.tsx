@@ -47,16 +47,6 @@ const AllEventsPage: React.FC = () => {
 
     const allEvents = [...instituteEvents, ...teacherEvents];
 
-    // Detailed logs for debugging visibility
-    console.log('AllEventsPage Debug Details JSON:', JSON.stringify(allEvents.map(e => ({
-      title: e.title,
-      isPublished: e.isPublished,
-      status: e.status,
-      dynamicStatus: getDynamicEventStatus(e),
-      start: `${e.startDate} ${e.startTime}`,
-      end: `${e.endDate} ${e.endTime}`
-    })), null, 2));
-
     const filtered = allEvents.filter(item => {
       const isPublished = item.isPublished;
       const isCanceled = item.status === 'canceled';

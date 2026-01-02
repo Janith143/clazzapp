@@ -30,7 +30,6 @@ export interface DataContextType {
     vouchers: Voucher[];
     topUpRequests: TopUpRequest[];
     submissions: StudentSubmission[];
-    submissions: StudentSubmission[];
     certificates: Certificate[];
     defaultCoverImages: string[];
     addUser: (user: User) => Promise<void>;
@@ -98,6 +97,7 @@ export interface DataContextType {
     handleFollowToggle: (teacherId: string) => Promise<void>;
     handleMarkAllAsRead: () => Promise<void>;
     markAttendance: (classId: number, student: User, paymentStatus: 'paid_at_venue' | 'unpaid' | 'paid', paymentRef?: string) => Promise<boolean>;
+    removeAttendance: (classId: number, studentId: string) => Promise<boolean>;
     recordManualPayment: (classInfo: IndividualClass, student: User) => Promise<Sale | null>;
     handleResetTeacherBalance: (instituteId: string, teacherId: string) => Promise<void>;
     handleSaveEvent: (eventDetails: Event) => void;
@@ -240,7 +240,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 if (!response.ok) {
                     throw new Error('Notification API returned an error.');
                 }
-                console.log(`Sent ${time} reminder to ${teacher.email} for class $ {cls.id }`);
+
             } catch (error) {
                 console.error("Failed to send reminder email:", error);
             }
@@ -280,7 +280,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const checkAndUnpublishClasses = async () => {
             if (teachers.length === 0) return;
 
-            console.log("Checking for finished classes to unpublish...");
+
             const batch = writeBatch(db);
             let updatesMade = false;
 
@@ -330,7 +330,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (updatesMade) {
                 try {
                     await batch.commit();
-                    console.log('Batch update: Unpublished finished classes.');
+
                 } catch (error) {
                     console.error('Error unpublishing finished classes:', error);
                 }

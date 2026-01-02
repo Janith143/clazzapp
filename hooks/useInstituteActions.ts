@@ -5,7 +5,7 @@ import { UIContextType } from '../contexts/UIContext';
 import { db } from '../firebase';
 // FIX: Update Firebase imports for v9 modular SDK
 import { doc, setDoc, updateDoc, writeBatch, increment, arrayUnion, runTransaction, collection, getDoc } from 'firebase/firestore';
-import { generateStandardId } from '../utils';
+import { generateStandardId, sendNotification } from '../utils';
 
 interface InstituteActionDeps {
     ui: UIContextType;
@@ -13,10 +13,11 @@ interface InstituteActionDeps {
     teachers: Teacher[];
     tuitionInstitutes: TuitionInstitute[];
     sales: Sale[];
+    functionUrls: Record<string, string>;
 }
 
 export const useInstituteActions = (deps: InstituteActionDeps) => {
-    const { ui, currentUser, teachers, tuitionInstitutes, sales } = deps;
+    const { ui, currentUser, teachers, tuitionInstitutes, sales, functionUrls } = deps;
     const { addToast } = ui;
 
     const addTuitionInstitute = useCallback(async (institute: TuitionInstitute) => {
@@ -122,7 +123,77 @@ export const useInstituteActions = (deps: InstituteActionDeps) => {
     }, [tuitionInstitutes, updateTuitionInstitute, addToast]);
 
 
+
+
     const markAttendance = useCallback(async (classId: number, student: User, paymentStatus: 'paid_at_venue' | 'unpaid' | 'paid', paymentRef?: string): Promise<boolean> => {
+        const teacher = teachers.find(t => t.individualClasses.some(c => c.id === classId));
+        if (!teacher) { addToast("Could not find class owner.", "error"); return false; }
+
+        let classTitle = '';
+
+        try {
+            await runTransaction(db, async (transaction) => {
+                const teacherRef = doc(db, 'teachers', teacher.id);
+                const teacherDoc = await transaction.get(teacherRef);
+                if (!teacherDoc.exists()) throw new Error("Teacher not found");
+
+                const updatedTeacherData = teacherDoc.data() as Teacher;
+                const classIndex = updatedTeacherData.individualClasses.findIndex(c => c.id === classId);
+                if (classIndex === -1) throw new Error("Class not found on teacher profile");
+
+                const classToUpdate = updatedTeacherData.individualClasses[classIndex];
+                classTitle = classToUpdate.title;
+                const existingAttendance = classToUpdate.attendance || [];
+
+                // Prevent duplicate attendance
+                if (existingAttendance.some(a => a.studentId === student.id)) {
+                    throw new Error("ALREADY_MARKED");
+                }
+
+                const newRecord: AttendanceRecord = { studentId: student.id, studentName: `${student.firstName} ${student.lastName}`, studentAvatar: student.avatar, attendedAt: new Date().toISOString(), paymentStatus, paymentRef };
+
+                classToUpdate.attendance = [...existingAttendance, newRecord];
+                updatedTeacherData.individualClasses[classIndex] = classToUpdate;
+
+                transaction.update(teacherRef, { individualClasses: updatedTeacherData.individualClasses });
+            });
+
+            addToast(`${student.firstName}'s attendance marked successfully.`, 'success');
+
+            // Send Guardian Notification
+            if (student.guardianEmail || student.guardianPhone) {
+                const dateStr = new Date().toLocaleDateString();
+                const subject = `Attendance Alert: ${classTitle}`;
+                const htmlBody = `
+                    <p>Dear Guardian,</p>
+                    <p>This is a notification to confirm that your child, <b>${student.firstName} ${student.lastName}</b>, has attended the class <b>${classTitle}</b> on ${dateStr}.</p>
+                    <p>Best regards,<br/>The Clazz.lk Team</p>
+                `;
+                const smsMessage = `Dear Guardian, ${student.firstName} attended '${classTitle}' on ${dateStr}. - Clazz.lk`;
+
+                // Fire and forget notification
+                sendNotification(
+                    functionUrls.notification,
+                    { email: student.guardianEmail, contactNumber: student.guardianPhone },
+                    subject,
+                    htmlBody,
+                    smsMessage
+                ).catch(err => console.error("Failed to send guardian notification", err));
+            }
+
+            return true;
+        } catch (e: any) {
+            if (e.message === "ALREADY_MARKED") {
+                addToast(`${student.firstName} is already marked as attended.`, "info");
+                return true;
+            }
+            console.error("Failed to mark attendance:", e);
+            addToast((e as Error).message || "Error marking attendance.", "error");
+            return false;
+        }
+    }, [teachers, addToast, functionUrls]);
+
+    const removeAttendance = useCallback(async (classId: number, studentId: string): Promise<boolean> => {
         const teacher = teachers.find(t => t.individualClasses.some(c => c.id === classId));
         if (!teacher) { addToast("Could not find class owner.", "error"); return false; }
 
@@ -139,24 +210,16 @@ export const useInstituteActions = (deps: InstituteActionDeps) => {
                 const classToUpdate = updatedTeacherData.individualClasses[classIndex];
                 const existingAttendance = classToUpdate.attendance || [];
 
-                // Prevent duplicate attendance
-                if (existingAttendance.some(a => a.studentId === student.id)) {
-                    addToast(`${student.firstName} is already marked as attended.`, "info");
-                    return; // Abort transaction by not writing anything
-                }
-
-                const newRecord: AttendanceRecord = { studentId: student.id, studentName: `${student.firstName} ${student.lastName}`, studentAvatar: student.avatar, attendedAt: new Date().toISOString(), paymentStatus, paymentRef };
-
-                classToUpdate.attendance = [...existingAttendance, newRecord];
+                classToUpdate.attendance = existingAttendance.filter(a => a.studentId !== studentId);
                 updatedTeacherData.individualClasses[classIndex] = classToUpdate;
 
                 transaction.update(teacherRef, { individualClasses: updatedTeacherData.individualClasses });
             });
-            addToast(`${student.firstName}'s attendance marked successfully.`, 'success');
+            addToast(`Attendance removed successfully.`, 'success');
             return true;
         } catch (e) {
-            console.error("Failed to mark attendance:", e);
-            addToast((e as Error).message || "Error marking attendance.", "error");
+            console.error("Failed to remove attendance:", e);
+            addToast((e as Error).message || "Error removing attendance.", "error");
             return false;
         }
     }, [teachers, addToast]);
@@ -251,6 +314,7 @@ export const useInstituteActions = (deps: InstituteActionDeps) => {
         handleCancelEvent,
         handleToggleEventPublishState,
         markAttendance,
+        removeAttendance,
         recordManualPayment,
         handleResetTeacherBalance,
     };

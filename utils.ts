@@ -40,7 +40,6 @@ export const sendNotification = async (
         }
 
         if (notificationUrl.includes('YOUR_PROJECT_ID')) {
-            console.log("Simulating sending notification (Please update the Cloud Function URL in utils.ts):", payload);
             return;
         }
 
@@ -54,7 +53,7 @@ export const sendNotification = async (
             const errorBody = await response.text();
             throw new Error(`Failed to send notification: ${errorBody}`);
         }
-        console.log(`Notification request sent successfully for subject: ${subject}`);
+
 
     } catch (error) {
         console.error("Failed to send notification:", error);

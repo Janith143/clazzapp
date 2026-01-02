@@ -197,7 +197,7 @@ const PaymentRedirectPage: React.FC<PaymentRedirectPageProps> = ({ user: context
             const selectedMethod = (payload as any).selectedMethod as PaymentMethod || 'card';
             const targetGateway = paymentGatewaySettings.methodMapping[selectedMethod] || paymentGatewaySettings.activePaymentGateway;
 
-            console.log("Selected Method:", selectedMethod, "Target Gateway:", targetGateway);
+
 
             if (targetGateway === 'marxipg') {
                 try {
@@ -217,8 +217,6 @@ const PaymentRedirectPage: React.FC<PaymentRedirectPageProps> = ({ user: context
                         frontend_url: frontend_url // Send dynamic frontend URL
                     };
 
-                    console.log("Preparing Marx Payload:", marxPayload);
-                    console.log("Calling Marx Backend:", `${functionUrls.marxPayment}/createOrder`);
 
                     const response = await fetch(`${functionUrls.marxPayment}/createOrder`, {
                         method: 'POST',
@@ -227,7 +225,6 @@ const PaymentRedirectPage: React.FC<PaymentRedirectPageProps> = ({ user: context
                     });
 
                     const result = await response.json();
-                    console.log("Marx Backend Result:", result);
 
                     if (result.success && result.payUrl) {
                         window.location.href = result.payUrl;

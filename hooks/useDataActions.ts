@@ -156,7 +156,7 @@ export const useDataActions = (deps: any) => {
     };
 
     const transactionActions = useTransactionActions({ currentUser, users, teachers, tuitionInstitutes, sales, vouchers, ui, auth, nav, handleImageSave, handleUpdateUser: userActions.handleUpdateUser, currencyFormatter });
-    const instituteActions = useInstituteActions({ ui, currentUser, teachers, tuitionInstitutes, sales });
+    const instituteActions = useInstituteActions({ ui, currentUser, teachers, tuitionInstitutes, sales, functionUrls: nav.functionUrls });
 
     const handleUpdateOgImage = useCallback(async (imageUrl: string) => {
         await setDoc(doc(db, 'settings', 'appConfig'), { ogImageUrl: imageUrl }, { merge: true });

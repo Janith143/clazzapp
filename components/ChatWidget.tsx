@@ -61,7 +61,7 @@ const ChatWidget: React.FC = () => {
         const urlChatId = params.get('chatId');
 
         if (urlChatId) {
-            console.log("ChatWidget found ID in URL:", urlChatId);
+
             setChatId(urlChatId);
             localStorage.setItem('supportChatId', urlChatId);
         } else {
@@ -83,7 +83,7 @@ const ChatWidget: React.FC = () => {
     useEffect(() => {
         if (chatId && fcmToken) {
             // Update the chat document with the latest FCM token to ensure push notifications work
-            updateDoc(doc(db, 'supportChats', chatId), { fcmToken }).catch(err => console.log("Error linking token:", err));
+            updateDoc(doc(db, 'supportChats', chatId), { fcmToken }).catch(err => { });
         }
     }, [chatId, fcmToken]);
 
@@ -159,7 +159,7 @@ const ChatWidget: React.FC = () => {
             });
         } else if (fcmToken) {
             // If chat exists, make sure token is updated
-            updateDoc(doc(db, 'supportChats', currentChatId), { fcmToken }).catch(e => console.log("Token update error", e));
+            updateDoc(doc(db, 'supportChats', currentChatId), { fcmToken }).catch(e => { });
         }
         setViewState('live_chat');
     };
