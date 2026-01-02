@@ -15,7 +15,7 @@ import { EditableImageType, IndividualClass, Teacher, Sale, PageState, TuitionIn
 
 // This is a composer hook that brings all the data action hooks together.
 export const useDataActions = (deps: any) => {
-    const { currentUser, users, teachers, tuitionInstitutes, knownInstitutes, sales, vouchers, topUpRequests, submissions, defaultCoverImages } = deps;
+    const { currentUser, users, teachers, tuitionInstitutes, knownInstitutes, sales, vouchers, topUpRequests, submissions, certificates, defaultCoverImages } = deps;
     const auth = useAuth();
     const ui = useUI();
     const nav = useNavigation();
@@ -165,6 +165,7 @@ export const useDataActions = (deps: any) => {
     return {
         ...userActions,
         ...adminActions,
+        handleIssueCertificate: adminActions.handleIssueCertificate,
         ...contentActions,
         ...transactionActions,
         ...instituteActions,

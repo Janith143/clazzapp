@@ -1,6 +1,6 @@
 
 import React, { useRef, useState, useEffect } from 'react';
-import { ChevronRightIcon, HomeIcon, BookOpenIcon, VideoCameraIcon, ClipboardListIcon, EventIcon, ShoppingCartIcon, BanknotesIcon, UserCircleIcon, ChartBarIcon, CalendarIcon, ClockIcon, TicketIcon } from '../Icons';
+import { ChevronRightIcon, HomeIcon, BookOpenIcon, VideoCameraIcon, ClipboardListIcon, EventIcon, ShoppingCartIcon, BanknotesIcon, UserCircleIcon, ChartBarIcon, CalendarIcon, ClockIcon, TicketIcon, TrophyIcon } from '../Icons';
 import { DashboardTab } from '../../types';
 
 interface StudentDashboardTabsProps {
@@ -13,6 +13,8 @@ interface StudentDashboardTabsProps {
         events: number;
         orders: number;
         history: number;
+        certificates: number;
+        groups?: number;
     };
 }
 
@@ -29,6 +31,8 @@ const StudentDashboardTabs: React.FC<StudentDashboardTabsProps> = ({ activeTab, 
         { id: 'quizzes', label: 'My Quizzes', icon: ClipboardListIcon },
         { id: 'score_card', label: 'Score Card', icon: ChartBarIcon },
         { id: 'my_events', label: 'My Events', icon: EventIcon },
+        { id: 'groups', label: 'My Groups', icon: UserCircleIcon },
+        { id: 'certificates', label: 'My Certificates', icon: TrophyIcon },
         { id: 'my_orders', label: 'My Orders', icon: ShoppingCartIcon },
         { id: 'attendance', label: 'My Attendance', icon: ClipboardListIcon },
         { id: 'history', label: 'Transaction History', icon: BanknotesIcon },
@@ -41,6 +45,8 @@ const StudentDashboardTabs: React.FC<StudentDashboardTabsProps> = ({ activeTab, 
             case 'classes': return counts.classes;
             case 'quizzes': return counts.quizzes;
             case 'my_events': return counts.events;
+            case 'groups': return counts.groups || 0;
+            case 'certificates': return counts.certificates;
             case 'my_orders': return counts.orders;
             case 'history': return counts.history;
             default: return 0;
@@ -49,7 +55,7 @@ const StudentDashboardTabs: React.FC<StudentDashboardTabsProps> = ({ activeTab, 
 
     const handleTabClick = (e: React.MouseEvent, id: DashboardTab) => {
         e.stopPropagation();
-        
+
         // Mobile Logic:
         // 1. If collapsed, expand to show labels. Don't switch tab yet.
         // 2. If expanded, switch tab and collapse.
@@ -67,14 +73,14 @@ const StudentDashboardTabs: React.FC<StudentDashboardTabsProps> = ({ activeTab, 
         <>
             {/* Mobile Backdrop */}
             {isExpanded && (
-                <div 
+                <div
                     className="fixed inset-0 bg-black/50 z-[990] md:hidden"
                     onClick={() => setIsExpanded(false)}
                 />
             )}
 
             {/* Sidebar Container */}
-            <div 
+            <div
                 className={`
                     fixed md:relative top-16 md:top-0 left-0 bottom-0 md:bottom-auto
                     z-[1000] md:z-auto
@@ -110,7 +116,7 @@ const StudentDashboardTabs: React.FC<StudentDashboardTabsProps> = ({ activeTab, 
                                 <div className="flex items-center justify-center flex-shrink-0">
                                     <tab.icon className={`w-6 h-6 md:w-5 md:h-5 ${isActive ? 'text-primary' : 'text-light-subtle dark:text-dark-subtle group-hover:text-light-text dark:group-hover:text-dark-text'}`} />
                                 </div>
-                                
+
                                 {/* Label - Hidden when collapsed on mobile, visible on desktop */}
                                 <span className={`
                                     ml-3 font-medium text-sm whitespace-nowrap
@@ -119,17 +125,24 @@ const StudentDashboardTabs: React.FC<StudentDashboardTabsProps> = ({ activeTab, 
                                     {tab.label}
                                 </span>
 
-                                {/* Badge */}
                                 {count > 0 && (
                                     <span className={`
-                                        ml-auto text-xs font-semibold px-2 py-0.5 rounded-full
-                                        ${isActive ? 'bg-primary/20 text-primary' : 'bg-light-border dark:bg-dark-border text-light-subtle dark:text-dark-subtle'}
+                                        ml-auto 
+                                        ${tab.id === 'groups' ? 'flex items-center justify-center p-1' : 'text-xs font-semibold px-2 py-0.5 rounded-full'}
+                                        ${isActive && tab.id !== 'groups' ? 'bg-primary/20 text-primary' : (tab.id !== 'groups' ? 'bg-light-border dark:bg-dark-border text-light-subtle dark:text-dark-subtle' : '')}
                                         ${isExpanded ? 'block' : 'hidden md:block'}
                                     `}>
-                                        {count}
+                                        {tab.id === 'groups' ? (
+                                            <span className="relative flex h-3 w-3">
+                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                                            </span>
+                                        ) : (
+                                            count
+                                        )}
                                     </span>
                                 )}
-                                
+
                                 {/* Desktop Active Chevron */}
                                 {isActive && (
                                     <span className="hidden md:block text-primary ml-auto">

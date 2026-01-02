@@ -14,6 +14,7 @@ import { useSEO } from '../hooks/useSEO.ts';
 import Modal from '../components/Modal.tsx';
 import PaymentMethodSelector from '../components/PaymentMethodSelector.tsx';
 import SEOHead from '../components/SEOHead.tsx';
+import GuestActionPrompt from '../components/GuestActionPrompt.tsx';
 
 import { slugify } from '../utils/slug.ts';
 
@@ -67,6 +68,7 @@ const ClassDetailPage: React.FC<ClassDetailPageProps> = ({ classId, slug }) => {
 
     const [isConfirmingEnrollment, setIsConfirmingEnrollment] = useState(false);
     const [showPaymentSelector, setShowPaymentSelector] = useState(false);
+    const [showGuestPrompt, setShowGuestPrompt] = useState(false);
     const [isRecordingsOpen, setIsRecordingsOpen] = useState(false);
     const recordingsRef = useRef<HTMLDivElement>(null);
 
@@ -143,7 +145,7 @@ const ClassDetailPage: React.FC<ClassDetailPageProps> = ({ classId, slug }) => {
 
     const handleEnrollClick = () => {
         if (!currentUser) {
-            setModalState({ name: 'login', preventRedirect: true });
+            setShowGuestPrompt(true);
         } else {
             setIsConfirmingEnrollment(true);
         }
@@ -300,6 +302,18 @@ const ClassDetailPage: React.FC<ClassDetailPageProps> = ({ classId, slug }) => {
             {showPaymentSelector && (
                 <Modal isOpen={true} onClose={() => setShowPaymentSelector(false)} title="Select Payment Method">
                     <PaymentMethodSelector onSelect={handlePaymentMethodSelected} />
+                </Modal>
+            )}
+            {showGuestPrompt && classInfo && teacher && (
+                <Modal isOpen={true} onClose={() => setShowGuestPrompt(false)} title="Join Class">
+                    <GuestActionPrompt
+                        title={`Register for ${classInfo.title}`}
+                        subtitle={`By ${teacher.name}`}
+                        description={classInfo.description ? classInfo.description.substring(0, 100) + '...' : undefined}
+                        reason="You need to be logged in to register for this class."
+                        onLogin={() => { setShowGuestPrompt(false); setModalState({ name: 'login', preventRedirect: true }); }}
+                        onSignup={() => { setShowGuestPrompt(false); setModalState({ name: 'register', preventRedirect: true }); }}
+                    />
                 </Modal>
             )}
         </div>

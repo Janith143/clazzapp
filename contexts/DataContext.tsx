@@ -3,7 +3,7 @@ import React, { createContext, useState, useContext, useEffect, useMemo, useCall
 import {
     User, Teacher, Sale, Course, IndividualClass, Quiz, Lecture, StudentSubmission,
     Voucher, TopUpRequest, EditableImageType, PayoutDetails, BillingDetails, MonthlyReferralEarning, Withdrawal, PageState, DashboardTab, HomeSlide, StaticPageKey, SocialMediaLink, Notification, TuitionInstitute, UpcomingExam, PhotoPrintOption, Event, Product, ClassGrading, AdditionalService,
-    PaymentGatewaySettings, KnownInstitute, FinancialSettings, SupportSettings, PaymentMethod
+    PaymentGatewaySettings, KnownInstitute, FinancialSettings, SupportSettings, PaymentMethod, Certificate
 } from '../types';
 import { useAuth } from './AuthContext';
 import { db, storage } from '../firebase';
@@ -30,6 +30,8 @@ export interface DataContextType {
     vouchers: Voucher[];
     topUpRequests: TopUpRequest[];
     submissions: StudentSubmission[];
+    submissions: StudentSubmission[];
+    certificates: Certificate[];
     defaultCoverImages: string[];
     addUser: (user: User) => Promise<void>;
     addTeacher: (teacher: Teacher) => Promise<void>;
@@ -38,6 +40,7 @@ export interface DataContextType {
     handleUpdateUser: (updatedUser: Partial<User> & { id: string }) => Promise<void>;
     handleUserVerification: (updates: Partial<User>) => void;
     handleImageSave: (base64: string, type: EditableImageType | null, context?: any) => Promise<string | void>;
+    handleIssueCertificate: (certificateData: Omit<Certificate, 'id' | 'pdfUrl'>, pdfBlob: Blob) => Promise<void>;
     handleUpdateTeacher: (teacherId: string, updates: Partial<Teacher>) => Promise<void>;
     handleRemoveCoverImageFromArray: (teacherId: string, imageUrl: string) => void;
     handleSaveClass: (classDetails: IndividualClass) => void;
@@ -138,6 +141,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [vouchers, setVouchers] = useState<Voucher[]>([]);
     const [topUpRequests, setTopUpRequests] = useState<TopUpRequest[]>([]);
     const [submissions, setSubmissions] = useState<StudentSubmission[]>([]);
+    const [certificates, setCertificates] = useState<Certificate[]>([]);
     const [defaultCoverImages, setDefaultCoverImages] = useState<string[]>([]);
     const [remindersSent, setRemindersSent] = useState<{ [key: string]: '30min' | '5min' }>({});
 
@@ -343,11 +347,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, [teachers]);
 
     const actions = useDataActions({
-        currentUser, users, teachers, tuitionInstitutes, knownInstitutes, sales, vouchers, topUpRequests, submissions, defaultCoverImages
+        currentUser, users, teachers, tuitionInstitutes, knownInstitutes, sales, vouchers, topUpRequests, submissions, certificates, defaultCoverImages
     });
 
     const value: DataContextType = {
-        users, teachers, tuitionInstitutes, knownInstitutes, sales, vouchers, topUpRequests, submissions, defaultCoverImages,
+        users, teachers, tuitionInstitutes, knownInstitutes, sales, vouchers, topUpRequests, submissions, certificates, defaultCoverImages,
         ...actions, loading
     };
 

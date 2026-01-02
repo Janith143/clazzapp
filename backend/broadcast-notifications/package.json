@@ -1,0 +1,16 @@
+{
+    "name": "broadcast-notifications",
+    "version": "1.0.0",
+    "description": "Trigger FCM notifications for new broadcast messages",
+    "main": "index.js",
+    "scripts": {
+        "start": "node index.js"
+    },
+    "dependencies": {
+        "firebase-admin": "^11.5.0",
+        "firebase-functions": "^4.3.1"
+    },
+    "engines": {
+        "node": "18"
+    }
+}

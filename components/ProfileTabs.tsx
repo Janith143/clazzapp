@@ -33,6 +33,7 @@ const allTabs = [
   { id: 'past_classes', label: 'Past Classes', icon: ClockIcon, ownerOnly: true },
   { id: 'earnings', label: 'Earnings', icon: BanknotesIcon, ownerOnly: true },
   { id: 'attendance', label: 'Attendance', icon: UserGroupIcon, ownerOnly: true },
+  { id: 'groups', label: 'Broadcast Groups', icon: UserGroupIcon, ownerOnly: true },
   { id: 'notifications', label: 'Notifications', icon: BellIcon, ownerOnly: true },
   { id: 'timetable', label: 'Time Table', icon: CalendarIcon },
   { id: 'contact', label: 'Contact & Location', icon: PhoneIcon },

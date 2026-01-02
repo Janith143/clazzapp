@@ -59,6 +59,11 @@
       "source": "backend/ssr-handler",
       "codebase": "ssr-handler",
       "runtime": "nodejs20"
+    },
+    {
+      "source": "backend/broadcast-notifications",
+      "codebase": "broadcast-notifications",
+      "runtime": "nodejs20"
     }
   ],
   "firestore": {

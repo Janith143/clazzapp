@@ -131,7 +131,7 @@ app.post('/send-fcm-push', async (req, res) => {
             data: {
                 // Specific fields to trigger client-side popup logic
                 type: 'teacher_notification',
-                title: `Message from ${teacher.name}`,
+                title: teacher.name,
                 body: content, // Key must match 'body' in Android MyFirebaseMessagingService.java
                 message: content, // Keeping 'message' just in case Web uses it, but Android needs 'body'
                 url: clickLink,
@@ -140,7 +140,7 @@ app.post('/send-fcm-push', async (req, res) => {
             },
             webpush: {
                 notification: {
-                    title: `Message from ${teacher.name}`, // Added title for Web
+                    title: teacher.name, // Added title for Web
                     body: content, // Added body for Web
                     icon: iconUrl,
                     requireInteraction: true,

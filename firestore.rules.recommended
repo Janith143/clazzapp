@@ -1,0 +1,47 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ---------------------------------------------------------
+    // Broadcast Groups & Chat
+    // ---------------------------------------------------------
+    
+    // 1. Broadcast Groups:
+    // - Read: Authenticated users (to view/join).
+    // - Create: Authenticated users who set themselves as owner.
+    // - Update/Delete: Only the owner (teacher).
+    match /broadcast_groups/{groupId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.teacherId == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.teacherId == request.auth.uid;
+      
+      // Messages Subcollection:
+      // - Read: Authenticated users (members).
+      // - Create: Only the owner (teacher).
+      match /messages/{messageId} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null && get(/databases/$(database)/documents/broadcast_groups/$(groupId)).data.teacherId == request.auth.uid;
+      }
+    }
+
+    // 2. Broadcast Memberships:
+    // - Read/Write: Authenticated users managing their own membership record.
+    // - Record ID is composite: {groupId}_{studentId}
+    match /broadcast_members/{memberId} {
+      allow read: if request.auth != null && (resource.data.studentId == request.auth.uid || request.auth.uid == resource.data.studentId);
+      allow write: if request.auth != null && request.resource.data.studentId == request.auth.uid;
+    }
+
+    // ---------------------------------------------------------
+    // IMPORTANT: Existing Rules / Legacy Catch-All
+    // ---------------------------------------------------------
+    // Ideally, you should replace this catch-all with specific rules for
+    // your other collections (users, classes, etc.) to secure your app.
+    // While this exists, the rules above are for structure/validation,
+    // but this rule still globally allows access.
+    
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}

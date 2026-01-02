@@ -1,13 +1,15 @@
 
-
 import { useCallback, useMemo } from 'react';
 // FIX: Import PaymentGatewaySettings
-import { Teacher, Withdrawal, TopUpRequest, Sale, StaticPageKey, HomeSlide, SocialMediaLink, User, TuitionInstitute, PayoutDetails, Notification, UpcomingExam, PhotoPrintOption, PaymentGatewaySettings, KnownInstitute, Voucher, FinancialSettings, SupportSettings, AdditionalService } from '../types';
+import { Teacher, Withdrawal, TopUpRequest, Sale, StaticPageKey, HomeSlide, SocialMediaLink, User, TuitionInstitute, PayoutDetails, Notification, UpcomingExam, PhotoPrintOption, PaymentGatewaySettings, KnownInstitute, Voucher, FinancialSettings, SupportSettings, AdditionalService, Certificate } from '../types';
 import { UIContextType } from '../contexts/UIContext';
 import { NavigationContextType } from '../contexts/NavigationContext';
 import { db } from '../firebase';
 // FIX: Update Firebase imports for v9 modular SDK
 import { doc, updateDoc, writeBatch, arrayRemove, arrayUnion, increment, setDoc, getDoc, runTransaction, collection, addDoc, deleteDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { v4 as uuidv4 } from 'uuid';
+import { storage } from '../firebase';
 import { sendPaymentConfirmation, sendNotification } from '../utils';
 
 const ADMIN_EMAIL = 'admin@clazz.lk';
@@ -740,6 +742,56 @@ export const useAdminActions = (deps: any) => {
         handleSaveBankDetails,
         handleVerificationDecision,
         handleUpdateStaticContent,
+        handleIssueCertificate: async (certificateData: Omit<Certificate, 'id' | 'pdfUrl'>, pdfBlob: Blob) => {
+            try {
+                addToast("Issuing certificate...", "info");
+                const certificateId = uuidv4();
+
+                // 1. Upload PDF
+                const filePath = `certificates/${certificateId}.pdf`;
+                const storageRef = ref(storage, filePath);
+
+                await uploadBytes(storageRef, pdfBlob);
+                const downloadURL = await getDownloadURL(storageRef);
+
+                // 2. Create Record
+                const newCertificate: Certificate = {
+                    ...certificateData,
+                    id: certificateId,
+                    pdfUrl: downloadURL,
+                    issuedAt: new Date().toISOString()
+                };
+
+                await setDoc(doc(db, "certificates", certificateId), newCertificate);
+
+                // 3. Send Email
+                const student = users.find(u => u.id === certificateData.studentId);
+                if (student && student.email) {
+                    const subject = `Certificate of Completion: ${certificateData.itemTitle}`;
+                    const htmlBody = `
+                        <div style="font-family: Arial, sans-serif;">
+                            <h2>Congratulations, ${student.firstName}!</h2>
+                            <p>You have successfully completed the course <strong>${certificateData.itemTitle}</strong>.</p>
+                            <p>Your certificate of completion has been issued by ${certificateData.teacherName}.</p>
+                            <p>You can view and download your certificate from your student dashboard.</p>
+                            <br/>
+                            <a href="${downloadURL}" style="display:inline-block; padding: 10px 20px; background-color: #2563eb; color: white; text-decoration: none; border-radius: 5px;">Download Certificate</a>
+                            <br/><br/>
+                            <p>Verification ID: ${certificateData.verificationId}</p>
+                            <p>Best regards,</p>
+                            <p>clazz.lk Team</p>
+                        </div>
+                    `;
+
+                    await sendNotification(functionUrls.notification, { email: student.email }, subject, htmlBody);
+                }
+
+                addToast("Certificate issued and sent successfully!", "success");
+            } catch (error) {
+                console.error("Failed to issue certificate:", error);
+                addToast("Failed to issue certificate.", "error");
+            }
+        },
         handleUpdateHomeSlides,
         handleUpdateSocialMediaLinks,
         handleUpdateSubjects,

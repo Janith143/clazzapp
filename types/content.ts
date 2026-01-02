@@ -25,9 +25,9 @@ export interface LiveSession {
 }
 
 export interface CourseRating {
-  studentId: string;
-  rating: number; // 1 to 5
-  ratedAt: string; // ISO string
+    studentId: string;
+    rating: number; // 1 to 5
+    ratedAt: string; // ISO string
 }
 
 export type CourseType = 'recorded' | 'live';
@@ -42,7 +42,7 @@ export interface Course {
     coverImage: string;
     fee: number;
     currency: 'LKR';
-    type: CourseType; 
+    type: CourseType;
     paymentPlan?: PaymentPlan;
     lectures: Lecture[]; // Used if type is 'recorded'
     liveSessions?: LiveSession[]; // Used if type is 'live'
@@ -193,4 +193,18 @@ export interface Product {
     downloadUrl?: string;
     stock?: number;
     orderLeadTime?: string;
+}
+
+export interface Certificate {
+    id: string;
+    studentId: string;
+    studentName: string;
+    teacherId: string;
+    teacherName: string;
+    itemId: string; // Course ID
+    itemType: 'course';
+    itemTitle: string;
+    issuedAt: string; // ISO String
+    pdfUrl: string;
+    verificationId: string;
 }

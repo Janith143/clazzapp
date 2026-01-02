@@ -169,7 +169,13 @@ const getPageStateFromURL = (): PageState => {
     if (pathname === '/store') return { name: 'all_products' };
     if (pathname === '/gift-voucher') return { name: 'gift_voucher' };
     if (pathname === '/referrals') return { name: 'referral_dashboard' };
-    if (pathname === '/dashboard') return { name: 'student_dashboard' };
+    if (pathname === '/dashboard') {
+        return {
+            name: 'student_dashboard',
+            initialTab: (params.get('tab') as import('../types').DashboardTab) || undefined,
+            joinCode: params.get('join') || undefined
+        };
+    }
     if (pathname === '/admin') return { name: 'admin_dashboard' };
     if (pathname === '/institute/dashboard') return { name: 'ti_dashboard' };
 
@@ -256,7 +262,14 @@ const getURLPathFromPageState = (page: PageState): string => {
         case 'all_exams': path = '/exams'; break;
         case 'all_events': path = '/events'; break;
         case 'all_products': path = '/store'; break;
-        case 'student_dashboard': path = '/dashboard'; break;
+        case 'student_dashboard':
+            path = '/dashboard';
+            const dashboardParams = new URLSearchParams();
+            if (page.initialTab) dashboardParams.append('tab', page.initialTab);
+            if (page.joinCode) dashboardParams.append('join', page.joinCode);
+            const dQs = dashboardParams.toString();
+            if (dQs) path += '?' + dQs;
+            break;
         case 'admin_dashboard': path = '/admin'; break;
         case 'admin_view_student_dashboard': path = `/admin/student/${page.userId}`; break;
         case 'ti_dashboard': path = '/institute/dashboard'; break;

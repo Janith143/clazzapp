@@ -16,6 +16,7 @@ import MarkdownDisplay from '../components/MarkdownDisplay.tsx';
 import ConfirmationModal from '../components/ConfirmationModal.tsx';
 import Modal from '../components/Modal.tsx';
 import PaymentMethodSelector from '../components/PaymentMethodSelector.tsx';
+import GuestActionPrompt from '../components/GuestActionPrompt.tsx';
 
 interface CourseDetailPageProps {
     courseId?: string;
@@ -45,6 +46,7 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId, slug }) =
 
     const [isConfirmingEnrollment, setIsConfirmingEnrollment] = useState(false);
     const [showPaymentSelector, setShowPaymentSelector] = useState(false);
+    const [showGuestPrompt, setShowGuestPrompt] = useState(false);
     const [editSessionId, setEditSessionId] = useState<string | null>(null);
     const [linkInput, setLinkInput] = useState('');
     const [linkType, setLinkType] = useState<'join' | 'recording'>('join');
@@ -179,7 +181,7 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId, slug }) =
 
     const handleEnrollClick = () => {
         if (!currentUser) {
-            setModalState({ name: 'login', preventRedirect: true });
+            setShowGuestPrompt(true);
         } else {
             setPartialPaymentTarget(initialPayment as any);
             setIsConfirmingEnrollment(true);
@@ -188,7 +190,7 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId, slug }) =
 
     const handleUnlockClick = (amount: number, description: string, metadata: any) => {
         if (!currentUser) {
-            setModalState({ name: 'login', preventRedirect: true });
+            setShowGuestPrompt(true);
             return;
         }
         setPartialPaymentTarget({ amount, description, metadata });
@@ -553,6 +555,18 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId, slug }) =
             {showPaymentSelector && (
                 <Modal isOpen={true} onClose={() => setShowPaymentSelector(false)} title="Select Payment Method">
                     <PaymentMethodSelector onSelect={handlePaymentMethodSelected} />
+                </Modal>
+            )}
+            {showGuestPrompt && course && teacher && (
+                <Modal isOpen={true} onClose={() => setShowGuestPrompt(false)} title="Enroll in Course">
+                    <GuestActionPrompt
+                        title={`Enroll in ${course.title}`}
+                        subtitle={`By ${teacher.name}`}
+                        description={course.description ? course.description.substring(0, 100) + '...' : undefined}
+                        reason="You need to be logged in to enroll in this course."
+                        onLogin={() => { setShowGuestPrompt(false); setModalState({ name: 'login', preventRedirect: true }); }}
+                        onSignup={() => { setShowGuestPrompt(false); setModalState({ name: 'register', preventRedirect: true }); }}
+                    />
                 </Modal>
             )}
         </div>

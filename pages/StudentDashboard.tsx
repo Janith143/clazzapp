@@ -12,6 +12,8 @@ import { calculateStudentProfileCompletion } from '../utils';
 import ProgressBar from '../components/ProgressBar';
 
 
+import { useBroadcastData } from '../hooks/useBroadcastData';
+
 // Tab Components
 import MyCourses from '../components/studentDashboard/MyCourses';
 import MyClasses from '../components/studentDashboard/MyClasses';
@@ -29,6 +31,9 @@ import AIRecommendations from '../components/AIRecommendations';
 import StudentDashboardTabs from '../components/studentDashboard/StudentDashboardTabs';
 import TimeTable from '../components/teacherProfile/TimeTable';
 import MyVouchers from '../components/studentDashboard/MyVouchers';
+import MyCertificates from '../components/studentDashboard/MyCertificates';
+import StudentGroupsTab from '../components/broadcast/StudentGroupsTab';
+import GuestJoinView from '../components/broadcast/GuestJoinView';
 
 interface StudentDashboardProps {
     userId?: string;
@@ -80,6 +85,10 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ userId, isAdminView
         return currentUser;
     }, [isAdminView, userId, users, currentUser]);
 
+    // Fetch broadcast unread count
+    const { unreadTotal } = useBroadcastData(undefined, undefined, (!isAdminView && displayUser) ? displayUser.id : undefined);
+
+
     const initialTab = (pageState.name === 'student_dashboard' && pageState.initialTab) ? pageState.initialTab : 'overview';
     const [activeTab, setActiveTab] = useState<DashboardTab>(initialTab);
     const [isTopUpModalOpen, setIsTopUpModalOpen] = useState(false);
@@ -130,9 +139,17 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ userId, isAdminView
             purchaseHistoryCount: userSales.length,
             topUpHistoryCount: displayUser.topUpHistory?.length || 0,
             myOrdersCount,
-            uncollectedVouchersCount
+            uncollectedVouchersCount,
+            certificatesCount: 0 // Placeholder, we access via context in dashboard but for tabs we need it here. But wait, certificates are in `useData()`. Let's grab them.
         };
     }, [displayUser, sales, vouchers]);
+
+    // Better way: Grab certificates from useData directly for count
+    const { certificates } = useData();
+    const myCertificatesCount = useMemo(() => {
+        if (!displayUser) return 0;
+        return certificates.filter(c => c.studentId === displayUser.id).length;
+    }, [certificates, displayUser]);
 
     // Timetable State & Logic
     const [currentWeekOffset, setCurrentWeekOffset] = useState(0);
@@ -255,7 +272,12 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ userId, isAdminView
 
     const currencyFormatter = new Intl.NumberFormat('en-LK', { style: 'currency', currency: 'LKR' });
 
-    if (!displayUser) return <div>User not found or you are not logged in.</div>;
+    if (!displayUser) {
+        if (pageState.name === 'student_dashboard' && pageState.joinCode) {
+            return <GuestJoinView joinCode={pageState.joinCode} />;
+        }
+        return <div>User not found or you are not logged in.</div>;
+    }
 
     const renderTabContent = () => {
         const isOwnerView = !isAdminView;
@@ -387,6 +409,8 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ userId, isAdminView
             case 'classes': return <MyClasses user={displayUser} isOwnerView={isOwnerView} filter={classFilter} />;
             case 'past_classes': return <MyPastClasses user={displayUser} isOwnerView={isOwnerView} />;
             case 'quizzes': return <MyQuizzes user={displayUser} isOwnerView={isOwnerView} />;
+            case 'certificates': return <MyCertificates user={displayUser} />;
+            case 'groups': return <StudentGroupsTab student={displayUser} autoJoinCode={(pageState.name === 'student_dashboard' ? pageState.joinCode : undefined)} />;
             case 'my_events': return <MyEvents user={displayUser} />;
             case 'history': return <TransactionHistory user={displayUser} />;
             case 'attendance': return <MyAttendance user={displayUser} />;
@@ -404,7 +428,9 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ userId, isAdminView
         quizzes: enrolledQuizzesCount,
         events: enrolledEventsCount,
         orders: myOrdersCount,
-        history: purchaseHistoryCount + topUpHistoryCount
+        history: purchaseHistoryCount + topUpHistoryCount,
+        certificates: myCertificatesCount,
+        groups: unreadTotal || 0
     };
 
     return (

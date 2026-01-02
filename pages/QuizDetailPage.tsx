@@ -13,6 +13,8 @@ import { getDynamicQuizStatus, getOptimizedImageUrl } from '../utils.ts';
 import MarkdownDisplay from '../components/MarkdownDisplay.tsx';
 import { useSEO } from '../hooks/useSEO.ts';
 import SEOHead from '../components/SEOHead.tsx';
+import Modal from '../components/Modal.tsx';
+import GuestActionPrompt from '../components/GuestActionPrompt.tsx';
 
 import { slugify } from '../utils/slug.ts';
 
@@ -43,6 +45,7 @@ const QuizDetailPage: React.FC<QuizDetailPageProps> = ({ quizId, instanceId, slu
 
     const [isReviewVisible, setIsReviewVisible] = useState(false);
     const [isConfirmingEnrollment, setIsConfirmingEnrollment] = useState(false);
+    const [showGuestPrompt, setShowGuestPrompt] = useState(false);
 
     const quiz = useMemo(() => {
         // If an instanceId is provided (from "My Quizzes"), find that specific sale and show the snapshot.
@@ -135,7 +138,7 @@ const QuizDetailPage: React.FC<QuizDetailPageProps> = ({ quizId, instanceId, slu
 
     const handleEnrollClick = () => {
         if (!currentUser) {
-            setModalState({ name: 'login', preventRedirect: true });
+            setShowGuestPrompt(true);
         } else {
             setIsConfirmingEnrollment(true);
         }
@@ -200,7 +203,7 @@ const QuizDetailPage: React.FC<QuizDetailPageProps> = ({ quizId, instanceId, slu
         }
 
         if (!currentUser) {
-            return <button onClick={() => setModalState({ name: 'login', preventRedirect: true })} className="w-full bg-primary text-white font-bold py-3 rounded-md hover:bg-primary-dark">Login to Register</button>;
+            return <button onClick={() => setShowGuestPrompt(true)} className="w-full bg-primary text-white font-bold py-3 rounded-md hover:bg-primary-dark">Login to Register</button>;
         }
 
         return <button onClick={handleEnrollClick} className="w-full bg-primary text-white font-bold py-3 rounded-md hover:bg-primary-dark">Register Now</button>;
@@ -393,6 +396,18 @@ const QuizDetailPage: React.FC<QuizDetailPageProps> = ({ quizId, instanceId, slu
                     />
                 );
             })()}
+            {showGuestPrompt && quiz && teacher && (
+                <Modal isOpen={true} onClose={() => setShowGuestPrompt(false)} title="Register for Quiz">
+                    <GuestActionPrompt
+                        title={`Register for ${quiz.title}`}
+                        subtitle={`Hosted by ${teacher.name}`}
+                        description={quiz.description ? quiz.description.substring(0, 100) + '...' : undefined}
+                        reason="You need to be logged in to register for this quiz."
+                        onLogin={() => { setShowGuestPrompt(false); setModalState({ name: 'login', preventRedirect: true }); }}
+                        onSignup={() => { setShowGuestPrompt(false); setModalState({ name: 'register', preventRedirect: true }); }}
+                    />
+                </Modal>
+            )}
         </div>
     );
 };

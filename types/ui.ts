@@ -7,7 +7,7 @@ import type { Course, IndividualClass, Quiz, Product } from './content';
 export type EditableImageType = 'profile' | 'student_profile' | 'cover_add' | { type: 'cover', index: number } | 'admin_default_cover' | 'id_verification_front' | 'id_verification_back' | 'bank_verification' | 'payment_slip' | 'event_flyer' | 'quiz_question_image' | 'product_cover' | 'course_cover' | 'og_image' | 'payment_method_logo';
 
 export type AdminView = 'analytics' | 'users' | 'content' | 'products' | 'revenue' | 'vouchers' | 'referrals' | 'allsales' | 'site_content' | 'calculation_guide' | 'photo_orders' | 'physical_orders' | 'payment_gateways' | 'staff' | 'developer' | 'requests' | 'communications';
-export type DashboardTab = 'overview' | 'courses' | 'classes' | 'quizzes' | 'products' | 'history' | 'profile' | 'my_events' | 'my_orders' | 'past_classes' | 'score_card' | 'attendance' | 'timetable' | 'my_vouchers' | 'earnings';
+export type DashboardTab = 'overview' | 'courses' | 'classes' | 'quizzes' | 'products' | 'history' | 'profile' | 'my_events' | 'my_orders' | 'past_classes' | 'score_card' | 'attendance' | 'timetable' | 'my_vouchers' | 'earnings' | 'certificates' | 'groups';
 
 type PaymentRedirectPayload =
   | { type: 'enrollment'; item: Course | IndividualClass | Quiz | Event; sale: Sale; updatedUser?: User; selectedMethod?: PaymentMethod }
@@ -40,7 +40,7 @@ export type PageState =
   | { name: 'event_detail_slug'; slug: string }
   | { name: 'product_detail'; productId: string }
   | { name: 'product_detail_slug'; slug: string }
-  | { name: 'student_dashboard', initialTab?: DashboardTab }
+  | { name: 'student_dashboard', initialTab?: DashboardTab; joinCode?: string }
   | { name: 'admin_dashboard' }
   | { name: 'admin_view_student_dashboard'; userId: string }
   | { name: 'ti_dashboard' }

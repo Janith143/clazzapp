@@ -41,6 +41,7 @@ import ContactSection from '../components/teacherProfile/ContactSection';
 import AttendanceSummaryTable from '../components/ti/AttendanceSummaryTable';
 import TeacherEventsTab from '../components/teacherProfile/TeacherEventsTab';
 import TeacherPastClassesTab from '../components/teacherProfile/TeacherPastClassesTab';
+import TeacherGroupsTab from '../components/broadcast/TeacherGroupsTab';
 
 // Inlined TeacherNotificationsTab Component
 const TeacherNotificationsTab: React.FC<{ teacher: Teacher }> = ({ teacher }) => {
@@ -795,6 +796,8 @@ const TeacherProfilePage: React.FC<TeacherProfilePageProps> = ({ teacherId, slug
                 );
             case 'past_classes':
                 return canEdit ? <TeacherPastClassesTab teacher={teacher} sales={sales} /> : null;
+            case 'groups':
+                return canEdit ? <TeacherGroupsTab teacher={teacher} /> : null;
             case 'earnings':
                 return canEdit ? <EarningsDashboard
                     teacher={teacher} allSales={sales} allUsers={users} isAdminView={isAdminView}
