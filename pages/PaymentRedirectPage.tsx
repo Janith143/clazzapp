@@ -324,6 +324,7 @@ const PaymentRedirectPage: React.FC<PaymentRedirectPageProps> = ({ user: context
             <div className="text-center p-8">
                 <LogoIcon className="h-16 w-16 mx-auto text-primary animate-pulse" />
                 <h1 className="text-2xl font-bold mt-4">Preparing secure payment...</h1>
+
                 <p className="mt-2 text-light-subtle dark:text-dark-subtle">You will be redirected automatically. Do not close this window.</p>
                 <div className="mt-8"><div className="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-primary"></div></div>
             </div>

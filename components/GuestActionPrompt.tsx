@@ -5,7 +5,7 @@ import { UserGroupIcon } from './Icons';
 interface GuestActionPromptProps {
     title: string;
     subtitle?: string;
-    description?: string;
+    description?: string | React.ReactNode;
     reason?: string;
     onLogin: () => void;
     onSignup: () => void;
@@ -41,9 +41,9 @@ const GuestActionPrompt: React.FC<GuestActionPromptProps> = ({
                         </p>
                     )}
                     {description && (
-                        <p className="mt-2 text-gray-600 dark:text-gray-300 italic text-sm">
-                            "{description}"
-                        </p>
+                        <div className="mt-2 text-gray-600 dark:text-gray-300 italic text-sm">
+                            {description}
+                        </div>
                     )}
                 </div>
 

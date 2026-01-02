@@ -102,6 +102,10 @@
     ],
     "rewrites": [
       {
+        "source": "/payment-callback",
+        "function": "paymentHandler"
+      },
+      {
         "source": "**",
         "function": "ssrHandler"
       }

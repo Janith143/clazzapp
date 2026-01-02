@@ -434,9 +434,6 @@ export const NavigationProvider: React.FC<{ children: React.ReactNode }> = ({ ch
                 setFunctionUrls({
                     ...defaultAppConfig.functionUrls,
                     ...(data.functionUrls || {}),
-                    // Force specific stable URLs to ensure we hit the latest deployed functions
-                    marxPayment: 'https://asia-south1-clazz2-new.cloudfunctions.net/marxPaymentHandler',
-                    payment: 'https://asia-south1-clazz2-new.cloudfunctions.net/paymentHandler'
                 });
 
             } else {

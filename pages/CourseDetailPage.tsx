@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Course, Teacher, Lecture, LiveSession, Sale, PaymentMethod } from '../types.ts';
+import { Course, Teacher, Lecture, LiveSession, Sale, PaymentMethod, PaymentPlan } from '../types.ts';
 import { ChevronLeftIcon, LockClosedIcon, PlayCircleIcon, SpinnerIcon, LinkIcon, VideoCameraIcon, ClockIcon, CalendarIcon, CheckCircleIcon, PencilIcon, SaveIcon, XIcon } from '../components/Icons.tsx';
 import StarRating from '../components/StarRating.tsx';
 import ProgressBar from '../components/ProgressBar.tsx';
@@ -25,7 +25,7 @@ interface CourseDetailPageProps {
 
 const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId, slug }) => {
     const { currentUser } = useAuth();
-    const { handleBack, handleNavigate } = useNavigation();
+    const { handleBack, handleNavigate, paymentGatewaySettings } = useNavigation();
     const { setModalState, setVideoPlayerState, addToast } = useUI();
     const { handleRateCourse, handleEnroll, handleUpdateTeacher, sales, teachers, loading: dataLoading } = useData();
 
@@ -50,6 +50,22 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId, slug }) =
     const [editSessionId, setEditSessionId] = useState<string | null>(null);
     const [linkInput, setLinkInput] = useState('');
     const [linkType, setLinkType] = useState<'join' | 'recording'>('join');
+
+    const availablePlans: PaymentPlan[] = useMemo(() => {
+        if (!course) return ['full'];
+        if (course.paymentPlans && course.paymentPlans.length > 0) return course.paymentPlans;
+        return course.paymentPlan ? [course.paymentPlan] : ['full'];
+    }, [course]);
+
+    const [selectedPaymentPlan, setSelectedPaymentPlan] = useState<PaymentPlan>(availablePlans[0]);
+
+    // Update selected plan if course changes or available plans change
+    React.useEffect(() => {
+        if (availablePlans.length > 0 && !availablePlans.includes(selectedPaymentPlan)) {
+            setSelectedPaymentPlan(availablePlans[0]);
+        }
+    }, [availablePlans, selectedPaymentPlan]);
+
 
     const [partialPaymentTarget, setPartialPaymentTarget] = useState<{ amount: number, description: string, metadata: any } | null>(null);
 
@@ -154,12 +170,13 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId, slug }) =
         let description = course.title;
         let metadata: Sale['purchaseMetadata'] = { type: 'full' };
 
+        // Use selectedPaymentPlan instead of course.paymentPlan
         if (courseType === 'live') {
-            if (course.paymentPlan === 'installments_2') {
+            if (selectedPaymentPlan === 'installments_2') {
                 amount = course.fee / 2;
                 description = `${course.title} (Installment 1 of 2)`;
                 metadata = { type: 'installment', index: 0 };
-            } else if (course.paymentPlan === 'monthly') {
+            } else if (selectedPaymentPlan === 'monthly') {
                 const totalSessions = course.liveSessions?.length || 1;
                 const daysCount = course.scheduleConfig?.days?.length || 1;
                 const weeks = course.scheduleConfig?.weekCount || Math.ceil(totalSessions / daysCount) || 1;
@@ -167,7 +184,7 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId, slug }) =
                 amount = Math.round(course.fee / months);
                 description = `${course.title} (Month 1)`;
                 metadata = { type: 'month', index: 0 };
-            } else if (course.paymentPlan === 'per_session') {
+            } else if (selectedPaymentPlan === 'per_session') {
                 const totalSessions = course.liveSessions?.length || 1;
                 amount = Math.round(course.fee / totalSessions);
                 description = `${course.title} (Session 1)`;
@@ -264,7 +281,9 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId, slug }) =
         const now = new Date();
         const sortedSessions = (course.liveSessions || []).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
         let groups: { title: string, sessions: LiveSession[], unlockCost: number, isLocked: boolean, metadata: any }[] = [];
-        if (course.paymentPlan === 'monthly') {
+
+        // Use selectedPaymentPlan for display logic
+        if (selectedPaymentPlan === 'monthly') {
             const sessionsPerWeek = course.scheduleConfig?.days?.length || 1;
             const sessionsPerMonth = sessionsPerWeek * 4;
             const monthCost = initialPayment.amount;
@@ -279,7 +298,7 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId, slug }) =
                     metadata: { type: 'month', index: monthIndex }
                 });
             }
-        } else if (course.paymentPlan === 'installments_2') {
+        } else if (selectedPaymentPlan === 'installments_2') {
             const halfPoint = Math.ceil(sortedSessions.length / 2);
             const installmentCost = course.fee / 2;
             groups.push({
@@ -296,7 +315,7 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId, slug }) =
                 isLocked: !isBlockUnlocked('installment', 1),
                 metadata: { type: 'installment', index: 1 }
             });
-        } else if (course.paymentPlan === 'per_session') {
+        } else if (selectedPaymentPlan === 'per_session') {
             const sessionCost = Math.round(course.fee / sortedSessions.length);
             groups = sortedSessions.map((s, i) => ({
                 title: `Session ${i + 1}`,
@@ -428,11 +447,11 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId, slug }) =
     const coverImageSrcSet = createSrcSet(course.coverImage, [400, 800]);
     const getEnrollButtonText = () => {
         if (hasFullAccess) return "Course Fully Unlocked";
-        if (userPurchases.length > 0 && course.paymentPlan !== 'full') return "Continue Learning";
+        if (userPurchases.length > 0 && selectedPaymentPlan !== 'full') return "Continue Learning";
         if (currentUser?.role === 'teacher' || currentUser?.role === 'admin') return "Only students can enroll";
         return `Pay ${initialPayment.description} (${currencyFormatter.format(initialPayment.amount)})`;
     };
-    const isFullyEnrolled = hasFullAccess || (course.paymentPlan === 'full' && isEnrolled);
+    const isFullyEnrolled = hasFullAccess || (selectedPaymentPlan === 'full' && isEnrolled);
     const disableEnrollButton = isFullyEnrolled || currentUser?.role === 'teacher' || currentUser?.role === 'admin';
 
     return (
@@ -488,6 +507,33 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId, slug }) =
                         </div>
                     )}
                     <div className="mt-8 bg-light-surface dark:bg-dark-surface p-6 rounded-lg shadow-md">
+                        {courseType === 'live' && availablePlans.length > 1 && (
+                            <div className="mb-6">
+                                <h3 className="text-xl font-bold mb-3">Choose Payment Plan</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    {availablePlans.map(plan => (
+                                        <label key={plan} className={`relative flex items-center p-4 border rounded-lg cursor-pointer transition-all ${selectedPaymentPlan === plan ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'border-light-border dark:border-dark-border hover:bg-gray-50 dark:hover:bg-dark-background'}`}>
+                                            <input
+                                                type="radio"
+                                                name="paymentPlan"
+                                                value={plan}
+                                                checked={selectedPaymentPlan === plan}
+                                                onChange={() => setSelectedPaymentPlan(plan)}
+                                                className="w-4 h-4 text-primary focus:ring-primary border-gray-300"
+                                            />
+                                            <div className="ml-3">
+                                                <span className="block font-bold text-sm">
+                                                    {plan === 'full' && 'Full Payment'}
+                                                    {plan === 'monthly' && 'Monthly'}
+                                                    {plan === 'per_session' && 'Per Session'}
+                                                    {plan === 'installments_2' && '2 Installments'}
+                                                </span>
+                                            </div>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                         <h2 className="text-2xl font-bold mb-4">{courseType === 'live' ? 'Class Schedule' : 'Course Content'}</h2>
                         {courseType === 'live' ? renderLiveSessionList() : (
                             <div className="space-y-3">
@@ -525,7 +571,7 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId, slug }) =
                             ) : null}
                             <div className="text-left">
                                 <p className="text-3xl font-bold text-primary">{initialPayment.amount > 0 ? currencyFormatter.format(initialPayment.amount) : 'Free'}</p>
-                                {course.paymentPlan && course.paymentPlan !== 'full' && <div className="text-xs font-semibold text-light-subtle dark:text-dark-subtle uppercase mt-1"><p>Plan: {course.paymentPlan.replace('_', ' ')}</p><p className="text-[10px] opacity-75 mt-0.5 text-primary">Total Fee: {currencyFormatter.format(course.fee)}</p></div>}
+                                {selectedPaymentPlan && selectedPaymentPlan !== 'full' && <div className="text-xs font-semibold text-light-subtle dark:text-dark-subtle uppercase mt-1"><p>Plan: {selectedPaymentPlan.replace('_', ' ')}</p><p className="text-[10px] opacity-75 mt-0.5 text-primary">Total Fee: {currencyFormatter.format(course.fee)}</p></div>}
                             </div>
                             {currentUser && balanceToApply > 0 && !isFullyEnrolled && !course.isDeleted && <div className="mt-4 p-3 text-sm bg-green-50 dark:bg-green-900/50 border border-green-200 dark:border-green-800 rounded-md"><p className="font-semibold text-green-800 dark:text-green-200">Account Balance Applied!</p><div className="flex justify-between text-green-700 dark:text-green-300"><span>Balance Used:</span><span>-{currencyFormatter.format(balanceToApply)}</span></div><div className="flex justify-between font-bold mt-1 pt-1 border-t border-green-300 dark:border-green-700"><span>Amount to Pay:</span><span>{currencyFormatter.format(remainingFee)}</span></div></div>}
                             {course.isDeleted ? <div className="mt-4 w-full text-center px-4 py-3 text-sm font-medium text-yellow-800 bg-yellow-100 dark:text-yellow-200 dark:bg-yellow-900/50 rounded-md">This course has been removed by the teacher.</div> : <button onClick={handleEnrollClick} disabled={disableEnrollButton} className="mt-4 w-full bg-primary text-white font-bold py-3 rounded-md hover:bg-primary-dark transition-colors disabled:bg-gray-500 disabled:cursor-not-allowed">{getEnrollButtonText()}</button>}
@@ -554,7 +600,7 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId, slug }) =
             })()}
             {showPaymentSelector && (
                 <Modal isOpen={true} onClose={() => setShowPaymentSelector(false)} title="Select Payment Method">
-                    <PaymentMethodSelector onSelect={handlePaymentMethodSelected} />
+                    <PaymentMethodSelector onSelect={handlePaymentMethodSelected} paymentGatewaySettings={paymentGatewaySettings} />
                 </Modal>
             )}
             {showGuestPrompt && course && teacher && (
@@ -562,7 +608,7 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId, slug }) =
                     <GuestActionPrompt
                         title={`Enroll in ${course.title}`}
                         subtitle={`By ${teacher.name}`}
-                        description={course.description ? course.description.substring(0, 100) + '...' : undefined}
+                        description={<MarkdownDisplay content={course.description} className="line-clamp-3" />}
                         reason="You need to be logged in to enroll in this course."
                         onLogin={() => { setShowGuestPrompt(false); setModalState({ name: 'login', preventRedirect: true }); }}
                         onSignup={() => { setShowGuestPrompt(false); setModalState({ name: 'register', preventRedirect: true }); }}

@@ -1,14 +1,13 @@
 import React from 'react';
-import { PaymentMethod } from '../types';
-import { useNavigation } from '../contexts/NavigationContext';
+import { PaymentMethod, PaymentGatewaySettings } from '../types';
 import { getOptimizedImageUrl } from '../utils';
 
 interface PaymentMethodSelectorProps {
     onSelect: (method: PaymentMethod) => void;
+    paymentGatewaySettings: PaymentGatewaySettings;
 }
 
-const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({ onSelect }) => {
-    const { paymentGatewaySettings } = useNavigation();
+const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({ onSelect, paymentGatewaySettings }) => {
     const logos = paymentGatewaySettings.methodLogos || {};
 
     const methods: { id: PaymentMethod; label: string; icon: string }[] = [

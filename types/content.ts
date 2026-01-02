@@ -44,6 +44,7 @@ export interface Course {
     currency: 'LKR';
     type: CourseType;
     paymentPlan?: PaymentPlan;
+    paymentPlans?: PaymentPlan[]; // New field for multiple options
     lectures: Lecture[]; // Used if type is 'recorded'
     liveSessions?: LiveSession[]; // Used if type is 'live'
     scheduleConfig?: {

@@ -43,6 +43,7 @@ const CourseEditorPage: React.FC<CourseEditorPageProps> = ({ courseData, teacher
         currency: 'LKR',
         type: 'recorded',
         paymentPlan: 'full',
+        paymentPlans: ['full'],
         lectures: [],
         liveSessions: [],
         isPublished: false,
@@ -146,6 +147,22 @@ const CourseEditorPage: React.FC<CourseEditorPageProps> = ({ courseData, teacher
                 newState.grade = '';
             }
             return newState;
+        });
+    };
+
+    const togglePaymentPlan = (plan: PaymentPlan) => {
+        setCourse(prev => {
+            const currentPlans = prev.paymentPlans || (prev.paymentPlan ? [prev.paymentPlan] : []);
+            const newPlans = currentPlans.includes(plan)
+                ? currentPlans.filter(p => p !== plan)
+                : [...currentPlans, plan];
+
+            return {
+                ...prev,
+                paymentPlans: newPlans,
+                // Keep legacy field in sync with the first selected plan or 'full'
+                paymentPlan: newPlans.length > 0 ? newPlans[0] : 'full'
+            };
         });
     };
 
@@ -263,6 +280,12 @@ const CourseEditorPage: React.FC<CourseEditorPageProps> = ({ courseData, teacher
             return;
         }
 
+        if (course.type === 'live' && (!course.paymentPlans || course.paymentPlans.length === 0)) {
+            alert("Please select at least one payment plan.");
+            return;
+        }
+
+
         setIsSaving(true);
         try {
             await onSave(course);
@@ -287,38 +310,48 @@ const CourseEditorPage: React.FC<CourseEditorPageProps> = ({ courseData, teacher
             ? course.liveSessions.length
             : totalEstimatedSessions;
 
-        switch (course.paymentPlan) {
-            case 'monthly': {
-                // Approximation: 4 weeks = 1 month
-                const months = Math.max(1, weeks / 4);
-                const perMonth = Math.round(course.fee / months);
-                return {
-                    text: `Based on a ${weeks}-week duration (~${months.toFixed(1)} months), the student will pay approximately ${perMonth} ${currency} per month.`,
-                    amount: perMonth
-                };
+        const activePlans = course.paymentPlans && course.paymentPlans.length > 0
+            ? course.paymentPlans
+            : (course.paymentPlan ? [course.paymentPlan] : ['full']);
+
+        return activePlans.map(plan => {
+            switch (plan) {
+                case 'monthly': {
+                    // Approximation: 4 weeks = 1 month
+                    const months = Math.max(1, weeks / 4);
+                    const perMonth = Math.round(course.fee / months);
+                    return {
+                        plan: 'monthly',
+                        text: `Monthly: ~${perMonth} ${currency} / month (${months.toFixed(1)} months)`,
+                        amount: perMonth
+                    };
+                }
+                case 'per_session': {
+                    const perSession = Math.round(course.fee / totalSessions);
+                    return {
+                        plan: 'per_session',
+                        text: `Per Session: ${perSession} ${currency} / class (${totalSessions} sessions)`,
+                        amount: perSession
+                    };
+                }
+                case 'installments_2': {
+                    const perInstallment = Math.round(course.fee / 2);
+                    return {
+                        plan: 'installments_2',
+                        text: `2 Installments: ${perInstallment} ${currency} x 2`,
+                        amount: perInstallment
+                    };
+                }
+                case 'full':
+                default:
+                    return {
+                        plan: 'full',
+                        text: `Full Payment: ${course.fee} ${currency} upfront`,
+                        amount: course.fee
+                    };
             }
-            case 'per_session': {
-                const perSession = Math.round(course.fee / totalSessions);
-                return {
-                    text: `Based on ${totalSessions} total sessions, the student will pay ${perSession} ${currency} per class.`,
-                    amount: perSession
-                };
-            }
-            case 'installments_2': {
-                const perInstallment = Math.round(course.fee / 2);
-                return {
-                    text: `The student will pay ${perInstallment} ${currency} now (50%), and ${perInstallment} ${currency} later.`,
-                    amount: perInstallment
-                };
-            }
-            case 'full':
-            default:
-                return {
-                    text: `The student will pay the full amount of ${course.fee} ${currency} upfront to enroll.`,
-                    amount: course.fee
-                };
-        }
-    }, [course.fee, course.paymentPlan, course.liveSessions, scheduleConfig, course.type]);
+        });
+    }, [course.fee, course.paymentPlan, course.paymentPlans, course.liveSessions, scheduleConfig, course.type]);
 
 
     return (
@@ -399,25 +432,38 @@ const CourseEditorPage: React.FC<CourseEditorPageProps> = ({ courseData, teacher
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                             {course.type === 'live' && (
-                                <FormSelect
-                                    label="Student Payment Plan"
-                                    name="paymentPlan"
-                                    value={course.paymentPlan || 'full'}
-                                    onChange={handleChange}
-                                    options={[
-                                        { value: 'full', label: 'One-time Full Payment' },
-                                        { value: 'monthly', label: 'Monthly Payments' },
-                                        { value: 'per_session', label: 'Pay Per Session' },
-                                        { value: 'installments_2', label: '2 Installments (50% now, 50% later)' }
-                                    ]}
-                                />
+                                <div>
+                                    <label className="block text-sm font-medium text-light-text dark:text-dark-text mb-2">Student Payment Plans</label>
+                                    <div className="space-y-2 border border-light-border dark:border-dark-border p-3 rounded-md bg-white dark:bg-dark-background">
+                                        {[
+                                            { value: 'full', label: 'One-time Full Payment' },
+                                            { value: 'monthly', label: 'Monthly Payments' },
+                                            { value: 'per_session', label: 'Pay Per Session' },
+                                            { value: 'installments_2', label: '2 Installments' }
+                                        ].map((option) => (
+                                            <label key={option.value} className="flex items-center space-x-2 cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={(course.paymentPlans || [course.paymentPlan]).includes(option.value as any)}
+                                                    onChange={() => togglePaymentPlan(option.value as any)}
+                                                    className="rounded border-gray-300 text-primary focus:ring-primary h-4 w-4"
+                                                />
+                                                <span className="text-sm">{option.label}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                    <p className="text-xs text-light-subtle dark:text-dark-subtle mt-1">Select all applicable options.</p>
+                                </div>
                             )}
                             <div>
                                 <FormInput label="Total Course Fee (LKR)" name="fee" type="number" value={course.fee.toString()} onChange={handleChange} required />
                                 {paymentCalculations && (
-                                    <p className="text-xs mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-md font-medium border border-blue-100 dark:border-blue-800">
-                                        {paymentCalculations.text}
-                                    </p>
+                                    <div className="text-xs mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-md font-medium border border-blue-100 dark:border-blue-800 space-y-1">
+                                        <p className="font-bold underline mb-1">Estimated Student Payments:</p>
+                                        {paymentCalculations.map((calc, idx) => (
+                                            <p key={idx}>{calc.text}</p>
+                                        ))}
+                                    </div>
                                 )}
                             </div>
                         </div>
