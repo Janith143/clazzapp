@@ -21,6 +21,7 @@ exports.generateSitemap = onRequest({ region: "us-central1" }, async (req, res) 
         const urls = [];
 
         // 1. Static Pages
+        // 1. Static Pages
         const staticPages = [
             "",
             "/teachers",
