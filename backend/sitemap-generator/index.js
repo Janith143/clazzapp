@@ -45,7 +45,6 @@ exports.generateSitemap = onRequest({ region: "us-central1" }, async (req, res) 
         // 2. Teachers (Approved & Published)
         const teachersSnap = await db.collection('teachers')
             .where('registrationStatus', '==', 'approved')
-            .where('isPublished', '!=', false) // isPublished might be missing (true by default?) or explicit true/false. Safe check.
             .get();
 
         teachersSnap.forEach(doc => {
@@ -70,7 +69,7 @@ exports.generateSitemap = onRequest({ region: "us-central1" }, async (req, res) 
         });
 
         // 3. Courses (Published & Not Deleted)
-        const coursesSnap = await db.collectionGroup('courses') // Courses are subcollections of teachers? "courses" (line 35 of TeacherCoursesTab.tsx suggests teacher.courses array? NO. Firestore courses are likely subcollections OR root.)
+        // Iterating teachers to access their sub-collections or array data
         // Let's check logic: useData uses `courses` collection???
         // DataContext.tsx: `onSnapshot(collection(db, "teachers")...` -> teachers contain courses?
         // Teacher object has `courses: Course[]`.

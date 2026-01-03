@@ -1,6 +1,7 @@
 {
   "projects": {
-    "app": "clazz2-new"
+    "app": "clazz2-new",
+    "default": "clazz2-new"
   },
   "targets": {},
   "etags": {}
