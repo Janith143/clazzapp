@@ -15,7 +15,7 @@ const slugify = (text) => {
         .replace(/\-\-+/g, '-');        // Replace multiple - with single -
 };
 
-exports.generateSitemap = onRequest({ region: "us-central1" }, async (req, res) => {
+exports.generateSitemap = onRequest({ region: "asia-south1" }, async (req, res) => {
     try {
         const baseUrl = "https://clazz.lk";
         const urls = [];
@@ -140,11 +140,7 @@ exports.generateSitemap = onRequest({ region: "us-central1" }, async (req, res) 
             const ti = doc.data();
             if (ti.events && Array.isArray(ti.events)) {
                 ti.events.forEach(e => {
-                    // Check if not already added? (Teachers might be participants, but organizer is TI)
-                    // If event is hosted by TI, it's in TI events.
                     if (e.isPublished && !e.isDeleted) {
-                        // Avoid duplicates if I added check? Map usage?
-                        // For now, assume IDs unique.
                         urls.push({
                             loc: `${baseUrl}/event/${e.id}`,
                             changefreq: 'weekly',
@@ -153,6 +149,32 @@ exports.generateSitemap = onRequest({ region: "us-central1" }, async (req, res) 
                     }
                 });
             }
+        });
+
+        // 5. Programmatic SEO Pages (Subjects x Locations)
+        const sriLankanDistricts = [
+            "Ampara", "Anuradhapura", "Badulla", "Batticaloa", "Colombo", "Galle", "Gampaha", "Hambantota",
+            "Jaffna", "Kalutara", "Kandy", "Kegalle", "Kilinochchi", "Kurunegala", "Mannar", "Matale",
+            "Matara", "Monaragala", "Mullaitivu", "Nuwara Eliya", "Polonnaruwa", "Puttalam", "Ratnapura",
+            "Trincomalee", "Vavuniya"
+        ];
+
+        const popularSubjects = [
+            "Combined Mathematics", "Physics", "Chemistry", "Biology", "ICT", "Economics", "Business Studies", "Accounting",
+            "Sinhala", "Tamil", "English", "History", "Geography", "Science", "Mathematics", "Buddhism",
+            "French", "Japanese", "Korean", "Political Science", "Logic", "Engineering Technology", "Bio Systems Technology"
+        ];
+
+        sriLankanDistricts.forEach(district => {
+            popularSubjects.forEach(subject => {
+                const subjectSlug = slugify(subject);
+                const locationSlug = slugify(district);
+                urls.push({
+                    loc: `${baseUrl}/best-${subjectSlug}-classes-in-${locationSlug}`,
+                    changefreq: 'weekly',
+                    priority: '0.8'
+                });
+            });
         });
 
         // Construct XML

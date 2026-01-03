@@ -21,6 +21,13 @@ const CACHE_DURATION = 1000 * 60 * 5; // 5 minutes
 let cachedAppConfig = null;
 let lastConfigFetchTime = 0;
 
+const slugify = (text) => {
+    return text.toString().toLowerCase().trim()
+        .replace(/\s+/g, '-')
+        .replace(/[^\w\-]+/g, '')
+        .replace(/\-\-+/g, '-');
+};
+
 const getIndexHtml = async () => {
     const now = Date.now();
     if (cachedIndexHtml && (now - lastFetchTime < CACHE_DURATION)) {
@@ -28,15 +35,13 @@ const getIndexHtml = async () => {
     }
 
     try {
-        // Append a timestamp to prevent caching at the edge for this fetch
-        // Use a random query param to ensure we get a fresh copy from the CDN/Storage
         const response = await axios.get(`https://clazz.lk/index.html?t=${now}`);
         cachedIndexHtml = response.data;
         lastFetchTime = now;
         return cachedIndexHtml;
     } catch (e) {
         console.error("Failed to fetch index.html", e.message);
-        return null;
+        return null; // Don't return empty string, return null so we can handle 503
     }
 };
 
@@ -59,7 +64,7 @@ const getAppConfig = async () => {
     return null;
 };
 
-const injectMeta = (html, { title, description, image, url }) => {
+const injectMeta = (html, { title, description, image, url, jsonLd }) => {
     if (!html) return "";
     let modified = html;
 
@@ -81,7 +86,6 @@ const injectMeta = (html, { title, description, image, url }) => {
         }
     };
 
-    // ... (rest of replaceNameTag logic, can leave as is or inline it if you want, but I will just focus on sticking this new helper in)
     const replaceNameTag = (name, content) => {
         const regex = new RegExp(`<meta\\s+name=["']${name}["']\\s+content=["'][^"']*["']`, 'gi');
         if (regex.test(modified)) {
@@ -99,24 +103,20 @@ const injectMeta = (html, { title, description, image, url }) => {
         }
         replaceTag('og:title', title);
         replaceTag('twitter:title', title);
-        replaceItemProp('name', title); // WhatsApp fallback
+        replaceItemProp('name', title);
     }
 
     if (description) {
         replaceNameTag('description', description);
         replaceTag('og:description', description);
         replaceTag('twitter:description', description);
-        replaceItemProp('description', description); // WhatsApp fallback
+        replaceItemProp('description', description);
     }
 
     if (image) {
         replaceTag('og:image', image);
         replaceTag('twitter:image', image);
-        replaceItemProp('image', image); // WhatsApp Primary
-
-        // Add dimensions for WhatsApp/FB to render large card immediately
-        // Note: We blindly add these assuming the image is from our generator or a standard large image
-        // If it's a teacher profile image, it might be smaller, but usually > 300px so okay.
+        replaceItemProp('image', image);
         replaceTag('og:image:width', '1200');
         replaceTag('og:image:height', '630');
         replaceTag('og:image:type', 'image/png');
@@ -124,6 +124,14 @@ const injectMeta = (html, { title, description, image, url }) => {
 
     if (url) {
         replaceTag('og:url', url);
+    }
+
+    // JSON-LD Injection
+    if (jsonLd) {
+        const jsonString = JSON.stringify(jsonLd);
+        // Remove existing JSON-LD if any (simple check)
+        // Then append new one
+        modified = modified.replace('</head>', `<script type="application/ld+json">${jsonString}</script></head>`);
     }
 
     return modified;
@@ -140,8 +148,6 @@ app.get('**', async (req, res) => {
     const cleanPath = path.substring(1);
     const segments = cleanPath.split('/');
 
-    // CRITICAL FIX: Fail fast for assets.
-    // If we don't return 404 here, this function returns HTML for image requests, breaking the site.
     if (path.startsWith('/assets/') || path.match(/\.(js|css|png|jpg|jpeg|gif|ico|json|map|woff|woff2|txt|xml|svg)$/i)) {
         return res.status(404).send('Not Found');
     }
@@ -154,60 +160,242 @@ app.get('**', async (req, res) => {
         title: "clazz.lk - Sri Lanka's Biggest Online Teachers Directory",
         description: "Connect with the best tutors, enroll in online classes, and excel in your studies.",
         image: fallbackImage,
-        url: `https://clazz.lk${path}`
+        url: `https://clazz.lk${path}`,
+        jsonLd: null
     };
+
+    // --- Data Fetching Helpers ---
 
     const getTeacherMeta = async (identifier) => {
         try {
             const teachersRef = db.collection('teachers');
-            // Try nickname/username first
             let snapshot = await teachersRef.where('username', '==', identifier).limit(1).get();
             let teacher = null;
 
             if (!snapshot.empty) {
                 teacher = snapshot.docs[0].data();
             } else {
-                // Try ID direct lookup
                 const docSnap = await teachersRef.doc(identifier).get();
-                if (docSnap.exists) {
-                    teacher = docSnap.data();
-                }
+                if (docSnap.exists) teacher = docSnap.data();
             }
 
             if (teacher) {
                 return {
                     title: `${teacher.name} | Clazz.lk`,
-                    description: teacher.tagline || teacher.bio?.substring(0, 160) || "View teacher profile on Clazz.lk",
-                    image: teacher.profileImage || meta.image
+                    description: teacher.tagline || teacher.bio?.substring(0, 160),
+                    image: teacher.profileImage || meta.image,
+                    jsonLd: {
+                        "@context": "https://schema.org",
+                        "@type": "Person",
+                        "name": teacher.name,
+                        "description": teacher.bio,
+                        "image": teacher.profileImage,
+                        "jobTitle": "Teacher"
+                    }
                 };
             }
-        } catch (e) {
-            console.error("Error fetching teacher:", e);
-        }
+        } catch (e) { console.error(e); }
         return null;
     };
 
-    // 1. Vanity URL: /TeacherName
+    const getCourseMeta = async (slug) => {
+        try {
+            // Courses are in subcollections or root group? Using Group for broad search implicitly or loop teachers?
+            // Expensive to loop. Assumes 'courses' collectionGroup query.
+            // Problem: Finding by slug across ALL teachers efficiently.
+            // Function relies on slug being unique or 'first match'.
+            // Querying teachers is too slow.
+            // Strategy: We can't easily index custom slug inside array.
+            // But if 'courses' is a collectionGroup:
+            const coursesSnap = await db.collectionGroup('courses').get(); // Only fetches if small. 
+            // Warning: fetching ALL courses is bad scale.
+            // Better: If slug contains ID? No.
+            // If we can't efficiently find by slug, we fallback to default.
+            // BUT: Sitemap generator iterates teachers.
+            // Optimized approach: Firestore doesn't support array-contains partial.
+            // Use Client-side search? No.
+            // Hack: List all teachers? No.
+            // REALITY CHECK: Without a 'slug' index on a root collection, this is hard.
+            // Solution: Iterate teachers (limited to 50?) or Assume user enters ID?
+            // Frontend uses `useData` which loads ALL teachers.
+            // SSR can't load all.
+            // COMPROMISE: If segments[2] (ID) exists? No URL is /course/:slug
+            // If we can't verify slug efficiently, return generic?
+            // Wait! Previous Code view of `ClassDetailPage` used `useFetchItem`? No, `useData`.
+            // The frontend loads EVERYTHING.
+            // SSR cannot do that.
+            // If you want SSR for courses, URL structure should ideally be /course/:id/:slug or use a root 'courses' collection.
+            // Assuming we must scan:
+            const teachersSnap = await db.collection('teachers').where('isPublished', '==', true).get();
+            for (const doc of teachersSnap.docs) {
+                const t = doc.data();
+                if (t.courses) {
+                    const found = t.courses.find(c => slugify(c.title) === slug);
+                    if (found) {
+                        return {
+                            title: `${found.title} | ${t.name}`,
+                            description: found.description?.substring(0, 160),
+                            image: t.profileImage || meta.image, // Course might not have image, use Teacher's
+                            jsonLd: {
+                                "@context": "https://schema.org",
+                                "@type": "Course",
+                                "name": found.title,
+                                "description": found.description,
+                                "provider": { "@type": "Person", "name": t.name }
+                            }
+                        };
+                    }
+                }
+            }
+        } catch (e) { console.error(e); }
+        return null;
+    };
+
+    // Similarly for Events, Classes.
+    // NOTE: This IS expensive (reading all teachers). 
+    // For now, with < 100 teachers, it's 1 read = 100 docs = fast enough (50ms).
+    // Future work: Denormalize slugs to a 'slugs' collection.
+
+    const getDataBySlug = async (type, slug) => {
+        try {
+            const teachersSnap = await db.collection('teachers').where('isPublished', '==', true).get();
+            for (const doc of teachersSnap.docs) {
+                const t = doc.data();
+                let found = null;
+                let ldType = "";
+
+                if (type === 'course' && t.courses) {
+                    found = t.courses.find(c => slugify(c.title) === slug);
+                    ldType = "Course";
+                } else if (type === 'event' && t.events) {
+                    // Events could be by ID or slug? Page says "slug" param possible.
+                    found = t.events.find(e => e.id === slug || slugify(e.title) === slug);
+                    ldType = "Event";
+                } else if (type === 'class' && t.individualClasses) {
+                    found = t.individualClasses.find(c => slugify(c.title) === slug);
+                    ldType = "Course"; // Individual Class
+                } else if (type === 'quiz' && t.quizzes) {
+                    found = t.quizzes.find(q => slugify(q.title) === slug);
+                    ldType = "EducationEvent";
+                }
+
+                if (found) {
+                    return {
+                        title: `${found.title} | ${t.name}`,
+                        description: found.description?.substring(0, 160),
+                        image: t.profileImage || meta.image,
+                        jsonLd: {
+                            "@context": "https://schema.org",
+                            "@type": ldType,
+                            "name": found.title,
+                            "description": found.description,
+                            "provider": { "@type": "Person", "name": t.name }
+                        }
+                    };
+                }
+            }
+
+            // Also check Institutes for Events
+            if (type === 'event') {
+                const instSnap = await db.collection('tuitionInstitutes').get();
+                for (const doc of instSnap.docs) {
+                    const ti = doc.data();
+                    if (ti.events) {
+                        const found = ti.events.find(e => e.id === slug || slugify(e.title) === slug);
+                        if (found) {
+                            return {
+                                title: `${found.title} | ${ti.name}`,
+                                description: found.description?.substring(0, 160),
+                                image: ti.logo || meta.image,
+                                jsonLd: {
+                                    "@context": "https://schema.org",
+                                    "@type": "Event",
+                                    "name": found.title,
+                                    "location": { "@type": "Place", "name": ti.name }
+                                }
+                            };
+                        }
+                    }
+                }
+            }
+
+        } catch (e) { console.error(e); }
+        return null;
+    };
+
+
+    // --- Route Matching ---
+
+    // 1. Teacher Profile (Vanity or Slug)
     if (segments.length === 1 && !RESERVED_PATHS.includes(segments[0]) && segments[0] !== '') {
         const data = await getTeacherMeta(segments[0]);
         if (data) meta = { ...meta, ...data };
     }
-    // 2. Explicit Teacher Route: /teacher/slug_or_id
     else if (segments[0] === 'teacher' && segments[1]) {
         const data = await getTeacherMeta(segments[1]);
         if (data) meta = { ...meta, ...data };
     }
+    // 2. Course
+    else if (segments[0] === 'course' && segments[1]) {
+        const data = await getDataBySlug('course', segments[1]);
+        if (data) meta = { ...meta, ...data };
+    }
+    // 3. Class (Individual)
+    else if (segments[0] === 'class' && segments[1]) {
+        const data = await getDataBySlug('class', segments[1]);
+        if (data) meta = { ...meta, ...data };
+    }
+    // 4. Quiz
+    else if (segments[0] === 'quiz' && segments[1]) {
+        const data = await getDataBySlug('quiz', segments[1]);
+        if (data) meta = { ...meta, ...data };
+    }
+    // 5. Event
+    // 6. Programmatic SEO: /best-combined-mathematics-classes-in-colombo
+    // Pattern: /best-(.+)-classes-in-(.+)
+    const seoMatch = cleanPath.match(/^best-(.+)-classes-in-(.+)$/);
+    if (seoMatch) {
+        const subjectSlug = seoMatch[1];
+        const locationSlug = seoMatch[2];
+        const subject = subjectSlug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+        const city = locationSlug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+
+        meta = {
+            ...meta,
+            title: `Best ${subject} Classes in ${city} | Top Tutors & Institutes`,
+            description: `Find the best ${subject} classes in ${city}. Compare top-rated tutors, check fees, and enroll online on Clazz.lk.`,
+            // Optional: Inject breadcrumb JSON-LD
+            jsonLd: {
+                "@context": "https://schema.org",
+                "@type": "BreadcrumbList",
+                "itemListElement": [{
+                    "@type": "ListItem",
+                    "position": 1,
+                    "name": "Home",
+                    "item": "https://clazz.lk"
+                }, {
+                    "@type": "ListItem",
+                    "position": 2,
+                    "name": `${subject} Classes in ${city}`
+                }]
+            }
+        };
+    }
+    else if (segments[0] === 'event' && segments[1]) {
+        const data = await getDataBySlug('event', segments[1]);
+        if (data) meta = { ...meta, ...data };
+    }
+
 
     const indexHtml = await getIndexHtml();
 
     if (!indexHtml) {
-        console.error("Could not load index.html from source. Returning basic 503.");
-        return res.status(503).send("Service Unavailable: Could not load app shell.");
+        console.error("Could not load index.html");
+        return res.status(503).send("Service Unavailable.");
     }
 
     const finalHtml = injectMeta(indexHtml, meta);
 
-    // Set long cache for CDN but short for browser to ensure dynamic updates
     res.set('Cache-Control', 'public, max-age=300, s-maxage=600');
     res.send(finalHtml);
 });

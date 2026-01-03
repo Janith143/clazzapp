@@ -150,6 +150,20 @@ const Footer: React.FC = () => {
                                 </button>
                             </li>
                         </ul>
+
+                    </div>
+
+                    <div>
+                        <h3 className="font-semibold text-light-text dark:text-dark-text">Popular Classes</h3>
+                        <ul className="mt-4 space-y-2 text-sm">
+                            <li><button onClick={() => handleNavigate({ name: 'programmatic_landing', subject: 'combined-mathematics', location: 'colombo' })} className="text-light-subtle dark:text-dark-subtle hover:text-primary text-left">Combined Maths in Colombo</button></li>
+                            <li><button onClick={() => handleNavigate({ name: 'programmatic_landing', subject: 'physics', location: 'gampaha' })} className="text-light-subtle dark:text-dark-subtle hover:text-primary text-left">Physics in Gampaha</button></li>
+                            <li><button onClick={() => handleNavigate({ name: 'programmatic_landing', subject: 'chemistry', location: 'galle' })} className="text-light-subtle dark:text-dark-subtle hover:text-primary text-left">Chemistry in Galle</button></li>
+                            <li><button onClick={() => handleNavigate({ name: 'programmatic_landing', subject: 'biology', location: 'kandy' })} className="text-light-subtle dark:text-dark-subtle hover:text-primary text-left">Biology in Kandy</button></li>
+                            <li><button onClick={() => handleNavigate({ name: 'programmatic_landing', subject: 'english', location: 'negombo' })} className="text-light-subtle dark:text-dark-subtle hover:text-primary text-left">English in Negombo</button></li>
+                            <li><button onClick={() => handleNavigate({ name: 'programmatic_landing', subject: 'economics', location: 'colombo' })} className="text-light-subtle dark:text-dark-subtle hover:text-primary text-left">Economics in Colombo</button></li>
+                            <li><button onClick={() => handleNavigate({ name: 'all_classes' })} className="text-primary font-semibold hover:underline text-left mt-2">Browse All Locations</button></li>
+                        </ul>
                     </div>
 
                     <div>
@@ -185,7 +199,7 @@ const Footer: React.FC = () => {
                     </div>
                 </div>
             </div>
-        </footer>
+        </footer >
     );
 };
 

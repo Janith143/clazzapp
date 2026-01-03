@@ -213,8 +213,18 @@ const getPageStateFromURL = (): PageState => {
     if (match) return { name: 'admin_ti_dashboard', instituteId: match.instituteId };
 
     match = matchPath(pathname, '/admin/student/:userId');
+    match = matchPath(pathname, '/admin/student/:userId');
     if (match) return { name: 'admin_view_student_dashboard', userId: match.userId };
 
+    // Programmatic SEO: /best-combined-mathematics-classes-in-colombo
+    const seoMatch = pathname.match(/^\/best-(.+)-classes-in-(.+)$/);
+    if (seoMatch) {
+        const subjectSlug = seoMatch[1];
+        const locationSlug = seoMatch[2];
+        // Convert slugs back to readable if needed, or pass as slugs
+        // We'll pass as slugs to the page, page can format them.
+        return { name: 'programmatic_landing', subject: subjectSlug, location: locationSlug };
+    }
 
     return { name: 'home' };
 };
@@ -253,6 +263,9 @@ const getURLPathFromPageState = (page: PageState): string => {
         case 'teacher_referral_landing':
             path = `/?teacherRef=${page.refCode}`;
             if (page.level) path += `&level=${page.level}`;
+            break;
+        case 'programmatic_landing':
+            path = `/best-${page.subject}-classes-in-${page.location}`;
             break;
 
         case 'all_teachers': path = '/teachers'; break;

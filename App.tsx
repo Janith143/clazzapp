@@ -58,6 +58,7 @@ const SubscriptionSuccessPage = React.lazy(() => import('./pages/SubscriptionSuc
 const ReportContentPage = React.lazy(() => import('./pages/ReportContentPage'));
 const RequestAccountDeletionPage = React.lazy(() => import('./pages/RequestAccountDeletionPage'));
 const UnsubscribePage = React.lazy(() => import('./pages/UnsubscribePage'));
+const ProgrammaticLandingPage = React.lazy(() => import('./pages/ProgrammaticLandingPage'));
 
 import { Quiz, Sale, PageState, Notification as AppNotification } from './types'; // Aliased Notification to avoid conflict
 import { SpinnerIcon, CheckCircleIcon } from './components/Icons';
@@ -393,6 +394,7 @@ function AppContent() {
       case 'ti_dashboard': return <TuitionInstituteDashboard />;
       case 'admin_ti_dashboard': return <TuitionInstituteDashboard instituteId={pageState.instituteId} isAdminView={true} />;
       case 'attendance_scanner': return <AttendanceScannerPage classId={pageState.classId} eventId={pageState.eventId} />;
+      case 'programmatic_landing': return <ProgrammaticLandingPage subjectSlug={pageState.subject} locationSlug={pageState.location} />;
       case 'edit_teacher_profile': {
         const { teacherId } = pageState;
         const teacher = teachers.find(t => t.id === teacherId);

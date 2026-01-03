@@ -64,7 +64,8 @@ export type PageState =
   | { name: 'subscription_success'; planLevel: number; amount: number; transactionId: string; billingDetails: BillingDetails; refCode: string }
   | { name: 'report_content' }
   | { name: 'request_deletion' }
-  | { name: 'unsubscribe'; type?: 'sms' | 'email' };
+  | { name: 'unsubscribe'; type?: 'sms' | 'email' }
+  | { name: 'programmatic_landing'; subject: string; location: string };
 
 export type ModalState =
   | { name: 'none' }
