@@ -45,7 +45,10 @@ const ClassDetailPage: React.FC<ClassDetailPageProps> = ({ classId, slug }) => {
     const structuredData = useMemo(() => {
         if (!classInfo || !teacher) return null;
         const classItem = classInfo as IndividualClass;
-        // Individual Class treated as a Course/CourseInstance
+
+        const isOnline = classItem.mode === 'Online' || classItem.mode === 'Both';
+        const isPhysical = classItem.mode === 'Physical' || classItem.mode === 'Both';
+
         return {
             "@context": "https://schema.org",
             "@type": "Course",
@@ -55,6 +58,31 @@ const ClassDetailPage: React.FC<ClassDetailPageProps> = ({ classId, slug }) => {
                 "@type": "Person",
                 "name": teacher.name,
                 "image": teacher.avatar || teacher.profileImage
+            },
+            "hasCourseInstance": {
+                "@type": "CourseInstance",
+                "courseMode": isOnline ? (isPhysical ? "Blended" : "Online") : "OnSite",
+                "courseWorkload": classItem.endTime ? `PT${(() => {
+                    const [startH, startM] = classItem.startTime.split(':').map(Number);
+                    const [endH, endM] = classItem.endTime.split(':').map(Number);
+                    let diff = (endH * 60 + endM) - (startH * 60 + startM);
+                    if (diff < 0) diff += 24 * 60;
+                    const h = Math.floor(diff / 60);
+                    const m = diff % 60;
+                    return `${h}H${m}M`;
+                })()}` : undefined,
+                "startDate": classItem.date ? new Date(`${classItem.date}T${classItem.startTime}`).toISOString() : undefined,
+                "location": isPhysical ? {
+                    "@type": "Place",
+                    "name": "Physical Class Venue", // Could be dynamic if venue field exists
+                    "address": {
+                        "@type": "PostalAddress",
+                        "addressCountry": "LK"
+                    }
+                } : {
+                    "@type": "VirtualLocation",
+                    "url": classItem.joiningLink || "https://clazz.lk"
+                }
             },
             "offers": {
                 "@type": "Offer",

@@ -105,14 +105,31 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId, slug }) => {
 
     const structuredData = useMemo(() => {
         if (!event || !organizer) return null;
+
+        const isOnline = event.mode === 'Online';
+        // Detailed Location Logic
+        const location = isOnline ? {
+            "@type": "VirtualLocation",
+            "url": "https://clazz.lk" // Or event joining link if available publicly? unlikely.
+        } : {
+            "@type": "Place",
+            "name": event.venue || "TBD",
+            "address": {
+                "@type": "PostalAddress",
+                "addressCountry": "LK"
+            }
+        };
+
         return {
             "@context": "https://schema.org",
             "@type": "Event",
             "name": event.title,
             "description": event.description || '',
             "startDate": `${event.startDate}T${event.startTime}`,
-            "endDate": `${event.startDate}T${event.endTime || '23:59'}`, // Fallback if end time missing
-            "eventStatus": "https://schema.org/EventScheduled",
+            "endDate": `${event.endDate}T${event.endTime || '23:59'}`, // Fallback if end time missing
+            "eventStatus": getDynamicEventStatus(event) === 'canceled' ? "https://schema.org/EventCancelled" : "https://schema.org/EventScheduled",
+            "eventAttendanceMode": isOnline ? "https://schema.org/OnlineEventAttendanceMode" : "https://schema.org/OfflineEventAttendanceMode",
+            "location": location,
             "organizer": {
                 "@type": (organizer as any).userId ? "Person" : "Organization",
                 "name": organizer.name,
@@ -120,12 +137,12 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId, slug }) => {
             "image": event.flyerImage ? [event.flyerImage] : [],
             "offers": {
                 "@type": "Offer",
-                "price": 0, // Events might be free or have tickets, assuming generic for now or 0
+                "price": event.tickets?.price || 0,
                 "priceCurrency": "LKR",
                 "availability": "https://schema.org/InStock"
             }
         };
-    }, [event, organizer]);
+    }, [event, organizer, dynamicStatus]);
 
     const [isConfirmingEnrollment, setIsConfirmingEnrollment] = useState(false);
 

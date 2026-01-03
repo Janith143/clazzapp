@@ -209,12 +209,46 @@ const QuizDetailPage: React.FC<QuizDetailPageProps> = ({ quizId, instanceId, slu
         return <button onClick={handleEnrollClick} className="w-full bg-primary text-white font-bold py-3 rounded-md hover:bg-primary-dark">Register Now</button>;
     };
 
+    const structuredData = useMemo(() => {
+        if (!quiz || !teacher) return null;
+
+        return {
+            "@context": "https://schema.org",
+            "@type": "EducationEvent",
+            "name": quiz.title,
+            "description": quiz.description,
+            "startDate": `${quiz.date}T${quiz.startTime}`,
+            "endDate": new Date(new Date(`${quiz.date}T${quiz.startTime}`).getTime() + quiz.durationMinutes * 60000).toISOString(),
+            "eventStatus": "https://schema.org/EventScheduled",
+            "eventAttendanceMode": "https://schema.org/OnlineEventAttendanceMode",
+            "location": {
+                "@type": "VirtualLocation",
+                "url": "https://clazz.lk"
+            },
+            "organizer": {
+                "@type": "Person",
+                "name": teacher.name,
+                "image": teacher.profileImage
+            },
+            "educationalLevel": "Intermediate", // Placeholder, could be dynamic if subject level exists
+            "learningResourceType": "Assessment",
+            "offers": {
+                "@type": "Offer",
+                "price": quiz.fee,
+                "priceCurrency": "LKR",
+                "availability": "https://schema.org/InStock",
+                "category": "Paid"
+            }
+        };
+    }, [quiz, teacher]);
+
     return (
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-slideInUp">
             <SEOHead
                 title={quiz ? quiz.title : 'Quiz Details'}
                 description={quiz ? quiz.description.substring(0, 160) : 'Take this quiz on Clazz.lk'}
                 image={teacher ? teacher.profileImage : undefined}
+                structuredData={structuredData}
             />
             <div className="mb-4">
                 {instanceId ? (
