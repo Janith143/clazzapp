@@ -58,6 +58,10 @@ export interface User {
     guardianEmail?: string;
     guardianPhone?: string;
     address?: Address;
+    // Managed Teacher Fields
+    isManaged?: boolean;
+    instituteId?: string;
+    commissionRate?: number; // Override default institute commission
     status: 'active' | 'pending' | 'suspended';
     enrolledCourseIds?: string[];
     enrolledClassIds?: number[];

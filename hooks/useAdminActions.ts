@@ -115,31 +115,45 @@ export const useAdminActions = (deps: any) => {
 
 
 
-    const handleUpdateWithdrawal = useCallback(async (userId: string, withdrawalId: string, status: 'completed' | 'failed', notes?: string) => {
+    const handleUpdateWithdrawal = useCallback(async (userId: string, withdrawalId: string, status: 'pending' | 'approved' | 'rejected', notes?: string) => {
         try {
+            // Determine Entity Type
+            let collectionName = '';
+            let isTeacher = false;
+            let isInstitute = false;
+
             const user = users.find(u => u.id === userId);
-            if (!user) throw new Error("User not found");
+            const teacher = teachers.find(t => t.id === userId);
+            const institute = tuitionInstitutes.find(ti => ti.id === userId);
 
-            const isTeacher = user.role === 'teacher';
-            const collectionName = isTeacher ? 'teachers' : 'users';
+            if (teacher) {
+                isTeacher = true;
+                collectionName = teacher._collection || 'teachers'; // Use legacy or dynamic
+            } else if (institute) {
+                isInstitute = true;
+                collectionName = 'tuitionInstitutes';
+            } else if (user) {
+                collectionName = 'users';
+            } else {
+                throw new Error("User/Entity not found");
+            }
+
             const profileRef = doc(db, collectionName, userId);
-
             let withdrawalAmount = 0;
 
             await runTransaction(db, async (transaction) => {
                 const profileDoc = await transaction.get(profileRef);
                 if (!profileDoc.exists()) throw new Error("Profile not found");
 
-                const profileData = profileDoc.data() as Teacher | User;
+                const profileData = profileDoc.data() as any;
                 const withdrawalHistory = [...(profileData.withdrawalHistory || [])];
-                const withdrawalIndex = withdrawalHistory.findIndex(w => w.id === withdrawalId);
+                const withdrawalIndex = withdrawalHistory.findIndex((w: any) => w.id === withdrawalId);
                 if (withdrawalIndex === -1) throw new Error("Withdrawal record not found.");
 
                 const withdrawal = { ...withdrawalHistory[withdrawalIndex] };
 
-                if (withdrawal.status !== 'pending') {
-                    throw new Error('This request has already been processed.');
-                }
+                // allow re-processing if needed, but usually strictly from pending
+                // if (withdrawal.status !== 'pending' && status !== 'pending') { ... } 
 
                 withdrawal.status = status;
                 withdrawal.processedAt = new Date().toISOString();
@@ -150,20 +164,37 @@ export const useAdminActions = (deps: any) => {
 
                 let updates: any = { withdrawalHistory };
 
-                if (isTeacher) {
-                    const teacherProfile = profileData as Teacher;
-                    let earnings = { ...teacherProfile.earnings };
-                    if (status === 'completed') {
-                        earnings.withdrawn = (earnings.withdrawn || 0) + withdrawal.amount;
-                    } else if (status === 'failed') {
-                        earnings.available = (earnings.available || 0) + withdrawal.amount;
+                // Update withdrawal request doc status as well
+                const reqRef = doc(db, 'withdrawal_requests', withdrawalId);
+                transaction.set(reqRef, { status, processedAt: new Date().toISOString(), notes: notes || '' }, { merge: true });
+
+                if (isTeacher || isInstitute) {
+                    let earnings = { ...profileData.earnings };
+
+                    // Logic assumes amount was deducted from 'available' at request time
+                    // If we use 'pending' field:
+                    const hasPendingField = typeof earnings.pending === 'number';
+
+                    if (status === 'approved') {
+                        // Move from Pending (if tracks it) to Withdrawn
+                        if (hasPendingField) {
+                            earnings.pending = Math.max(0, (earnings.pending || 0) - withdrawalAmount);
+                        }
+                        earnings.withdrawn = (earnings.withdrawn || 0) + withdrawalAmount;
+                    } else if (status === 'rejected') {
+                        // Refund to Available
+                        if (hasPendingField) {
+                            earnings.pending = Math.max(0, (earnings.pending || 0) - withdrawalAmount);
+                        }
+                        earnings.available = (earnings.available || 0) + withdrawalAmount;
                     }
+                    // If status 'pending', we assume it's already set correctly (deducted available, added pending)
+
                     updates.earnings = earnings;
                 } else {
-                    const userProfile = profileData as User;
-                    if (status === 'failed') {
-                        // Assuming non-teacher withdrawals refund to account balance if failed
-                        updates.accountBalance = (userProfile.accountBalance || 0) + withdrawal.amount;
+                    // Regular User (Student/Parent) refund
+                    if (status === 'rejected') {
+                        updates.accountBalance = (profileData.accountBalance || 0) + withdrawalAmount;
                     }
                 }
 
@@ -172,25 +203,36 @@ export const useAdminActions = (deps: any) => {
 
             ui.addToast(`Withdrawal status updated to ${status}.`, 'success');
 
-            if (status === 'completed' && user) {
-                const subject = "Your Withdrawal Request has been Processed";
-                const htmlBody = `
-                    <div style="font-family: Arial, sans-serif; color: #333;">
-                        <p>Dear ${user.firstName},</p>
-                        <p>Your withdrawal request for <strong>${currencyFormatter.format(withdrawalAmount)}</strong> has been processed.</p>
-                        <p>The funds should be reflected in your bank account shortly. Please check your account.</p>
-                        <p>Thank you for being a part of Clazz.lk!</p>
-                        <p>The Clazz.lk Team</p>
-                    </div>
-                `;
-                await sendNotification(functionUrls.notification, { email: user.email }, subject, htmlBody);
+            // Send Notification
+            if (status === 'approved' || status === 'rejected') {
+                const email = teacher?.email || institute?.email || user?.email; // Institute email might be nested? TuitionInstitute has contact.email usually? No, userId maps to auth. 
+                // TuitionInstitute has `contact: { email: ... }` but `userId` is the owner.
+                // If institute, email should be `institute.contact.email`.
+
+                let targetEmail = email;
+                if (isInstitute && institute) {
+                    targetEmail = institute.contact?.email || ''; // Fallback
+                }
+
+                if (targetEmail) {
+                    const subject = `Withdrawal Request ${status === 'approved' ? 'Approved' : 'Rejected'}`;
+                    const htmlBody = `
+                        <div style="font-family: Arial, sans-serif; color: #333;">
+                            <p>Dear User,</p>
+                            <p>Your withdrawal request for <strong>${currencyFormatter.format(withdrawalAmount)}</strong> has been <strong>${status}</strong>.</p>
+                            ${notes ? `<p>Note: ${notes}</p>` : ''}
+                            <p>The Clazz.lk Team</p>
+                        </div>
+                    `;
+                    await sendNotification(functionUrls.notification, { email: targetEmail }, subject, htmlBody);
+                }
             }
 
         } catch (e) {
             console.error(e);
             ui.addToast((e as Error).message || "Failed to update withdrawal.", "error");
         }
-    }, [users, ui, currencyFormatter]);
+    }, [users, teachers, tuitionInstitutes, ui, currencyFormatter, functionUrls]);
 
     const handleRemoveDefaultCoverImage = useCallback(async (imageUrl: string) => {
         try {
@@ -549,7 +591,15 @@ export const useAdminActions = (deps: any) => {
                     throw new Error("Insufficient available balance for withdrawal.");
                 }
 
-                const newWithdrawal: Withdrawal = { id: `w_${Date.now()}`, userId: teacher.userId, amount, requestedAt: new Date().toISOString(), status: 'pending' };
+                const newWithdrawal: Withdrawal = {
+                    id: `w_${Date.now()}`,
+                    userId: teacher.userId || teacher.id, // Fallback if managed
+                    teacherId: teacher.id,
+                    userType: 'teacher',
+                    amount,
+                    requestedAt: new Date().toISOString(),
+                    status: 'pending'
+                };
 
                 transaction.update(teacherRef, {
                     'earnings.available': increment(-amount),
@@ -826,7 +876,6 @@ export const useAdminActions = (deps: any) => {
         handleAssignReferralCode,
         handleGenerateVouchers,
         handleDeleteVoucher,
-        handleUpdateVoucher,
         handleUpdateVoucher,
         handleUpdateDeveloperSettings,
         handleUpdateHomePageCardCounts

@@ -25,7 +25,7 @@ const AllTeachersPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const loader = useRef(null);
   const isLoadingMore = useRef(false);
-  
+
   useSEO(
     'All Teachers | clazz.lk',
     'Browse and find expert tutors for a variety of subjects across Sri Lanka.'
@@ -34,46 +34,46 @@ const AllTeachersPage: React.FC = () => {
   const onViewTeacher = (teacherId: string) => {
     const teacher = teachers.find(t => t.id === teacherId);
     if (teacher?.username) {
-        handleNavigate({ name: 'teacher_profile_slug', slug: teacher.username });
+      handleNavigate({ name: 'teacher_profile_slug', slug: teacher.username });
     } else if (teacher) {
-        // Fallback for older data without username
-        handleNavigate({ name: 'teacher_profile', teacherId: teacher.id });
+      // Fallback for older data without username
+      handleNavigate({ name: 'teacher_profile', teacherId: teacher.id });
     }
   };
   const onBack = () => handleNavigate({ name: 'home' });
 
   const filteredAndSortedTeachers = useMemo(() => {
-    const approvedTeachers = teachers.filter(t => t.registrationStatus === 'approved');
-    
+    const approvedTeachers = teachers.filter(t => t.registrationStatus === 'approved' && t.isPublished !== false);
+
     const filtered = approvedTeachers.filter(teacher => {
       if (!searchQuery.trim()) return true;
       const lowerQuery = searchQuery.toLowerCase();
-      
-      const locations = teacher.teachingLocations 
-          ? teacher.teachingLocations.map(l => `${l.instituteName} ${l.town} ${l.district}`).join(' ') 
-          : '';
+
+      const locations = teacher.teachingLocations
+        ? teacher.teachingLocations.map(l => `${l.instituteName} ${l.town} ${l.district}`).join(' ')
+        : '';
 
       const searchableContent = [
         teacher.id,
         teacher.name,
         teacher.tagline,
         teacher.bio,
-        teacher.contact?.location, 
+        teacher.contact?.location,
         ...teacher.subjects,
         ...teacher.qualifications,
         locations
       ].join(' ').toLowerCase();
       return searchableContent.includes(lowerQuery);
     });
-    
+
     const userMap = new Map(users.map(u => [u.id, u]));
 
     return [...filtered].sort((a, b) => {
       switch (sortOption) {
         case 'newest':
-            const userA = userMap.get(a.userId);
-            const userB = userMap.get(b.userId);
-            return new Date(userB?.createdAt || 0).getTime() - new Date(userA?.createdAt || 0).getTime();
+          const userA = userMap.get(a.userId);
+          const userB = userMap.get(b.userId);
+          return new Date(userB?.createdAt || 0).getTime() - new Date(userA?.createdAt || 0).getTime();
         case 'rating_desc': return getAverageRating(b.ratings).average - getAverageRating(a.ratings).average;
         case 'name_desc': return b.name.localeCompare(a.name);
         case 'experience_desc': return b.experienceYears - a.experienceYears;
@@ -94,8 +94,8 @@ const AllTeachersPage: React.FC = () => {
   const handleObserver = useCallback((entries: IntersectionObserverEntry[]) => {
     const target = entries[0];
     if (target.isIntersecting && !isLoadingMore.current) {
-        isLoadingMore.current = true;
-        setVisibleCount(prev => prev + ITEMS_PER_PAGE);
+      isLoadingMore.current = true;
+      setVisibleCount(prev => prev + ITEMS_PER_PAGE);
     }
   }, []);
 
@@ -105,18 +105,18 @@ const AllTeachersPage: React.FC = () => {
 
   useEffect(() => {
     const observer = new IntersectionObserver(handleObserver, {
-        root: null,
-        rootMargin: "200px",
-        threshold: 0
+      root: null,
+      rootMargin: "200px",
+      threshold: 0
     });
     const currentLoader = loader.current;
     if (currentLoader) {
-        observer.observe(currentLoader);
+      observer.observe(currentLoader);
     }
     return () => {
-        if (currentLoader) {
-            observer.unobserve(currentLoader);
-        }
+      if (currentLoader) {
+        observer.unobserve(currentLoader);
+      }
     };
   }, [handleObserver, paginatedTeachers]); // Added paginatedTeachers to dependency array
 
@@ -131,7 +131,7 @@ const AllTeachersPage: React.FC = () => {
 
       <div className="text-center mb-8">
         <p className="mb-3 text-xs text-light-subtle dark:text-dark-subtle">
-            Interested in teaching? <a href="https://info.clazz.lk" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-medium">Join as a teacher today</a>
+          Interested in teaching? <a href="https://info.clazz.lk" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline font-medium">Join as a teacher today</a>
         </p>
         <h1 className="text-4xl font-bold">Meet Our Educators</h1>
         <p className="mt-2 text-lg text-light-subtle dark:text-dark-subtle">Find the perfect teacher to guide you on your learning journey.</p>
@@ -170,7 +170,7 @@ const AllTeachersPage: React.FC = () => {
           </div>
           {paginatedTeachers.length < filteredAndSortedTeachers.length && (
             <div ref={loader} className="flex justify-center items-center h-20">
-                <div className="w-8 h-8 border-4 border-dashed rounded-full animate-spin border-primary"></div>
+              <div className="w-8 h-8 border-4 border-dashed rounded-full animate-spin border-primary"></div>
             </div>
           )}
         </>

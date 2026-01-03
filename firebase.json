@@ -64,6 +64,11 @@
       "source": "backend/broadcast-notifications",
       "codebase": "broadcast-notifications",
       "runtime": "nodejs20"
+    },
+    {
+      "source": "backend/sitemap-generator",
+      "codebase": "sitemap-generator",
+      "runtime": "nodejs20"
     }
   ],
   "firestore": {
@@ -101,6 +106,10 @@
       }
     ],
     "rewrites": [
+      {
+        "source": "/sitemap.xml",
+        "function": "generateSitemap"
+      },
       {
         "source": "/payment-callback",
         "function": "paymentHandler"

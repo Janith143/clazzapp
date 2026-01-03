@@ -7,6 +7,7 @@ import { getDynamicClassStatus, getAverageRating, extractAndTruncate, getOptimiz
 import { slugify } from '../utils/slug';
 import { useNavigation } from '../contexts/NavigationContext';
 import { useUI } from '../contexts/UIContext';
+import { useData } from '../contexts/DataContext';
 
 interface ClassStatusBadgeProps {
     status: 'scheduled' | 'live' | 'finished' | 'canceled';
@@ -35,12 +36,16 @@ interface ClassCardProps {
     onEdit?: (classInfo: IndividualClass) => void;
     onDelete?: (classId: number, enrolledCount: number) => void;
     onTogglePublish?: (classId: number) => void;
+    onManageRecordings?: (classInfo: IndividualClass) => void;
     isOwnerView?: boolean;
 }
 
-const ClassCard: React.FC<ClassCardProps> = ({ classInfo, teacher, viewMode, enrollmentCount, onView, onEdit, onDelete, onTogglePublish, isOwnerView = false }) => {
+const ClassCard: React.FC<ClassCardProps> = ({ classInfo, teacher, viewMode, enrollmentCount, onView, onEdit, onDelete, onTogglePublish, onManageRecordings, isOwnerView = false }) => {
+    const { tuitionInstitutes } = useData();
     const { handleNavigate } = useNavigation();
     const { addToast } = useUI();
+
+    const institute = classInfo.instituteId ? tuitionInstitutes.find(i => i.id === classInfo.instituteId) : null;
 
     const onViewTeacher = (teacher: Teacher) => {
         if (teacher.username) {
@@ -87,6 +92,12 @@ const ClassCard: React.FC<ClassCardProps> = ({ classInfo, teacher, viewMode, enr
             <div className="p-5 flex-grow flex flex-col">
                 <div className="flex justify-between items-start">
                     <div className="flex items-center gap-2 flex-wrap">
+                        {institute && (
+                            <span className="px-2 py-1 text-xs font-semibold rounded-full bg-indigo-100 text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 flex items-center">
+                                <span className="mr-1">🏛️</span>
+                                {institute.name}
+                            </span>
+                        )}
                         <span className="px-2 py-1 text-xs font-semibold rounded-full bg-primary/10 text-primary-dark dark:text-primary-light uppercase tracking-wider">
                             {classInfo.subject}
                             {classInfo.medium && <span className="opacity-70 ml-1">({classInfo.medium.charAt(0)})</span>}
@@ -181,6 +192,16 @@ const ClassCard: React.FC<ClassCardProps> = ({ classInfo, teacher, viewMode, enr
                                 )}
                             </div>
                             <div className="flex items-center gap-1 ml-auto">
+                                {onManageRecordings && (
+                                    <button
+                                        onClick={() => onManageRecordings(classInfo)}
+                                        className="p-2 text-light-subtle dark:text-dark-subtle hover:text-primary dark:hover:text-primary-light transition-colors"
+                                        aria-label="Manage Recordings"
+                                        title="Manage Recordings"
+                                    >
+                                        <VideoCameraIcon className="h-4 w-4" />
+                                    </button>
+                                )}
                                 <button onClick={handleShare} className="p-2 text-light-subtle dark:text-dark-subtle hover:text-primary dark:hover:text-primary-light transition-colors" title="Share Link">
                                     <ShareIcon className="h-4 w-4" />
                                 </button>

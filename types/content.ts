@@ -69,6 +69,7 @@ export interface AttendanceRecord {
     attendedAt: string; // ISO String
     paymentStatus: 'paid' | 'unpaid' | 'paid_at_venue';
     paymentRef?: string; // saleId
+    enrollmentStatus?: 'enrolled' | 'new_enrollment';
 }
 
 export interface StudentScore {
@@ -121,6 +122,7 @@ export interface IndividualClass {
     isDeleted?: boolean;
     attendance?: AttendanceRecord[];
     isFreeSlot?: boolean;
+    onlinePaymentEnabled?: boolean; // If true, students can pay via platform for this specific class
     instanceStartDate?: string;
     medium?: string;
     grade?: string;

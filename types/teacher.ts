@@ -42,7 +42,9 @@ export interface KnownInstitute {
 
 export interface Teacher {
     id: string;
-    userId: string;
+    userId?: string; // Optional for managed teachers
+    isManaged?: boolean;
+    instituteId?: string;
     name: string;
     username: string;
     email: string;
@@ -87,4 +89,6 @@ export interface Teacher {
     youtubeLinks?: string[];
     googleDriveLink?: string;
     events?: Event[]; // Reusing the Event type (likely needs import adjustment if there's a name collision)
+    isPublished?: boolean;
+    isDeleted?: boolean;
 }

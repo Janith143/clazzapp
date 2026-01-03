@@ -11,7 +11,7 @@ interface TeacherCardProps {
 }
 
 const TeacherCard: React.FC<TeacherCardProps> = ({ teacher, onViewProfile }) => {
-    const { defaultCoverImages } = useData();
+    const { defaultCoverImages, tuitionInstitutes } = useData();
     const [imageIndex, setImageIndex] = useState(0);
     const [isImageLoading, setIsImageLoading] = useState(false);
 
@@ -22,6 +22,13 @@ const TeacherCard: React.FC<TeacherCardProps> = ({ teacher, onViewProfile }) => 
         if (customCovers.length > 0) return customCovers;
         return defaultCoverImages.length > 0 ? defaultCoverImages : ['https://via.placeholder.com/800x400?text=No+Cover'];
     }, [teacher.coverImages, defaultCoverImages]);
+
+    const instituteName = useMemo(() => {
+        if (teacher.isManaged && teacher.instituteId) {
+            return tuitionInstitutes.find(i => i.id === teacher.instituteId)?.name;
+        }
+        return null;
+    }, [teacher, tuitionInstitutes]);
 
     useEffect(() => {
         if (displayImages.length <= 1) return;
@@ -113,6 +120,14 @@ const TeacherCard: React.FC<TeacherCardProps> = ({ teacher, onViewProfile }) => 
                     srcSet={`${getOptimizedImageUrl(currentImage, 400)} 400w, ${getOptimizedImageUrl(currentImage, 800)} 800w`}
                     sizes="(max-width: 768px) 100vw, 400px"
                 />
+
+                {instituteName && (
+                    <div className="absolute top-2 left-2 z-20">
+                        <span className="inline-flex items-center px-2 py-1 rounded bg-white/90 dark:bg-black/70 text-xs font-bold text-primary shadow-sm backdrop-blur-sm">
+                            {instituteName} Teacher
+                        </span>
+                    </div>
+                )}
 
                 {displayImages.length > 1 && (
                     <>

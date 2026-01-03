@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Teacher, Withdrawal, User, TopUpRequest } from '../../types.ts';
+import { Teacher, Withdrawal, User, TopUpRequest, TuitionInstitute } from '../../types.ts';
 import { CheckCircleIcon, XCircleIcon, ClockIcon, ChevronDownIcon } from '../Icons.tsx';
 import RejectionReasonModal from '../RejectionReasonModal.tsx';
 import ImageViewerModal from '../ImageViewerModal.tsx';
@@ -7,16 +7,18 @@ import StudentDetailsModal from '../StudentDetailsModal.tsx';
 
 interface RevenueManagementProps {
     teachers: Teacher[];
+    tuitionInstitutes: TuitionInstitute[];
     allUsers: User[];
     topUpRequests: TopUpRequest[];
-    onUpdateWithdrawal: (userId: string, withdrawalId: string, status: Withdrawal['status'], notes?: string) => void;
+    onUpdateWithdrawal: (userId: string, withdrawalId: string, status: 'pending' | 'approved' | 'rejected', notes?: string) => void;
     handleTopUpDecision: (requestId: string, decision: 'approved' | 'rejected', reason?: string, newAmount?: number) => void;
     onViewTeacher: (teacherId: string) => void;
 }
 
-const RevenueManagement: React.FC<RevenueManagementProps> = ({ teachers, allUsers, topUpRequests, onUpdateWithdrawal, handleTopUpDecision, onViewTeacher }) => {
+const RevenueManagement: React.FC<RevenueManagementProps> = ({ teachers, tuitionInstitutes, allUsers, topUpRequests, onUpdateWithdrawal, handleTopUpDecision, onViewTeacher }) => {
     const [isRejectionModalOpen, setIsRejectionModalOpen] = React.useState(false);
     const [rejectionTarget, setRejectionTarget] = React.useState<TopUpRequest | null>(null);
+    const [withdrawalRejectionTarget, setWithdrawalRejectionTarget] = React.useState<{ userId: string; withdrawalId: string } | null>(null);
     const [imageToView, setImageToView] = React.useState<{ url: string; title: string } | null>(null);
     const [selectedStudent, setSelectedStudent] = useState<User | null>(null);
     const [editedAmounts, setEditedAmounts] = useState<{ [key: string]: string }>({});
@@ -24,9 +26,15 @@ const RevenueManagement: React.FC<RevenueManagementProps> = ({ teachers, allUser
 
     const pendingWithdrawals = React.useMemo(() => {
         const teacherWithdrawals = teachers.flatMap(teacher =>
-            teacher.withdrawalHistory
+            (teacher.withdrawalHistory || [])
                 .filter(w => w.status === 'pending')
-                .map(w => ({ ...w, user: allUsers.find(u => u.id === teacher.userId), userType: 'Teacher' }))
+                .map(w => ({ ...w, user: allUsers.find(u => u.id === teacher.userId) || { firstName: teacher.name, lastName: '(Teacher)', id: teacher.id } as any, userType: 'Teacher' }))
+        );
+
+        const instituteWithdrawals = tuitionInstitutes.flatMap(inst =>
+            (inst.withdrawalHistory || [])
+                .filter(w => w.status === 'pending')
+                .map(w => ({ ...w, user: { firstName: inst.name, lastName: '(Institute)', id: inst.id, email: inst.contact?.email } as any, userType: 'Institute' }))
         );
 
         const affiliateWithdrawals = allUsers
@@ -37,9 +45,9 @@ const RevenueManagement: React.FC<RevenueManagementProps> = ({ teachers, allUser
                     .map(w => ({ ...w, user, userType: 'Affiliate' }))
             );
 
-        return [...teacherWithdrawals, ...affiliateWithdrawals]
+        return [...teacherWithdrawals, ...instituteWithdrawals, ...affiliateWithdrawals]
             .sort((a, b) => new Date(a.requestedAt).getTime() - new Date(b.requestedAt).getTime());
-    }, [teachers, allUsers]);
+    }, [teachers, tuitionInstitutes, allUsers]);
 
     const pendingTopUps = React.useMemo(() => {
         return topUpRequests
@@ -47,24 +55,24 @@ const RevenueManagement: React.FC<RevenueManagementProps> = ({ teachers, allUser
             .map(req => ({ ...req, student: allUsers.find(u => u.id === req.studentId) }))
             .sort((a, b) => new Date(a.requestedAt).getTime() - new Date(b.requestedAt).getTime());
     }, [topUpRequests, allUsers]);
-    
+
     const approvedSlips = React.useMemo(() => {
         const approvedFromRequests = topUpRequests.filter(
             req => req.status === 'approved' && req.method === 'slip'
         );
-    
-        const approvedFromHistory = allUsers.flatMap(user => 
+
+        const approvedFromHistory = allUsers.flatMap(user =>
             (user.topUpHistory || [])
-            .filter(req => req.status === 'approved' && req.method === 'slip')
-            .map(req => ({ ...req, studentId: user.id })) // Ensure studentId is present
+                .filter(req => req.status === 'approved' && req.method === 'slip')
+                .map(req => ({ ...req, studentId: user.id })) // Ensure studentId is present
         );
-        
+
         const allApproved = [...approvedFromRequests, ...approvedFromHistory];
         const uniqueApprovedMap = new Map<string, TopUpRequest & { student?: User }>();
 
         allApproved.forEach(req => {
             if (!uniqueApprovedMap.has(req.id)) {
-                 uniqueApprovedMap.set(req.id, { ...req, student: allUsers.find(u => u.id === req.studentId) });
+                uniqueApprovedMap.set(req.id, { ...req, student: allUsers.find(u => u.id === req.studentId) });
             }
         });
 
@@ -83,11 +91,14 @@ const RevenueManagement: React.FC<RevenueManagementProps> = ({ teachers, allUser
     const handleRejectionSubmit = (reason: string) => {
         if (rejectionTarget) {
             handleTopUpDecision(rejectionTarget.id, 'rejected', reason);
+            setRejectionTarget(null);
+        } else if (withdrawalRejectionTarget) {
+            onUpdateWithdrawal(withdrawalRejectionTarget.userId, withdrawalRejectionTarget.withdrawalId, 'rejected', reason);
+            setWithdrawalRejectionTarget(null);
         }
         setIsRejectionModalOpen(false);
-        setRejectionTarget(null);
     };
-    
+
     const handleViewUser = (user?: User) => {
         if (!user) return;
         if (user.role === 'teacher') {
@@ -96,7 +107,7 @@ const RevenueManagement: React.FC<RevenueManagementProps> = ({ teachers, allUser
             setSelectedStudent(user);
         }
     };
-    
+
     const handleAmountChange = (requestId: string, value: string) => {
         setEditedAmounts(prev => ({ ...prev, [requestId]: value }));
     };
@@ -146,7 +157,7 @@ const RevenueManagement: React.FC<RevenueManagementProps> = ({ teachers, allUser
                                             <td className="px-4 py-3 whitespace-nowrap text-center space-x-2">
                                                 <button onClick={() => req.imageUrl && setImageToView({ url: req.imageUrl, title: 'Payment Slip' })} className="px-3 py-1 text-xs font-medium text-primary hover:underline">View Slip</button>
                                                 {isEdited ? (
-                                                     <button onClick={() => handleTopUpDecision(req.id, 'approved', undefined, parseFloat(editedAmounts[req.id]))} className="px-3 py-1 text-xs font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">
+                                                    <button onClick={() => handleTopUpDecision(req.id, 'approved', undefined, parseFloat(editedAmounts[req.id]))} className="px-3 py-1 text-xs font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">
                                                         Update & Approve
                                                     </button>
                                                 ) : (
@@ -168,11 +179,11 @@ const RevenueManagement: React.FC<RevenueManagementProps> = ({ teachers, allUser
             </div>
 
             <div className="bg-light-surface dark:bg-dark-surface p-6 rounded-lg shadow-md">
-                 <button onClick={() => setIsApprovedSlipsVisible(!isApprovedSlipsVisible)} className="w-full flex justify-between items-center text-left">
+                <button onClick={() => setIsApprovedSlipsVisible(!isApprovedSlipsVisible)} className="w-full flex justify-between items-center text-left">
                     <h2 className="text-xl font-bold">Approved Payment Slips ({approvedSlips.length})</h2>
                     <ChevronDownIcon className={`w-6 h-6 transition-transform ${isApprovedSlipsVisible ? 'rotate-180' : ''}`} />
                 </button>
-                 {isApprovedSlipsVisible && (
+                {isApprovedSlipsVisible && (
                     <div className="mt-4 overflow-x-auto animate-fadeIn">
                         {approvedSlips.length > 0 ? (
                             <table className="min-w-full divide-y divide-light-border dark:divide-dark-border text-sm">
@@ -247,8 +258,8 @@ const RevenueManagement: React.FC<RevenueManagementProps> = ({ teachers, allUser
                                         <td className="px-4 py-3 whitespace-nowrap text-right font-semibold">{currencyFormatter.format(w.amount)}</td>
                                         <td className="px-4 py-3 whitespace-nowrap">{new Date(w.requestedAt).toLocaleString()}</td>
                                         <td className="px-4 py-3 whitespace-nowrap text-center space-x-2">
-                                            <button onClick={() => onUpdateWithdrawal(w.userId, w.id, 'completed')} className="px-3 py-1 text-xs font-medium text-white bg-green-600 rounded-md hover:bg-green-700">Mark as Completed</button>
-                                            <button onClick={() => onUpdateWithdrawal(w.userId, w.id, 'failed', 'Admin rejected.')} className="px-3 py-1 text-xs font-medium text-white bg-red-600 rounded-md hover:bg-red-700">Mark as Failed</button>
+                                            <button onClick={() => onUpdateWithdrawal(w.userId || w.instituteId || (w.user as any).id, w.id, 'approved')} className="px-3 py-1 text-xs font-medium text-white bg-green-600 rounded-md hover:bg-green-700">Approve</button>
+                                            <button onClick={() => { setWithdrawalRejectionTarget({ userId: w.userId || w.instituteId || (w.user as any).id, withdrawalId: w.id }); setIsRejectionModalOpen(true); }} className="px-3 py-1 text-xs font-medium text-white bg-red-600 rounded-md hover:bg-red-700">Reject</button>
                                         </td>
                                     </tr>
                                 ))}
@@ -259,7 +270,7 @@ const RevenueManagement: React.FC<RevenueManagementProps> = ({ teachers, allUser
                     <p className="text-center py-8 text-light-subtle dark:text-dark-subtle">No pending withdrawal requests.</p>
                 )}
             </div>
-             {imageToView && (
+            {imageToView && (
                 <ImageViewerModal
                     isOpen={!!imageToView}
                     onClose={() => setImageToView(null)}
@@ -267,8 +278,8 @@ const RevenueManagement: React.FC<RevenueManagementProps> = ({ teachers, allUser
                     title={imageToView.title}
                 />
             )}
-             <RejectionReasonModal isOpen={isRejectionModalOpen} onClose={() => setIsRejectionModalOpen(false)} onSubmit={handleRejectionSubmit} />
-             {selectedStudent && <StudentDetailsModal isOpen={!!selectedStudent} onClose={() => setSelectedStudent(null)} student={selectedStudent} />}
+            <RejectionReasonModal isOpen={isRejectionModalOpen} onClose={() => setIsRejectionModalOpen(false)} onSubmit={handleRejectionSubmit} />
+            {selectedStudent && <StudentDetailsModal isOpen={!!selectedStudent} onClose={() => setSelectedStudent(null)} student={selectedStudent} />}
         </div>
     );
 };

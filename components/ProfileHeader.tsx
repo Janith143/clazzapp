@@ -29,7 +29,7 @@ const ProfileHeader = React.forwardRef<HTMLDivElement, ProfileHeaderProps>(({
     setCoverImageIndex,
     followerCount
 }, ref) => {
-    const { defaultCoverImages } = useData();
+    const { defaultCoverImages, tuitionInstitutes } = useData();
 
     const profileUrl = teacher.username
         ? `${window.location.origin}/${teacher.username}`
@@ -50,6 +50,13 @@ const ProfileHeader = React.forwardRef<HTMLDivElement, ProfileHeaderProps>(({
             : (defaultCoverImages || []),
         [customCoverImages, defaultCoverImages]
     );
+
+    const instituteName = useMemo(() => {
+        if (teacher.isManaged && teacher.instituteId) {
+            return tuitionInstitutes.find(i => i.id === teacher.instituteId)?.name;
+        }
+        return null;
+    }, [teacher, tuitionInstitutes]);
 
     return (
         <div
@@ -89,7 +96,14 @@ const ProfileHeader = React.forwardRef<HTMLDivElement, ProfileHeaderProps>(({
                         </div>
 
                         <div className="sm:ml-6 mt-4 sm:mt-0 flex-grow">
-                            <h1 className="text-3xl font-bold">{teacher.name}</h1>
+                            <div className="flex flex-col sm:flex-row sm:items-baseline gap-2 mb-1">
+                                <h1 className="text-3xl font-bold">{teacher.name}</h1>
+                                {instituteName && (
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-primary/10 text-primary uppercase tracking-wide">
+                                        {instituteName} Teacher
+                                    </span>
+                                )}
+                            </div>
                             <p className="text-md text-primary">{teacher.tagline}</p>
                             <div className="mt-2"><StarRating rating={averageRating.average} count={averageRating.count} readOnly={true} /></div>
 

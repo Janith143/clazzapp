@@ -6,7 +6,7 @@ import type { Course, IndividualClass, Quiz, Product } from './content';
 
 export type EditableImageType = 'profile' | 'student_profile' | 'cover_add' | { type: 'cover', index: number } | 'admin_default_cover' | 'id_verification_front' | 'id_verification_back' | 'bank_verification' | 'payment_slip' | 'event_flyer' | 'quiz_question_image' | 'product_cover' | 'course_cover' | 'og_image' | 'payment_method_logo';
 
-export type AdminView = 'analytics' | 'users' | 'content' | 'products' | 'revenue' | 'vouchers' | 'referrals' | 'allsales' | 'site_content' | 'calculation_guide' | 'photo_orders' | 'physical_orders' | 'payment_gateways' | 'staff' | 'developer' | 'requests' | 'communications';
+export type AdminView = 'analytics' | 'users' | 'staff' | 'content' | 'products' | 'allsales' | 'photo_orders' | 'physical_orders' | 'revenue' | 'vouchers' | 'referrals' | 'payment_gateways' | 'site_content' | 'calculation_guide' | 'developer' | 'requests' | 'communications' | 'institutes';
 export type DashboardTab = 'overview' | 'courses' | 'classes' | 'quizzes' | 'products' | 'history' | 'profile' | 'my_events' | 'my_orders' | 'past_classes' | 'score_card' | 'attendance' | 'timetable' | 'my_vouchers' | 'earnings' | 'certificates' | 'groups';
 
 type PaymentRedirectPayload =

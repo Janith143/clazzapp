@@ -35,6 +35,10 @@ export interface DataContextType {
     addUser: (user: User) => Promise<void>;
     addTeacher: (teacher: Teacher) => Promise<void>;
     addTuitionInstitute: (institute: TuitionInstitute) => Promise<void>;
+    addManagedTeacher: (teacherData: Partial<Teacher>) => Promise<void>;
+    saveManagedTeacher: (teacherData: Partial<Teacher>) => Promise<void>;
+    deleteManagedTeacher: (teacherId: string) => Promise<void>;
+    toggleTeacherPublishState: (teacherId: string, currentState: boolean) => Promise<void>;
     updateTuitionInstitute: (instituteId: string, updates: Partial<TuitionInstitute>) => void;
     handleUpdateUser: (updatedUser: Partial<User> & { id: string }) => Promise<void>;
     handleUserVerification: (updates: Partial<User>) => void;
@@ -65,7 +69,7 @@ export interface DataContextType {
     handleSaveBankDetails: (teacherId: string, details: PayoutDetails) => void;
     handleVerificationUpload: (teacherId: string, type: 'id_front' | 'id_back' | 'bank', base64: string, requestNote: string) => Promise<void>;
     handleVerificationDecision: (teacherId: string, type: 'id' | 'bank', decision: 'approve' | 'reject', reason: string) => void;
-    handleUpdateWithdrawal: (userId: string, withdrawalId: string, status: Withdrawal['status'], notes?: string) => void;
+    handleUpdateWithdrawal: (userId: string, withdrawalId: string, status: 'pending' | 'approved' | 'rejected', notes?: string) => Promise<void>;
     handleRemoveDefaultCoverImage: (imageUrl: string) => Promise<void>;
     handleTopUpDecision: (requestId: string, decision: 'approved' | 'rejected', reason?: string, newAmount?: number) => void;
     handleUpdateSaleStatus: (saleId: string, status: Sale['status']) => void;
@@ -96,9 +100,11 @@ export interface DataContextType {
     handleSendNotification: (teacherId: string, content: string, target: Notification['target']) => Promise<void>;
     handleFollowToggle: (teacherId: string) => Promise<void>;
     handleMarkAllAsRead: () => Promise<void>;
-    markAttendance: (classId: number, student: User, paymentStatus: 'paid_at_venue' | 'unpaid' | 'paid', paymentRef?: string) => Promise<boolean>;
+    markAttendance: (classId: number, student: User, paymentStatus: 'paid_at_venue' | 'unpaid' | 'paid', paymentRef?: string, enrollNow?: boolean) => Promise<boolean>;
     removeAttendance: (classId: number, studentId: string) => Promise<boolean>;
     recordManualPayment: (classInfo: IndividualClass, student: User) => Promise<Sale | null>;
+    finishWeeklyClassSession: (classInfo: IndividualClass, nextDate?: string) => Promise<void>;
+    requestWithdrawal: (instituteId: string, amount: number) => Promise<void>;
     handleResetTeacherBalance: (instituteId: string, teacherId: string) => Promise<void>;
     handleSaveEvent: (eventDetails: Event) => void;
     handleCancelEvent: (instituteId: string, eventId: string) => void;
@@ -152,12 +158,32 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // 1. Fetch Public Data (Allowed for everyone)
     useEffect(() => {
-        const unsubTeachers = onSnapshot(collection(db, 'teachers'), (snapshot: QuerySnapshot) => {
-            setTeachers(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Teacher)));
+        let platformTeachers: Teacher[] = [];
+        let managedTeachers: Teacher[] = [];
+
+        const updateTeachers = () => {
+            // Merge and tag
+            const all = [
+                ...platformTeachers.map(t => ({ ...t, _collection: 'teachers' })),
+                ...managedTeachers.map(t => ({ ...t, _collection: 'managed_teachers' }))
+            ];
+            setTeachers(all);
             setTeachersLoaded(true);
+        };
+
+        const unsubTeachers = onSnapshot(collection(db, 'teachers'), (snapshot: QuerySnapshot) => {
+            platformTeachers = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Teacher));
+            updateTeachers();
         }, (error) => {
             console.error("Error fetching teachers:", error);
             setTeachersLoaded(true);
+        });
+
+        const unsubManagedTeachers = onSnapshot(collection(db, 'managed_teachers'), (snapshot: QuerySnapshot) => {
+            managedTeachers = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Teacher));
+            updateTeachers();
+        }, (error) => {
+            console.error("Error fetching managed teachers:", error);
         });
 
         const unsubInstitutes = onSnapshot(collection(db, 'tuitionInstitutes'), (snapshot: QuerySnapshot) => {
@@ -177,7 +203,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }, (error) => console.error("Error fetching clientAppConfig:", error));
 
         return () => {
-            unsubTeachers(); unsubInstitutes(); unsubKnownInstitutes(); unsubConfig();
+            unsubTeachers(); unsubManagedTeachers(); unsubInstitutes(); unsubKnownInstitutes(); unsubConfig();
         };
     }, []);
 

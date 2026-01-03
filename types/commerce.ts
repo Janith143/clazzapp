@@ -93,17 +93,21 @@ export interface TuitionInstitute {
     contact: ContactInfo;
     commissionRate: number;
     platformMarkupRate: number;
+    manualAttendanceFee?: number; // Fixed fee for manual attendance
     photoCommissionRate?: number;
     registrationStatus: 'pending' | 'approved' | 'rejected';
     earnings: {
         total: number;
         withdrawn: number;
         available: number;
+        pending?: number;
         processedPayouts?: string[];
     };
     withdrawalHistory: Withdrawal[];
     payoutDetails?: PayoutDetails | null;
     teacherManualBalances?: { [teacherId: string]: { balance: number; teacherName: string; lastReset?: string } };
+    linkedTeacherIds?: string[];
+    linkedTeacherCommissions?: { [teacherId: string]: number };
     events?: Event[];
 }
 

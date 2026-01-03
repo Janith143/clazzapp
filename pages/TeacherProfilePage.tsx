@@ -611,7 +611,7 @@ const TeacherProfilePage: React.FC<TeacherProfilePageProps> = ({ teacherId, slug
         const canView = false;
         return canView ? null : <NotFoundState />;
     }
-    const canView = teacher.registrationStatus === 'approved' || (currentUser && (currentUser.id === teacher.userId || currentUser.role === 'admin'));
+    const canView = (teacher.registrationStatus === 'approved' && teacher.isPublished !== false) || (currentUser && (currentUser.id === teacher.userId || currentUser.role === 'admin' || teacher.instituteId === currentUser.id));
     if (!canView) return <NotFoundState title="Profile Private" message="This teacher's profile is currently not public." />;
 
     const renderTabContent = () => {

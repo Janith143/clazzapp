@@ -51,7 +51,11 @@ export const usePaymentResponseHandler = (deps: PaymentResponseHandlerDeps) => {
                                 const institute = tuitionInstitutes.find(ti => ti.id === sale.instituteId);
                                 if (institute) {
                                     platformComm = saleValue * (institute.platformMarkupRate / 100);
-                                    const instituteGross = saleValue * (institute.commissionRate / 100);
+
+                                    // Use override commission if set for this linked teacher
+                                    const effectiveCommissionRate = (sale.teacherId && institute.linkedTeacherCommissions?.[sale.teacherId]) ?? institute.commissionRate;
+
+                                    const instituteGross = saleValue * (effectiveCommissionRate / 100);
                                     instituteComm = instituteGross - platformComm;
                                     teacherComm = saleValue - instituteGross;
                                 }

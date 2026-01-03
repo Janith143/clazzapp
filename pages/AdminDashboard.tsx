@@ -25,10 +25,11 @@ import { useAuth } from '../contexts/AuthContext';
 import DataRepairTool from '../components/admin/DataRepairTool';
 import RequestsManagement from '../components/admin/RequestsManagement';
 import CommunicationsManagement from '../components/admin/CommunicationsManagement';
+import InstituteManagement from '../components/admin/InstituteManagement';
 
 const AdminDashboard: React.FC = () => {
     const {
-        teachers, users, sales, defaultCoverImages, vouchers, topUpRequests,
+        teachers, users, sales, defaultCoverImages, vouchers, topUpRequests, tuitionInstitutes,
         handleUpdateTeacher, handleUpdateWithdrawal, handleRemoveDefaultCoverImage, handleTopUpDecision,
         handleUpdateSaleStatus, handleRefundSale, handleCourseApproval, handleProductApproval, handleUpdateUser
     } = useData();
@@ -124,6 +125,7 @@ const AdminDashboard: React.FC = () => {
             case 'revenue':
                 return <RevenueManagement
                     teachers={teachers}
+                    tuitionInstitutes={tuitionInstitutes}
                     allUsers={users}
                     topUpRequests={topUpRequests}
                     onUpdateWithdrawal={handleUpdateWithdrawal}
@@ -146,6 +148,8 @@ const AdminDashboard: React.FC = () => {
                 return <RequestsManagement />;
             case 'communications':
                 return <CommunicationsManagement />;
+            case 'institutes':
+                return <InstituteManagement />;
             default:
                 return <div>Select a view</div>;
         }

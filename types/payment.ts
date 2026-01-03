@@ -28,11 +28,15 @@ export interface MonthlyReferralEarning {
 export interface Withdrawal {
     id: string;
     userId: string;
+    instituteId?: string; // If requested by an institute
+    teacherId?: string;   // If requested by a teacher
+    userType: 'institute' | 'teacher';
     amount: number;
     requestedAt: string;
     processedAt?: string;
-    status: 'pending' | 'completed' | 'failed';
+    status: 'pending' | 'approved' | 'rejected';
     notes?: string;
+    payoutDetails?: PayoutDetails; // Snapshot of details at time of request
 }
 
 export interface PayoutDetails {

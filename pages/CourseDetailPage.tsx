@@ -80,6 +80,9 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId, slug }) =
             : (course.scheduleConfig?.durationMinutes || 60) * (course.liveSessions?.length || 0) / 60;
     }, [course]);
 
+    const averageRating = useMemo(() => getAverageRating(course && 'ratings' in course ? course.ratings : undefined), [course]);
+    const userRating = useMemo(() => (course && 'ratings' in course ? course.ratings : [])?.find(r => r.studentId === currentUser?.id)?.rating || 0, [course, currentUser]);
+
     const structuredData = useMemo(() => {
         if (!course || !teacher) return null;
         return {
@@ -102,15 +105,21 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId, slug }) =
                 "price": course.fee,
                 "priceCurrency": "LKR",
                 "category": "Paid"
-            }
+            },
+            "aggregateRating": averageRating.count > 0 ? {
+                "@type": "AggregateRating",
+                "ratingValue": averageRating.average,
+                "reviewCount": averageRating.count,
+                "bestRating": 5,
+                "worstRating": 1
+            } : undefined
         };
-    }, [course, teacher, totalDurationHoursForSchema]);
+    }, [course, teacher, totalDurationHoursForSchema, averageRating]);
 
     // SEOHead is used inside return, but we can't put it there easily without wrapping lots of stuff or using a fragment at top level.
     // Actually, we can put it in the main div.
 
-    const averageRating = useMemo(() => getAverageRating(course && 'ratings' in course ? course.ratings : undefined), [course]);
-    const userRating = useMemo(() => (course && 'ratings' in course ? course.ratings : [])?.find(r => r.studentId === currentUser?.id)?.rating || 0, [course, currentUser]);
+
 
     const completionPercentage = useMemo(() => {
         if (!isEnrolled || !currentUser?.watchHistory || !course || !('lectures' in course) || !currentUser.watchHistory[course.id]) {
