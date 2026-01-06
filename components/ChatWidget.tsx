@@ -157,6 +157,18 @@ const ChatWidget: React.FC = () => {
                 userId: currentUser?.id || 'guest',
                 fcmToken: fcmToken // Store token for push notifications
             });
+
+            // Send initial greeting from Agent
+            const greeting = language === 'si'
+                ? "ආයුබෝවන්! මට ඔබට උදව් කළ හැක්කේ කෙසේද?"
+                : "Hello! How can I help you today?";
+
+            await addDoc(collection(db, 'supportChats', currentChatId, 'messages'), {
+                text: greeting,
+                sender: 'agent',
+                timestamp: new Date().toISOString()
+            });
+
         } else if (fcmToken) {
             // If chat exists, make sure token is updated
             updateDoc(doc(db, 'supportChats', currentChatId), { fcmToken }).catch(e => { });

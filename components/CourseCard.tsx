@@ -4,7 +4,7 @@ import { Course, Teacher } from '../types';
 import { PencilIcon, TrashIcon, UserGroupIcon, EyeIcon, EyeSlashIcon, ClockIcon, ShareIcon, ExternalLinkIcon } from './Icons';
 import StarRating from './StarRating';
 import ProgressBar from './ProgressBar';
-import { slugify } from '../utils/slug';
+import { slugify, generateEntitySlug } from '../utils/slug';
 
 import { useNavigation } from '../contexts/NavigationContext';
 import { useUI } from '../contexts/UIContext';
@@ -37,7 +37,7 @@ const CourseCard: React.FC<CourseCardProps> = ({ course, teacher, viewMode, enro
 
     const handleShare = (e: React.MouseEvent) => {
         e.stopPropagation();
-        const url = `${window.location.origin}/courses/${slugify(course.title)}`;
+        const url = `${window.location.origin}/courses/${generateEntitySlug(course.title, course.id)}`;
         navigator.clipboard.writeText(url).then(() => {
             addToast('Course link copied to clipboard!', 'success');
         }).catch(() => {
@@ -92,7 +92,10 @@ const CourseCard: React.FC<CourseCardProps> = ({ course, teacher, viewMode, enro
     };
 
     return (
-        <div className="bg-light-surface dark:bg-dark-surface rounded-lg shadow-md overflow-hidden flex flex-col group animate-fadeIn transition-transform duration-300 hover:-translate-y-1 hover:shadow-xl">
+        <div
+            className="bg-light-surface dark:bg-dark-surface rounded-lg shadow-md overflow-hidden flex flex-col group animate-fadeIn transition-transform duration-300 hover:-translate-y-1 hover:shadow-xl cursor-pointer"
+            onClick={() => onView(course, teacher)}
+        >
             <div className="relative">
                 <img
                     src={optimizedCoverImage || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 225' fill='%23e2e8f0'%3E%3Crect width='400' height='225'/%3E%3Ctext x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='24px' fill='%2364748b'%3ENo Image%3C/text%3E%3C/svg%3E"}
@@ -100,13 +103,13 @@ const CourseCard: React.FC<CourseCardProps> = ({ course, teacher, viewMode, enro
                     sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
                     alt={course.title}
                     crossOrigin="anonymous"
-                    className="w-full h-48 object-cover"
+                    className="w-full h-32 object-cover"
                     loading="lazy"
                     decoding="async"
                     width="400"
-                    height="192"
+                    height="128"
                 />
-                <div className="absolute top-0 right-0 bg-primary text-white text-sm font-bold px-3 py-1 m-2 rounded-md">
+                <div className="absolute top-0 right-0 bg-primary/90 text-white text-xs font-bold px-2 py-1 m-2 rounded shadow-sm backdrop-blur-sm">
                     {currencyFormatter.format(course.fee)}
                 </div>
                 {viewMode === 'teacher' && !course.isPublished && (
@@ -116,82 +119,81 @@ const CourseCard: React.FC<CourseCardProps> = ({ course, teacher, viewMode, enro
                 )}
             </div>
 
-            <div className="p-4 flex-grow flex flex-col">
-                <h3 className="text-lg font-bold text-light-text dark:text-dark-text group-hover:text-primary transition-colors">{course.title}</h3>
+            <div className="p-3 flex-grow flex flex-col">
+                <div className="mb-1">
+                    <span className="inline-block px-2 py-0.5 text-[10px] font-semibold bg-primary/10 text-primary rounded-full uppercase tracking-wider">
+                        {course.subject}
+                    </span>
+                </div>
+                <h3 className="text-base font-bold text-light-text dark:text-dark-text group-hover:text-primary transition-colors line-clamp-2 leading-tight">{course.title}</h3>
 
-                <button onClick={() => onViewTeacher(teacher)} className="mt-1 flex items-center space-x-2 text-sm group/teacher">
+                <button
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onViewTeacher(teacher);
+                    }}
+                    className="mt-2 flex items-center space-x-2 text-xs group/teacher w-fit"
+                >
                     {teacher.avatar ? (
-                        <img src={getOptimizedImageUrl(teacher.avatar, 32, 32)} alt={teacher.name} className="w-6 h-6 rounded-full" loading="lazy" width="24" height="24" />
+                        <img src={getOptimizedImageUrl(teacher.avatar, 32, 32)} alt={teacher.name} className="w-5 h-5 rounded-full object-cover border border-light-border dark:border-dark-border" loading="lazy" width="20" height="20" />
                     ) : (
-                        <div className="w-6 h-6 rounded-full bg-primary flex-shrink-0 flex items-center justify-center text-white text-xs font-bold">
+                        <div className="w-5 h-5 rounded-full bg-primary flex-shrink-0 flex items-center justify-center text-white text-[10px] font-bold">
                             <span>
                                 {teacher.name?.split(' ')[0]?.charAt(0) || ''}
                                 {teacher.name?.split(' ')[1]?.charAt(0) || ''}
                             </span>
                         </div>
                     )}
-                    <span className="font-medium text-light-subtle dark:text-dark-subtle group-hover/teacher:underline">{teacher.name}</span>
+                    <span className="font-medium text-light-subtle dark:text-dark-subtle group-hover/teacher:underline truncate max-w-[150px]">{teacher.name}</span>
                 </button>
 
                 {averageRating.count > 0 && (
-                    <div className="mt-2">
-                        <StarRating rating={averageRating.average} count={averageRating.count} readOnly={true} size="sm" />
+                    <div className="mt-1.5">
+                        <StarRating rating={averageRating.average} count={averageRating.count} readOnly={true} size="xs" />
                     </div>
                 )}
 
                 {viewMode === 'teacher' && typeof enrollmentCount !== 'undefined' && (
-                    <div className="mt-2 flex items-center text-sm text-light-subtle dark:text-dark-subtle" title={`${enrollmentCount} enrolled students`}>
-                        <UserGroupIcon className="w-4 h-4 mr-1.5" />
-                        <span>{enrollmentCount} Students Enrolled</span>
+                    <div className="mt-2 flex items-center text-xs text-light-subtle dark:text-dark-subtle" title={`${enrollmentCount} enrolled students`}>
+                        <UserGroupIcon className="w-3 h-3 mr-1.5" />
+                        <span>{enrollmentCount} Students</span>
                     </div>
                 )}
 
                 {completionPercentage !== undefined && completionPercentage > 0 && (
-                    <div className="mt-3 space-y-1">
-                        <ProgressBar value={completionPercentage} max={100} />
-                        <p className="text-xs text-right font-medium text-light-subtle dark:text-dark-subtle">{Math.round(completionPercentage)}% Complete</p>
+                    <div className="mt-2 space-y-1">
+                        <ProgressBar value={completionPercentage} max={100} height="h-1.5" />
+                        <p className="text-[10px] text-right font-medium text-light-subtle dark:text-dark-subtle">{Math.round(completionPercentage)}% Complete</p>
                     </div>
                 )}
-
-                <p className="text-xs text-light-subtle dark:text-dark-subtle mt-2 flex-grow">
-                    {extractAndTruncate(course.description, 100)}
-                </p>
             </div>
 
-            <div className="p-4 pt-0 mt-auto">
+            <div className="px-3 pb-3 mt-auto">
                 {viewMode === 'public' ? (
-                    (course.isDeleted && !isOwnerView) ? (
-                        <div className="w-full text-center px-4 py-2 text-sm font-medium text-red-700 bg-red-100 dark:text-red-200 dark:bg-red-900/50 rounded-md">
+                    (course.isDeleted && !isOwnerView) && (
+                        <div className="w-full text-center px-3 py-1.5 text-xs font-medium text-red-700 bg-red-100 dark:text-red-200 dark:bg-red-900/50 rounded-md">
                             Removed by teacher
                         </div>
-                    ) : (
-                        <button
-                            onClick={() => onView(course, teacher)}
-                            className="w-full text-center px-4 py-2 text-sm font-medium text-white bg-primary rounded-md hover:bg-primary-dark transition-colors"
-                        >
-                            View Course
-                        </button>
                     )
                 ) : (
-                    <div className="flex justify-end items-center space-x-2 border-t border-light-border dark:border-dark-border pt-3">
-                        <button onClick={handleShare} className="p-2 text-light-subtle dark:text-dark-subtle hover:text-primary dark:hover:text-primary-light transition-colors" title="Share Link">
-                            <ShareIcon className="h-4 w-4" />
+                    <div className="flex justify-end items-center space-x-1 border-t border-light-border dark:border-dark-border pt-2">
+                        <button onClick={handleShare} className="p-1.5 text-light-subtle dark:text-dark-subtle hover:text-primary dark:hover:text-primary-light transition-colors" title="Share Link">
+                            <ShareIcon className="h-3.5 w-3.5" />
                         </button>
-                        <button onClick={() => onView(course, teacher)} className="p-2 text-light-subtle dark:text-dark-subtle hover:text-primary dark:hover:text-primary-light transition-colors" title="Preview Course">
-                            <ExternalLinkIcon className="h-4 w-4" />
+                        <button onClick={(e) => { e.stopPropagation(); onView(course, teacher); }} className="p-1.5 text-light-subtle dark:text-dark-subtle hover:text-primary dark:hover:text-primary-light transition-colors" title="Preview Course">
+                            <ExternalLinkIcon className="h-3.5 w-3.5" />
                         </button>
-                        {renderPublicationButton()}
-                        <button onClick={() => onEdit && onEdit(course.id)} className="p-2 text-light-subtle dark:text-dark-subtle hover:text-primary dark:hover:text-primary-light transition-colors" aria-label="Edit course">
-                            <PencilIcon className="h-4 w-4" />
+                        <div onClick={(e) => e.stopPropagation()}>{renderPublicationButton()}</div>
+                        <button onClick={(e) => { e.stopPropagation(); onEdit && onEdit(course.id); }} className="p-1.5 text-light-subtle dark:text-dark-subtle hover:text-primary dark:hover:text-primary-light transition-colors" aria-label="Edit course">
+                            <PencilIcon className="h-3.5 w-3.5" />
                         </button>
                         <button
-                            onClick={() => onDelete && onDelete(course.id)}
+                            onClick={(e) => { e.stopPropagation(); onDelete && onDelete(course.id); }}
                             disabled={(enrollmentCount ?? 0) > 0}
-                            className="p-2 text-red-500 hover:text-red-700 dark:hover:text-red-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="p-1.5 text-red-500 hover:text-red-700 dark:hover:text-red-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             aria-label="Delete course"
-                            title={(enrollmentCount ?? 0) > 0 ? "Cannot delete a course with enrolled students. Unpublish it instead to prevent new enrollments." : "Delete course"}
                         >
-                            <TrashIcon className="h-4 w-4" />
+                            <TrashIcon className="h-3.5 w-3.5" />
                         </button>
                     </div>
                 )}

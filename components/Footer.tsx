@@ -87,6 +87,32 @@ const Footer: React.FC = () => {
     return (
         <footer className="hidden md:block bg-light-surface dark:bg-dark-surface border-t border-light-border dark:border-dark-border mt-auto pb-20 md:pb-12">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
+                {/* NEW: App Download Banner */}
+                <div className="bg-[#111827] dark:bg-black rounded-2xl p-6 md:p-10 mb-12 flex flex-col md:flex-row items-center justify-between shadow-xl border border-gray-800">
+                    <div className="mb-6 md:mb-0 text-center md:text-left">
+                        <h3 className="text-2xl md:text-3xl font-bold text-white mb-2">Take Your Classroom Anywhere</h3>
+                        <p className="text-gray-400 text-sm md:text-base max-w-xl">
+                            Download the official Clazz.lk app for Android. Manage classes, track students, and teaching on the go.
+                        </p>
+                    </div>
+                    <div className="flex-shrink-0">
+                        <a
+                            href="https://play.google.com/store/apps/details?id=com.clazz.app&pcampaignid=web_share"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="group inline-flex items-center bg-black border border-gray-700 text-white px-5 py-2.5 rounded-lg hover:bg-gray-900 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+                        >
+                            <svg className="w-8 h-8 mr-3 text-[#3DDC84]" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M3.609 1.814L13.792 12 3.61 22.186a2.048 2.048 0 01-1.359-1.921V3.735a2.048 2.048 0 011.358-1.921zM15.485 13.693l5.068 2.852a1.023 1.023 0 001.447-1.119L15.618 12 15.485 13.693zM14.613 11l-9.87-9.871c.216-.142.484-.207.747-.156.495.097 6.942 3.903 14.939 8.403L14.613 11zM14.613 13l5.816 3.624c-7.997 4.5-14.444 8.306-14.939 8.403a1.36 1.36 0 01-.747-.156L14.613 13z" />
+                            </svg>
+                            <div className="text-left">
+                                <div className="text-[10px] uppercase font-semibold tracking-wider text-gray-400">Get it on</div>
+                                <div className="text-lg font-bold font-sans -mt-1">Google Play</div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
                     <div className="md:col-span-1 space-y-4">
                         <div className="flex items-center space-x-2">

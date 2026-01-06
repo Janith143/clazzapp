@@ -42,7 +42,7 @@ const AllQuizzesPage: React.FC = () => {
       .filter(t => t.registrationStatus === 'approved')
       .flatMap(teacher =>
         teacher.quizzes
-          .filter(quiz => quiz.isPublished && quiz.status !== 'canceled')
+          .filter(quiz => quiz.isPublished && quiz.status !== 'canceled' && !quiz.isDeleted)
           .map(quiz => ({ ...quiz, teacher }))
       );
 

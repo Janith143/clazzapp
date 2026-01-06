@@ -5,6 +5,7 @@ import { db } from '../firebase';
 // FIX: Import 'setDoc' and 'runTransaction' from 'firebase/firestore' to fix 'Cannot find name' errors.
 import { doc, updateDoc, getDoc, writeBatch, increment, deleteDoc, query, where, getDocs, collection, setDoc, runTransaction } from 'firebase/firestore';
 import { sendNotification } from '../utils';
+import { notifyUser } from '../utils/notificationHelper'; // Added import
 
 const ADMIN_EMAIL = 'admin@clazz.lk';
 
@@ -188,6 +189,26 @@ export const useContentActions = (deps: ContentActionDeps) => {
 
         try {
             await batch.commit();
+
+            // Notify Refunds
+            // salesToRefund has email in billingDetails
+            salesToRefund.forEach(sale => {
+                const email = sale.billingDetails?.billingEmail; // or fetch user? Sale has studentId.
+                // Billing email is reliable for notification.
+                if (email) {
+                    notifyUser(
+                        { id: sale.studentId, email },
+                        `${type === 'class' ? 'Class' : 'Quiz'} Cancelled`,
+                        `The ${type} you enrolled in has been cancelled by the teacher. A full refund has been initiated to your wallet.`,
+                        {
+                            type: 'warning',
+                            link: '/dashboard', // Wallet or relevant tab
+                            notificationUrl: functionUrls.notification
+                        }
+                    );
+                }
+            });
+
             addToast(`${type} canceled and ${salesToRefund.length} student(s) refunded.`, 'success');
         } catch (e) {
             console.error(e);
@@ -377,6 +398,52 @@ export const useContentActions = (deps: ContentActionDeps) => {
 
         const submissionId = `sub_${submissionData.studentId}_${submissionData.quizId}_${submissionData.quizInstanceId}`;
         await setDoc(doc(db, "submissions", submissionId), { ...submissionData, id: submissionId, score });
+
+        // Notify Teacher
+        const teacher = teachers.find(t => t.id === quiz.teacherId);
+        if (teacher && currentUser) {
+            notifyUser(
+                { id: teacher.id, email: teacher.contact?.email, name: teacher.name },
+                "New Quiz Submission",
+                `${currentUser.firstName} ${currentUser.lastName} has submitted the quiz "${quiz.title}". Score: ${score}/${quiz.questions.length}`,
+                {
+                    type: 'info',
+                    link: `/profile?tab=quizzes`, // Teacher dashboard link to view results (implied)
+                    notificationUrl: functionUrls.notification,
+                    emailHtml: `
+                        <div style="font-family: Arial, sans-serif;">
+                            <h2>New Quiz Submission</h2>
+                            <p><strong>Student:</strong> ${currentUser.firstName} ${currentUser.lastName}</p>
+                            <p><strong>Quiz:</strong> ${quiz.title}</p>
+                            <p><strong>Score:</strong> ${score}/${quiz.questions.length}</p>
+                        </div>
+                    `
+                }
+            );
+        }
+
+        // Notify Student
+        if (currentUser && currentUser.email) {
+            notifyUser(
+                { id: currentUser.id, email: currentUser.email, name: currentUser.firstName },
+                "Quiz Submitted",
+                `You have successfully submitted the quiz "${quiz.title}". Your score: ${score}/${quiz.questions.length}.`,
+                {
+                    type: 'success',
+                    link: `/quiz/${quiz.id}`, // Link to view result/attempts
+                    notificationUrl: functionUrls.notification,
+                    emailHtml: `
+                        <div style="font-family: Arial, sans-serif;">
+                            <h2>Quiz Submitted</h2>
+                            <p><strong>Quiz:</strong> ${quiz.title}</p>
+                            <p><strong>Score:</strong> ${score}/${quiz.questions.length}</p>
+                            <p>You can review your attempt in the dashboard.</p>
+                        </div>
+                    `
+                }
+            );
+        }
+
         addToast("Quiz submitted successfully!", "success");
         handleNavigate({ name: 'quiz_detail', quizId: submissionData.quizId, instanceId: submissionData.quizInstanceId });
     }, [sales, addToast, handleNavigate]);
@@ -439,6 +506,41 @@ export const useContentActions = (deps: ContentActionDeps) => {
         updatedClasses[classIndex].grades![instanceDate] = grades;
         await handleUpdateTeacher(teacherId, { individualClasses: updatedClasses });
         addToast("Grades saved successfully!", "success");
+
+        // Notify Graded Students
+        const enrolledSales = sales.filter(s =>
+            s.itemId === classId &&
+            s.itemType === 'class' &&
+            s.status === 'completed' &&
+            (s.itemSnapshot as IndividualClass)?.instanceStartDate === instanceDate
+        );
+
+        enrolledSales.forEach(sale => {
+            // Check if this student has a grade in the new entry
+            // Assuming grades is { [studentId]: GradingDetails }
+            if (grades[sale.studentId]) {
+                const email = sale.billingDetails?.billingEmail;
+                if (email) {
+                    notifyUser(
+                        { id: sale.studentId, email },
+                        "New Grade Available",
+                        `You have received a new grade/feedback for the class "${updatedClasses[classIndex].title}".`,
+                        {
+                            type: 'info',
+                            link: `/class/${updatedClasses[classIndex].id}`, // or dashboard link
+                            notificationUrl: functionUrls.notification,
+                            emailHtml: `
+                                <div style="font-family: Arial, sans-serif;">
+                                    <h2>New Grade Posted</h2>
+                                    <p>Your teacher has posted grades/feedback for <strong>${updatedClasses[classIndex].title}</strong>.</p>
+                                    <p>Log in to your dashboard to view the details.</p>
+                                </div>
+                            `
+                        }
+                    );
+                }
+            }
+        });
     }, [teachers, handleUpdateTeacher, addToast]);
 
     const handleSaveHomeworkSubmission = useCallback(async (teacherId: string, classId: number, instanceDate: string, link: string) => {

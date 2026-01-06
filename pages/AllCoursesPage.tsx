@@ -6,7 +6,7 @@ import SearchBar from '../components/SearchBar.tsx';
 import { useNavigation } from '../contexts/NavigationContext.tsx';
 import { useData } from '../contexts/DataContext.tsx';
 import { getAverageRating } from '../utils.ts';
-import { slugify } from '../utils/slug.ts';
+import { slugify, generateEntitySlug } from '../utils/slug.ts';
 import { useSEO } from '../hooks/useSEO.ts';
 import { targetAudienceOptions } from '../data/mockData.ts';
 
@@ -60,7 +60,7 @@ const AllCoursesPage: React.FC = () => {
     'Explore our comprehensive list of online courses to enhance your knowledge.'
   );
 
-  const onViewCourse = (course: any, teacher: any) => handleNavigate({ name: 'course_detail_slug', slug: slugify(course.title) });
+  const onViewCourse = (course: any, teacher: any) => handleNavigate({ name: 'course_detail_slug', slug: generateEntitySlug(course.title, course.id) });
   const onBack = () => handleNavigate({ name: 'home' });
 
   const approvedTeachers = useMemo(() => teachers.filter(t => t.registrationStatus === 'approved'), [teachers]);
@@ -106,6 +106,12 @@ const AllCoursesPage: React.FC = () => {
     const filtered = allCourses.filter(item => {
       // Published filter
       if (!item.isPublished) return false;
+
+      // Deleted filter
+      if (item.isDeleted) return false;
+
+      // Admin Approval filter
+      if (item.adminApproval !== 'approved') return false;
 
       // Search query filter
       if (searchQuery.trim()) {
@@ -279,7 +285,7 @@ const AllCoursesPage: React.FC = () => {
       {paginatedCourses.length > 0 ? (
         <>
           <p className="text-sm text-light-subtle dark:text-dark-subtle mb-6">Showing {paginatedCourses.length} of {filteredAndSortedCourses.length} courses.</p>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-8">
             {paginatedCourses.map(({ teacher, ...course }) => (
               <CourseCard
                 key={course.id}

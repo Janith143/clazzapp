@@ -4,16 +4,18 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
 
-// Register the Service Worker
+// Register PWA Service Worker (handles caching and updates)
+import { registerSW } from 'virtual:pwa-register';
+
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/firebase-messaging-sw.js')
-      .then(registration => {
-        console.log('Service Worker registration successful with scope: ', registration.scope);
-      })
-      .catch(err => {
-        console.log('Service Worker registration failed: ', err);
-      });
+  registerSW({
+    immediate: true,
+    onNeedRefresh() {
+      console.log('New content available, verify if reload is needed.');
+    },
+    onOfflineReady() {
+      console.log('App is ready for offline use.');
+    }
   });
 }
 

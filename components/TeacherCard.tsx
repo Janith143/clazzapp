@@ -173,8 +173,8 @@ const TeacherCard: React.FC<TeacherCardProps> = ({ teacher, onViewProfile }) => 
                 </button>
             </div>
 
-            <div className="flex-grow flex flex-col items-center text-center p-4 pb-6 relative">
-                <div className="w-24 h-24 -mt-16 rounded-full border-4 border-light-surface dark:border-dark-surface overflow-hidden shadow-lg flex-shrink-0 z-10 bg-light-surface dark:bg-dark-surface">
+            <div className="flex-grow flex flex-col items-center text-center p-3 pb-4 relative">
+                <div className="w-20 h-20 -mt-12 rounded-full border-4 border-light-surface dark:border-dark-surface overflow-hidden shadow-lg flex-shrink-0 z-10 bg-light-surface dark:bg-dark-surface">
                     <img
                         src={optimizedProfileImage}
                         alt={teacher.name}
@@ -182,37 +182,29 @@ const TeacherCard: React.FC<TeacherCardProps> = ({ teacher, onViewProfile }) => 
                         crossOrigin="anonymous"
                         loading="lazy"
                         decoding="async"
-                        width="96"
-                        height="96"
+                        width="80"
+                        height="80"
                     />
                 </div>
 
-                <div className="mt-4">
-                    <h3 className="text-xl font-bold text-light-text dark:text-dark-text tracking-tight group-hover:text-primary transition-colors">{teacher.name}</h3>
-                    <p className="text-sm text-light-subtle dark:text-dark-subtle">{teacher.tagline}</p>
+                <div className="mt-3">
+                    <h3 className="text-lg font-bold text-light-text dark:text-dark-text tracking-tight group-hover:text-primary transition-colors">{teacher.name}</h3>
+                    <p className="text-xs text-light-subtle dark:text-dark-subtle">{teacher.tagline}</p>
                 </div>
 
                 {averageRating.count > 0 && (
-                    <div className="mt-2">
+                    <div className="mt-1">
                         <StarRating rating={averageRating.average} count={averageRating.count} readOnly={true} size="sm" />
                     </div>
                 )}
 
-                <div className="flex-grow mt-3 w-full">
-                    <p className="prose-sm text-center prose-p:my-0 text-light-subtle dark:text-dark-subtle">
-                        {extractAndTruncate(teacher.bio, 80)}
+                <div className="flex-grow mt-2 w-full">
+                    <p className="prose-sm text-center text-xs prose-p:my-0 text-light-subtle dark:text-dark-subtle leading-snug">
+                        {extractAndTruncate(teacher.bio, 60)}
                     </p>
                 </div>
 
                 {renderTeachingItems()}
-            </div>
-
-            <div className="p-4 pt-0 mt-auto">
-                <button
-                    className="w-full px-4 py-2 text-sm font-medium text-white bg-primary rounded-md hover:bg-primary-dark transition-colors"
-                >
-                    View Profile
-                </button>
             </div>
         </div>
     );

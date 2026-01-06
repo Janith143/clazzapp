@@ -1,6 +1,5 @@
-
 import React, { useRef, useState, useEffect } from 'react';
-import { ChevronRightIcon, HomeIcon, BookOpenIcon, VideoCameraIcon, ClipboardListIcon, EventIcon, ShoppingCartIcon, BanknotesIcon, UserCircleIcon, ChartBarIcon, CalendarIcon, ClockIcon, TicketIcon, TrophyIcon } from '../Icons';
+import { ChevronRightIcon, HomeIcon, BookOpenIcon, VideoCameraIcon, ClipboardListIcon, EventIcon, ShoppingCartIcon, BanknotesIcon, UserCircleIcon, ChartBarIcon, CalendarIcon, ClockIcon, TicketIcon, TrophyIcon, AcademicCapIcon, InboxIcon } from '../Icons';
 import { DashboardTab } from '../../types';
 
 interface StudentDashboardTabsProps {
@@ -16,9 +15,18 @@ interface StudentDashboardTabsProps {
         certificates: number;
         groups?: number;
     };
+    badges?: {
+        requests?: boolean;
+        certificates?: boolean;
+        attendance?: boolean;
+        my_orders?: boolean;
+        my_vouchers?: boolean;
+        score_card?: boolean;
+        groups?: boolean;
+    };
 }
 
-const StudentDashboardTabs: React.FC<StudentDashboardTabsProps> = ({ activeTab, setActiveTab, counts }) => {
+const StudentDashboardTabs: React.FC<StudentDashboardTabsProps> = ({ activeTab, setActiveTab, counts, badges = {} }) => {
     const [isExpanded, setIsExpanded] = useState(false);
 
     const tabs: { id: DashboardTab; label: string; icon: React.FC<any> }[] = [
@@ -32,7 +40,8 @@ const StudentDashboardTabs: React.FC<StudentDashboardTabsProps> = ({ activeTab, 
         { id: 'score_card', label: 'Score Card', icon: ChartBarIcon },
         { id: 'my_events', label: 'My Events', icon: EventIcon },
         { id: 'groups', label: 'My Groups', icon: UserCircleIcon },
-        { id: 'certificates', label: 'My Certificates', icon: TrophyIcon },
+        { id: 'requests', label: 'Private Classes', icon: InboxIcon },
+        { id: 'certificates', label: 'Certificates', icon: AcademicCapIcon },
         { id: 'my_orders', label: 'My Orders', icon: ShoppingCartIcon },
         { id: 'attendance', label: 'My Attendance', icon: ClipboardListIcon },
         { id: 'history', label: 'Transaction History', icon: BanknotesIcon },
@@ -53,19 +62,39 @@ const StudentDashboardTabs: React.FC<StudentDashboardTabsProps> = ({ activeTab, 
         }
     };
 
+    const collapseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Clear timeout on unmount to prevent leaks
+    useEffect(() => {
+        return () => {
+            if (collapseTimeoutRef.current) clearTimeout(collapseTimeoutRef.current);
+        };
+    }, []);
+
     const handleTabClick = (e: React.MouseEvent, id: DashboardTab) => {
         e.stopPropagation();
 
-        // Mobile Logic:
-        // 1. If collapsed, expand to show labels. Don't switch tab yet.
-        // 2. If expanded, switch tab and collapse.
         const isMobile = window.innerWidth < 768;
 
-        if (isMobile && !isExpanded) {
-            setIsExpanded(true);
-        } else {
-            setActiveTab(id);
-            setIsExpanded(false);
+        // Simply update active tab immediately
+        setActiveTab(id);
+
+        if (isMobile) {
+            if (collapseTimeoutRef.current) {
+                clearTimeout(collapseTimeoutRef.current);
+                collapseTimeoutRef.current = null;
+            }
+
+            if (!isExpanded) {
+                setIsExpanded(true);
+                // "Just open the sidebar after click and within 1 second collapse it"
+                collapseTimeoutRef.current = setTimeout(() => {
+                    setIsExpanded(false);
+                }, 1000);
+            } else {
+                // If already expanded, collapse immediately after selection
+                setIsExpanded(false);
+            }
         }
     };
 
@@ -79,6 +108,7 @@ const StudentDashboardTabs: React.FC<StudentDashboardTabsProps> = ({ activeTab, 
                 />
             )}
 
+            {/* Sidebar Container */}
             {/* Sidebar Container */}
             <div
                 className={`
@@ -97,6 +127,9 @@ const StudentDashboardTabs: React.FC<StudentDashboardTabsProps> = ({ activeTab, 
                     {tabs.map(tab => {
                         const isActive = activeTab === tab.id;
                         const count = getCount(tab.id);
+                        // @ts-ignore
+                        const showBadge = !!badges[tab.id];
+
                         return (
                             <button
                                 key={tab.id}
@@ -113,8 +146,14 @@ const StudentDashboardTabs: React.FC<StudentDashboardTabsProps> = ({ activeTab, 
                                 `}
                                 title={tab.label}
                             >
-                                <div className="flex items-center justify-center flex-shrink-0">
-                                    <tab.icon className={`w-6 h-6 md:w-5 md:h-5 ${isActive ? 'text-primary' : 'text-light-subtle dark:text-dark-subtle group-hover:text-light-text dark:group-hover:text-dark-text'}`} />
+                                <div className="flex items-center justify-center flex-shrink-0 relative">
+                                    <tab.icon className={`w-6 h-6 md:w-5 md:h-5 ${isActive ? 'text-primary' : 'text-light-subtle dark:text-dark-subtle group-hover:text-light-text dark:group-hover:text-dark-text'} `} />
+                                    {showBadge && (
+                                        <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+                                        </span>
+                                    )}
                                 </div>
 
                                 {/* Label - Hidden when collapsed on mobile, visible on desktop */}
@@ -125,20 +164,22 @@ const StudentDashboardTabs: React.FC<StudentDashboardTabsProps> = ({ activeTab, 
                                     {tab.label}
                                 </span>
 
-                                {count > 0 && (
+                                {(count > 0 || showBadge) && (
                                     <span className={`
                                         ml-auto 
                                         ${tab.id === 'groups' ? 'flex items-center justify-center p-1' : 'text-xs font-semibold px-2 py-0.5 rounded-full'}
-                                        ${isActive && tab.id !== 'groups' ? 'bg-primary/20 text-primary' : (tab.id !== 'groups' ? 'bg-light-border dark:bg-dark-border text-light-subtle dark:text-dark-subtle' : '')}
+                                        ${isActive ? 'bg-white/20 text-white' : 'bg-light-border dark:bg-dark-border text-light-subtle dark:text-dark-subtle'}
                                         ${isExpanded ? 'block' : 'hidden md:block'}
                                     `}>
                                         {tab.id === 'groups' ? (
-                                            <span className="relative flex h-3 w-3">
-                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                                                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-                                            </span>
+                                            (showBadge || count > 0) ? (
+                                                <span className="relative flex h-3 w-3">
+                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                                    <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                                                </span>
+                                            ) : null
                                         ) : (
-                                            count
+                                            count > 0 ? count : ''
                                         )}
                                     </span>
                                 )}

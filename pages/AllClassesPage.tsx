@@ -122,7 +122,7 @@ const AllClassesPage: React.FC = () => {
   const filteredAndSortedClasses = useMemo(() => {
     const allPotentialClasses = approvedTeachers.flatMap(teacher =>
       teacher.individualClasses
-        .filter(classInfo => classInfo.isPublished && classInfo.status !== 'canceled')
+        .filter(classInfo => classInfo.isPublished && classInfo.status !== 'canceled' && !classInfo.isDeleted)
         .map(classInfo => ({ ...classInfo, teacher }))
     );
 
@@ -408,7 +408,7 @@ const AllClassesPage: React.FC = () => {
       {paginatedClasses.length > 0 ? (
         <>
           <p className="text-sm text-light-subtle dark:text-dark-subtle mb-6">Showing {paginatedClasses.length} of {filteredAndSortedClasses.length} classes.</p>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-8">
             {paginatedClasses.map(({ teacher, ...classInfo }) => (
               <ClassCard
                 key={classInfo.id}

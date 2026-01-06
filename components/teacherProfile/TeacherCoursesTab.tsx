@@ -2,7 +2,7 @@
 import React, { useMemo, useState } from 'react';
 import { Teacher, Course } from '../../types.ts';
 import { useData } from '../../contexts/DataContext.tsx';
-import { slugify } from '../../utils/slug.ts';
+import { slugify, generateEntitySlug } from '../../utils/slug.ts';
 import { useNavigation } from '../../contexts/NavigationContext.tsx';
 import CourseCard from '../CourseCard.tsx';
 import { PlusIcon, TrophyIcon } from '../Icons.tsx';
@@ -54,7 +54,7 @@ const TeacherCoursesTab: React.FC<TeacherCoursesTabProps> = ({ teacher, canEdit,
                             teacher={teacher}
                             viewMode={canEdit ? "teacher" : "public"}
                             enrollmentCount={enrollmentCounts[`course_${course.id}`] || 0}
-                            onView={(c) => handleNavigate({ name: 'course_detail_slug', slug: slugify(c.title) })}
+                            onView={(c) => handleNavigate({ name: 'course_detail_slug', slug: generateEntitySlug(c.title, c.id) })}
                             onEdit={handleEditCourse}
                             onDelete={onDelete}
                             onTogglePublish={(id, action) => handleTogglePublishState(teacher.id, id, 'course', action)}

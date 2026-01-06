@@ -32,8 +32,16 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId, slug }) =
     const resolvedCourseId = useMemo(() => {
         if (courseId) return courseId;
         if (slug && teachers.length > 0) {
+            const decodedSlug = decodeURIComponent(slug);
             for (const t of teachers) {
-                const found = t.courses.find(c => slugify(c.title) === slug);
+                // 1. Try matching by slug (title)
+                let found = t.courses.find(c => slugify(c.title) === decodedSlug);
+
+                // 2. If not found, try matching by ID directly (for short URLs like /courses/123)
+                if (!found) {
+                    found = t.courses.find(c => c.id === decodedSlug);
+                }
+
                 if (found) return found.id;
             }
         }
@@ -458,7 +466,7 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId, slug }) =
         if (hasFullAccess) return "Course Fully Unlocked";
         if (userPurchases.length > 0 && selectedPaymentPlan !== 'full') return "Continue Learning";
         if (currentUser?.role === 'teacher' || currentUser?.role === 'admin') return "Only students can enroll";
-        return `Pay ${initialPayment.description} (${currencyFormatter.format(initialPayment.amount)})`;
+        return "Register Now";
     };
     const isFullyEnrolled = hasFullAccess || (selectedPaymentPlan === 'full' && isEnrolled);
     const disableEnrollButton = isFullyEnrolled || currentUser?.role === 'teacher' || currentUser?.role === 'admin';

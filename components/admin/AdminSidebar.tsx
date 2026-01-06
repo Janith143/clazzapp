@@ -22,100 +22,110 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeView, setActiveView }
   const { currentUser } = useAuth();
   const { teachers, tuitionInstitutes, users, topUpRequests, sales } = useData();
 
-  const [requestCounts, setRequestCounts] = React.useState({ deletion: 0, reports: 0, unsubscribe: 0 });
-  const [lastViewedCounts, setLastViewedCounts] = React.useState<Record<string, number>>({});
+  const [seenIds, setSeenIds] = React.useState<{ [key: string]: string[] }>(() => {
+    try {
+      const saved = localStorage.getItem('admin_seen_ids');
+      return saved ? JSON.parse(saved) : { users: [], institutes: [] };
+    } catch (e) {
+      return { users: [], institutes: [] };
+    }
+  });
 
+  // Persist seenIds whenever they change
   React.useEffect(() => {
-    const unsubDeletion = onSnapshot(query(collection(db, 'deletion_requests'), where('status', '==', 'pending')), (snap) => {
-      setRequestCounts(prev => ({ ...prev, deletion: snap.size }));
-    });
-    const unsubReports = onSnapshot(query(collection(db, 'content_reports'), where('status', '==', 'pending')), (snap) => {
-      setRequestCounts(prev => ({ ...prev, reports: snap.size }));
-    });
-    const unsubUnsubscribe = onSnapshot(query(collection(db, 'unsubscribe_requests'), where('status', '==', 'pending')), (snap) => {
-      setRequestCounts(prev => ({ ...prev, unsubscribe: snap.size }));
-    });
+    localStorage.setItem('admin_seen_ids', JSON.stringify(seenIds));
+  }, [seenIds]);
 
-    return () => { unsubDeletion(); unsubReports(); unsubUnsubscribe(); };
-  }, []);
-
-  const pendingCount = useMemo(() => {
-    if (!teachers) return 0;
-    return teachers.reduce((acc, teacher) => {
-      const teacherPending = (teacher.courses || []).filter(c => c.adminApproval === 'pending').length;
-      return acc + teacherPending;
-    }, 0);
-  }, [teachers]);
-
-  const revenuePendingCount = useMemo(() => {
-    let count = 0;
-    // Pending Top-Up Requests
-    if (topUpRequests) count += topUpRequests.filter(r => r.status === 'pending').length;
-
-    // Pending Withdrawals (Teachers)
-    if (teachers) {
-      count += teachers.reduce((acc, t) => acc + (t.withdrawalHistory || []).filter(w => w.status === 'pending').length, 0);
-    }
-
-    // Pending Withdrawals (Institutes)
-    if (tuitionInstitutes) {
-      count += tuitionInstitutes.reduce((acc, i) => acc + (i.withdrawalHistory || []).filter(w => w.status === 'pending').length, 0);
-    }
-
-    // Pending Withdrawals (Users/Affiliates)
-    if (users) {
-      count += users.reduce((acc, u) => acc + (u.withdrawalHistory || []).filter(w => w.status === 'pending').length, 0);
-    }
-
-    return count;
-  }, [teachers, tuitionInstitutes, users, topUpRequests]);
-
-  const counts = useMemo(() => {
-    if (!teachers || !sales || !tuitionInstitutes) return {};
-
-    const userPending = teachers.filter(t =>
+  const pendingTeacherIds = useMemo(() => {
+    if (!teachers) return [];
+    return teachers.filter(t =>
       (t.registrationStatus === 'pending') ||
       (t.verification?.id?.status === 'pending') ||
       (t.verification?.bank?.status === 'pending')
-    ).length;
+    ).map(t => t.id);
+  }, [teachers]);
+
+  const pendingInstituteIds = useMemo(() => {
+    if (!tuitionInstitutes) return [];
+    return tuitionInstitutes
+      .filter(i => (i as any).registrationStatus === 'pending')
+      .map(i => i.id);
+  }, [tuitionInstitutes]);
+
+  // Calculate counts for badges
+  const requestCounts = useMemo(() => ({
+    deletion: 0,
+    reports: 0,
+    unsubscribe: 0
+  }), []);
+
+  const pendingCount = useMemo(() => {
+    if (!teachers) return 0;
+    return teachers.reduce((acc, t) => acc + (t.courses || []).filter(c => c.adminApproval === 'pending').length, 0);
+  }, [teachers]);
+
+  const revenuePendingCount = useMemo(() => {
+    if (!topUpRequests) return 0;
+    return topUpRequests.filter(r => r.status === 'pending').length;
+  }, [topUpRequests]);
+
+  // Update counts to be "New" only
+  const counts = useMemo(() => {
+    if (!teachers || !sales || !tuitionInstitutes) return {};
+
+    // For users (teachers) and institutes, calculate based on unseen IDs
+    const unseenTeacherCount = pendingTeacherIds.filter(id => !seenIds.users?.includes(id)).length;
+    const unseenInstituteCount = pendingInstituteIds.filter(id => !seenIds.institutes?.includes(id)).length;
 
     const productPending = teachers.reduce((acc, t) => acc + (t.products || []).filter(p => p.adminApproval === 'pending').length, 0);
-
-    // Sales are automated or handled via revenue (TopUps). Generic sales don't have 'pending' status.
-    const salesPending = 0;
-
     const photoOrdersPending = sales.filter(s => s.photoOrderStatus === 'pending').length;
-
     const physicalOrdersPending = sales.filter(s => s.physicalOrderStatus === 'pending').length;
 
-    const institutePending = tuitionInstitutes.filter(i => (i as any).registrationStatus === 'pending').length;
-
-    const totalRequests = requestCounts.deletion + requestCounts.reports + requestCounts.unsubscribe;
+    // Check if properties exist on requestCounts before accessing
+    const totalRequests = (requestCounts?.deletion || 0) + (requestCounts?.reports || 0) + (requestCounts?.unsubscribe || 0);
 
     return {
-      users: userPending,
+      users: unseenTeacherCount,
       products: productPending,
-      allsales: salesPending,
+      allsales: 0,
       photo_orders: photoOrdersPending,
       physical_orders: physicalOrdersPending,
-      institutes: institutePending,
+      institutes: unseenInstituteCount,
       requests: totalRequests
     };
-  }, [teachers, sales, tuitionInstitutes, requestCounts]);
+  }, [teachers, sales, tuitionInstitutes, requestCounts, pendingTeacherIds, pendingInstituteIds, seenIds]);
 
-  // Update viewed counts when active view changes or counts change while active
-  React.useEffect(() => {
-    // Only apply to the requested tabs to 'clear' the badge
-    if (['users', 'institutes'].includes(activeView)) {
-      const currentCount = (counts as any)[activeView] || 0;
-      // Verify if update needed to avoid loop? React handles primitive value checks in setState usually, but object ref might differ.
-      // Actually setLastViewedCounts uses callback.
-      setLastViewedCounts(prev => {
-        if (prev[activeView] === currentCount) return prev;
-        return { ...prev, [activeView]: currentCount };
+
+  const handleViewChange = (view: AdminView) => {
+    setActiveView(view);
+
+    // Mark as seen when navigating TO the tab
+    if (view === 'users') {
+      setSeenIds(prev => {
+        const currentSet = new Set(prev.users || []);
+        let changed = false;
+        pendingTeacherIds.forEach(id => {
+          if (!currentSet.has(id)) {
+            currentSet.add(id);
+            changed = true;
+          }
+        });
+        return changed ? { ...prev, users: Array.from(currentSet) } : prev;
+      });
+    } else if (view === 'institutes') {
+      setSeenIds(prev => {
+        const currentSet = new Set(prev.institutes || []);
+        let changed = false;
+        pendingInstituteIds.forEach(id => {
+          if (!currentSet.has(id)) {
+            currentSet.add(id);
+            changed = true;
+          }
+        });
+        return changed ? { ...prev, institutes: Array.from(currentSet) } : prev;
       });
     }
-  }, [activeView, counts]);
+  };
 
   const navItems = useMemo(() => {
     const allItems: { id: AdminView; label: string; icon: React.ReactNode }[] = [
@@ -145,7 +155,6 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeView, setActiveView }
     }
 
     // Filter based on permissions for sub-admins
-    // Note: 'staff' permission is typically reserved for super admins, but included in logic if needed.
     return allItems.filter(item => currentUser.permissions!.includes(item.id));
   }, [currentUser]);
 
@@ -156,7 +165,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeView, setActiveView }
         {navItems.map(item => (
           <button
             key={item.id}
-            onClick={() => setActiveView(item.id)}
+            onClick={() => handleViewChange(item.id)}
             className={`w-full flex items-center justify-between text-left px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${activeView === item.id
               ? 'bg-primary text-white'
               : 'text-light-text dark:text-dark-text hover:bg-light-border dark:hover:bg-dark-border'
@@ -180,12 +189,6 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ activeView, setActiveView }
             {['users', 'products', 'allsales', 'photo_orders', 'physical_orders', 'institutes', 'requests'].includes(item.id) && (() => {
               const count = (counts as any)[item.id] || 0;
               if (count === 0) return null;
-
-              // Logic for hiding badge after view for specific tabs
-              if (['users', 'institutes'].includes(item.id)) {
-                const viewed = lastViewedCounts[item.id] || 0;
-                if (count <= viewed) return null;
-              }
 
               return (
                 <span className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm animate-pulse">

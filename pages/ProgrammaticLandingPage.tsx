@@ -38,7 +38,7 @@ const ProgrammaticLandingPage: React.FC<Props> = ({ subjectSlug, locationSlug })
         teachers.forEach(teacher => {
             // 1. Check if teacher teaches the subject
             const hasSubject = teacher.subjects?.some(s => s.toLowerCase().includes(subject.toLowerCase())) ||
-                teacher.teachingItems?.some(s => s.toLowerCase().includes(subject.toLowerCase()));
+                teacher.teachingItems?.some(s => s.subject.toLowerCase().includes(subject.toLowerCase()));
 
             if (hasSubject) {
                 // 2. Check location match (loosely)
@@ -107,19 +107,14 @@ const ProgrammaticLandingPage: React.FC<Props> = ({ subjectSlug, locationSlug })
             <section className="mb-12">
                 <h2 className="text-2xl font-bold mb-6">Top {subject} Tutors in {city}</h2>
                 {filteredData.teachers.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-8">
                         {filteredData.teachers.map(t => (
-                            <div key={t.id} onClick={() => handleNavigate({ name: 'teacher_profile', teacherId: t.id })} className="cursor-pointer">
-                                {/* Fallback simple card if Component lazy load fails or complexity */}
-                                <div className="bg-white dark:bg-dark-card p-4 rounded-lg shadow hover:shadow-md transition-shadow flex items-center gap-4">
-                                    <img src={t.avatar || 'https://via.placeholder.com/150'} alt={t.name} className="w-16 h-16 rounded-full object-cover" />
-                                    <div>
-                                        <h3 className="font-bold text-lg">{t.name}</h3>
-                                        <p className="text-sm text-gray-500">{t.tagline}</p>
-                                        <p className="text-xs text-primary mt-1">{t.formattedSubjectString || t.subjects.join(', ')}</p>
-                                    </div>
-                                </div>
-                            </div>
+                            <React.Suspense fallback={<div className="h-64 bg-gray-100 rounded animate-pulse"></div>} key={t.id}>
+                                <TeacherCard
+                                    teacher={t}
+                                    onViewProfile={(id) => handleNavigate({ name: 'teacher_profile', teacherId: id })}
+                                />
+                            </React.Suspense>
                         ))}
                     </div>
                 ) : (

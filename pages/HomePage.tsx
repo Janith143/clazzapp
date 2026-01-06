@@ -13,6 +13,7 @@ import AIRecommendations from '../components/AIRecommendations';
 import AISearchSuggestions from '../components/AISearchSuggestions';
 // FIX: Import the 'MyExamsSection' component to resolve the "Cannot find name" error.
 import MyExamsSection from '../components/MyExamsSection';
+import AndroidAppBanner from '../components/AndroidAppBanner';
 import { getDynamicClassStatus, getDynamicQuizStatus, getDynamicEventStatus, getNextSessionDateTime } from '../utils';
 import { slugify } from '../utils/slug';
 import { useNavigation } from '../contexts/NavigationContext';
@@ -379,9 +380,9 @@ const HomePage: React.FC = () => {
                     <section>
                         <h2 className="text-3xl font-bold mb-6">Search Results for "{searchQuery}"</h2>
                         <div className="space-y-12">
-                            {searchResults.teachers.length > 0 && <div><h3 className="text-2xl font-semibold mb-4">Teachers</h3><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"><>{searchResults.teachers.map(teacher => <TeacherCard key={teacher.id} teacher={teacher} onViewProfile={(id) => handleNavigate({ name: 'teacher_profile', teacherId: id })} />)}</></div></div>}
-                            {searchResults.courses.length > 0 && <div><h3 className="text-2xl font-semibold mb-4">Courses</h3><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"><>{searchResults.courses.map(course => <CourseCard key={course.id} course={course} teacher={course.teacher} viewMode="public" onView={onViewCourse} />)}</></div></div>}
-                            {searchResults.classes.length > 0 && <div><h3 className="text-2xl font-semibold mb-4">Classes</h3><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"><>{searchResults.classes.map(classInfo => <ClassCard key={classInfo.id} classInfo={classInfo} teacher={classInfo.teacher} viewMode="public" onView={onViewClass} />)}</></div></div>}
+                            {searchResults.teachers.length > 0 && <div><h3 className="text-2xl font-semibold mb-4">Teachers</h3><div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-8"><>{searchResults.teachers.map(teacher => <TeacherCard key={teacher.id} teacher={teacher} onViewProfile={(id) => handleNavigate({ name: 'teacher_profile', teacherId: id })} />)}</></div></div>}
+                            {searchResults.courses.length > 0 && <div><h3 className="text-2xl font-semibold mb-4">Courses</h3><div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-8"><>{searchResults.courses.map(course => <CourseCard key={course.id} course={course} teacher={course.teacher} viewMode="public" onView={onViewCourse} />)}</></div></div>}
+                            {searchResults.classes.length > 0 && <div><h3 className="text-2xl font-semibold mb-4">Classes</h3><div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-8"><>{searchResults.classes.map(classInfo => <ClassCard key={classInfo.id} classInfo={classInfo} teacher={classInfo.teacher} viewMode="public" onView={onViewClass} />)}</></div></div>}
                             {searchResults.quizzes.length > 0 && <div><h3 className="text-2xl font-semibold mb-4">Quizzes</h3><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"><>{searchResults.quizzes.map(quiz => <QuizCard key={quiz.id} quiz={quiz} teacher={quiz.teacher} viewMode="public" onView={onViewQuiz} currentUser={currentUser} />)}</></div></div>}
                             {searchResults.events.length > 0 && <div><h3 className="text-2xl font-semibold mb-4">Events</h3><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"><>{searchResults.events.map(event => <EventCard key={event.id} event={event} organizer={event.organizer} onView={onViewEvent} />)}</></div></div>}
                         </div>
@@ -403,7 +404,7 @@ const HomePage: React.FC = () => {
                                     <h2 className="text-3xl font-bold">Featured Teachers</h2>
                                     <button onClick={onViewAllTeachers} className="text-sm font-medium text-primary hover:underline">View All</button>
                                 </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-8">
                                     {featuredTeachers.map(teacher => <TeacherCard key={teacher.id} teacher={teacher} onViewProfile={(id) => handleNavigate({ name: 'teacher_profile', teacherId: id })} />)}
                                 </div>
                             </section>
@@ -415,7 +416,7 @@ const HomePage: React.FC = () => {
                                     <h2 className="text-3xl font-bold">Popular Courses</h2>
                                     <button onClick={onViewAllCourses} className="text-sm font-medium text-primary hover:underline">View All</button>
                                 </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-8">
                                     {popularCourses.map(({ course, teacher }) => <CourseCard key={course.id} course={course} teacher={teacher} viewMode="public" onView={onViewCourse} />)}
                                 </div>
                             </section>
@@ -427,7 +428,7 @@ const HomePage: React.FC = () => {
                                     <h2 className="text-3xl font-bold">Upcoming Classes</h2>
                                     <button onClick={() => onViewAllClasses()} className="text-sm font-medium text-primary hover:underline">View All</button>
                                 </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-8">
                                     {upcomingClasses.map(({ classInfo, teacher }) => <ClassCard key={classInfo.id} classInfo={classInfo} teacher={teacher} viewMode="public" onView={onViewClass} />)}
                                 </div>
                             </section>
@@ -458,6 +459,10 @@ const HomePage: React.FC = () => {
                         )}
                     </>
                 )}
+            </div>
+
+            <div className="container mx-auto px-4 sm:px-6 lg:px-8 pb-24 md:pb-8">
+                <AndroidAppBanner />
             </div>
         </div>
     );

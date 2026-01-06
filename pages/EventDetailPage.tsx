@@ -12,7 +12,7 @@ import ConfirmationModal from '../components/ConfirmationModal.tsx';
 import MarkdownDisplay from '../components/MarkdownDisplay.tsx';
 import { useSEO } from '../hooks/useSEO.ts';
 import SEOHead from '../components/SEOHead.tsx';
-import TeacherCard from '../components/TeacherCard.tsx';
+
 import PhotoCard from '../components/PhotoCard.tsx';
 
 import { slugify } from '../utils/slug.ts';
@@ -102,6 +102,8 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId, slug }) => {
         if (!event) return [];
         return teachers.filter(t => event.participatingTeacherIds.includes(t.id));
     }, [teachers, event]);
+    const dynamicStatus = useMemo(() => event ? getDynamicEventStatus(event) : 'scheduled', [event]);
+
 
     const structuredData = useMemo(() => {
         if (!event || !organizer) return null;
@@ -146,7 +148,7 @@ const EventDetailPage: React.FC<EventDetailPageProps> = ({ eventId, slug }) => {
 
     const [isConfirmingEnrollment, setIsConfirmingEnrollment] = useState(false);
 
-    const dynamicStatus = useMemo(() => event ? getDynamicEventStatus(event) : 'scheduled', [event]);
+
 
     if (dataLoading) {
         return (

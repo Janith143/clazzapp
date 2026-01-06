@@ -53,7 +53,10 @@ const AllEventsPage: React.FC = () => {
       const dynamicStatus = getDynamicEventStatus(item);
       const isFinished = dynamicStatus === 'finished';
 
-      if (!isPublished || isCanceled || isFinished) return false;
+      const isDeleted = item.isDeleted;
+      const isAdminApproved = item.adminApproval === 'approved';
+
+      if (!isPublished || isCanceled || isFinished || isDeleted || !isAdminApproved) return false;
 
       if (searchQuery.trim()) {
         const lowerQuery = searchQuery.toLowerCase();

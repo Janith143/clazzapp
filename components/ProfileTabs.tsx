@@ -1,7 +1,5 @@
-
-import React, { useState } from 'react';
+import React from 'react';
 import {
-  ChevronRightIcon,
   HomeIcon,
   VideoCameraIcon,
   BookOpenIcon,
@@ -11,19 +9,23 @@ import {
   ClockIcon,
   BanknotesIcon,
   UserGroupIcon,
+  BellIcon,
+  SettingsIcon,
   CalendarIcon,
   PhoneIcon,
-  BellIcon
+  ChevronRightIcon,
+  InboxIcon
 } from './Icons';
 
-interface ProfileTabsProps {
-  activeTab: string;
-  setActiveTab: (tab: string) => void;
-  isOwnProfile: boolean;
-  hasEvents: boolean;
+export interface TabItem {
+  id: string;
+  label: string;
+  icon: any;
+  ownerOnly?: boolean;
 }
 
-const allTabs = [
+// Exporting allTabs so parent can filter it
+export const allTabs = [
   { id: 'overview', label: 'Overview', icon: HomeIcon },
   { id: 'classes', label: 'Classes', icon: VideoCameraIcon },
   { id: 'courses', label: 'Courses', icon: BookOpenIcon },
@@ -35,92 +37,101 @@ const allTabs = [
   { id: 'attendance', label: 'Attendance', icon: UserGroupIcon, ownerOnly: true },
   { id: 'groups', label: 'Broadcast Groups', icon: UserGroupIcon, ownerOnly: true },
   { id: 'notifications', label: 'Notifications', icon: BellIcon, ownerOnly: true },
+  { id: 'custom_requests', label: 'Requests', icon: InboxIcon, ownerOnly: true },
+  { id: 'settings', label: 'Settings', icon: SettingsIcon, ownerOnly: true },
   { id: 'timetable', label: 'Time Table', icon: CalendarIcon },
   { id: 'contact', label: 'Contact & Location', icon: PhoneIcon },
 ];
 
-const ProfileTabs: React.FC<ProfileTabsProps> = ({ activeTab, setActiveTab, isOwnProfile, hasEvents }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
+interface ProfileTabsProps {
+  activeTab: string;
+  setActiveTab: (tab: string) => void;
+  isOwnProfile: boolean;
+  hasEvents: boolean;
+  tabs?: TabItem[];
+  badges?: { [key: string]: boolean };
+}
 
-  const visibleTabs = allTabs.filter(tab => {
+const ProfileTabs: React.FC<ProfileTabsProps> = ({ activeTab, setActiveTab, isOwnProfile, hasEvents, tabs, badges = {} }) => {
+  const sourceTabs = tabs || allTabs;
+
+  const visibleTabs = sourceTabs.filter(tab => {
     // @ts-ignore
     return !tab.ownerOnly || isOwnProfile;
   });
 
-  const handleTabClick = (e: React.MouseEvent, id: string) => {
-    e.stopPropagation();
-
-    // Mobile Logic:
-    // 1. If collapsed, expand to show labels. Don't switch tab yet.
-    // 2. If expanded, switch tab and collapse.
-    const isMobile = window.innerWidth < 768;
-
-    if (isMobile && !isExpanded) {
-      setIsExpanded(true);
-    } else {
-      setActiveTab(id);
-      setIsExpanded(false);
-    }
-  };
-
   return (
     <>
-      {/* Mobile Backdrop */}
-      {isExpanded && (
-        <div
-          className="fixed inset-0 bg-black/50 z-[990] md:hidden"
-          onClick={() => setIsExpanded(false)}
-        />
-      )}
-
-      {/* Sidebar Container */}
-      <div
-        className={`
-            fixed md:relative top-16 md:top-0 left-0 bottom-0 md:bottom-auto
-            z-[1000] md:z-auto
-            bg-light-surface dark:bg-dark-surface
-            border-r md:border-r-0 md:border md:border-light-border md:dark:border-dark-border
-            md:rounded-lg md:shadow-sm
-            transition-all duration-300 ease-in-out
-            flex flex-col
-            ${isExpanded ? 'w-64 shadow-2xl' : 'w-16 md:w-full'}
-        `}
-        onClick={() => !isExpanded && setIsExpanded(true)}
-      >
-        <nav className="flex flex-col flex-1 overflow-y-auto py-2 md:py-0">
+      {/* Mobile View: Wrapping Chips */}
+      <div className="md:hidden w-full overflow-x-hidden">
+        <div className="flex flex-wrap gap-2 mb-4">
           {visibleTabs.map(tab => {
             const isActive = activeTab === tab.id;
             const Icon = tab.icon;
             return (
               <button
                 key={tab.id}
-                onClick={(e) => handleTabClick(e, tab.id)}
+                onClick={() => setActiveTab(tab.id)}
                 className={`
-                      relative flex items-center
-                      py-3 md:py-3 transition-all duration-200
-                      md:border-l-4 md:border-r-0 md:px-4
-                      ${isActive
-                    ? 'border-primary text-primary bg-primary/5 md:bg-primary/10'
+                  flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-colors border
+                  ${isActive
+                    ? 'bg-primary text-white border-primary shadow-sm'
+                    : 'bg-white dark:bg-dark-card text-light-subtle dark:text-dark-subtle border-light-border dark:border-dark-border hover:border-primary/50'
+                  }
+                `}
+              >
+                <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'currentColor'}`} />
+                {tab.label}
+                {!!badges[tab.id] && (
+                  <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Desktop View: Vertical Sidebar */}
+      <div className="hidden md:flex flex-col w-64 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg shadow-sm">
+        <nav className="flex flex-col py-2">
+          {visibleTabs.map(tab => {
+            const isActive = activeTab === tab.id;
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`
+                  relative flex items-center
+                  py-3 transition-all duration-200
+                  border-l-4 px-4
+                  ${isActive
+                    ? 'border-primary text-primary bg-primary/10'
                     : 'border-transparent text-light-subtle dark:text-dark-subtle hover:text-light-text dark:hover:text-dark-text hover:bg-gray-50 dark:hover:bg-white/5'
                   }
-                      ${isExpanded ? 'px-4 justify-start' : 'px-0 justify-center md:justify-start'}
-                  `}
+                  justify-start
+                `}
                 aria-current={isActive ? 'page' : undefined}
-                title={tab.label}
               >
-                <div className="flex items-center justify-center flex-shrink-0">
-                  <Icon className={`w-6 h-6 md:w-5 md:h-5 ${isActive ? 'text-primary' : 'currentColor'}`} />
+                <div className="flex items-center justify-center flex-shrink-0 relative">
+                  <Icon className={`w-5 h-5 ${isActive ? 'text-primary' : 'currentColor'}`} />
+                  {!!badges[tab.id] && (
+                    <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500"></span>
+                    </span>
+                  )}
                 </div>
 
-                <span className={`
-                      ml-3 font-medium text-sm whitespace-nowrap
-                      ${isExpanded ? 'block opacity-100' : 'hidden md:block'}
-                  `}>
+                <span className="ml-3 font-medium text-sm whitespace-nowrap">
                   {tab.label}
                 </span>
 
                 {isActive && (
-                  <span className="hidden md:block text-primary ml-auto">
+                  <span className="text-primary ml-auto">
                     <ChevronRightIcon className="w-4 h-4" />
                   </span>
                 )}

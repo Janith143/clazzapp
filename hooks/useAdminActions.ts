@@ -11,6 +11,7 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { v4 as uuidv4 } from 'uuid';
 import { storage } from '../firebase';
 import { sendPaymentConfirmation, sendNotification } from '../utils';
+import { notifyUser } from '../utils/notificationHelper';
 
 const ADMIN_EMAIL = 'admin@clazz.lk';
 
@@ -221,10 +222,19 @@ export const useAdminActions = (deps: any) => {
                             <p>Dear User,</p>
                             <p>Your withdrawal request for <strong>${currencyFormatter.format(withdrawalAmount)}</strong> has been <strong>${status}</strong>.</p>
                             ${notes ? `<p>Note: ${notes}</p>` : ''}
-                            <p>The Clazz.lk Team</p>
-                        </div>
-                    `;
-                    await sendNotification(functionUrls.notification, { email: targetEmail }, subject, htmlBody);
+                                <p>The Clazz.lk Team</p>
+                    </div>
+                `;
+                    await notifyUser(
+                        { id: teacher?.id || institute?.id || user!.id, email: targetEmail },
+                        subject,
+                        `Your withdrawal request has been ${status}.`,
+                        {
+                            type: status === 'approved' ? 'success' : 'error',
+                            notificationUrl: functionUrls.notification,
+                            emailHtml: htmlBody
+                        }
+                    );
                 }
             }
 
@@ -412,7 +422,16 @@ export const useAdminActions = (deps: any) => {
                     <p>The Clazz.lk Team</p>
                 </div>
             `;
-            await sendNotification(functionUrls.notification, { email: teacher.email }, subject, htmlBody);
+            await notifyUser(
+                { id: teacher.id, email: teacher.email },
+                subject,
+                `Your ${type === 'id' ? 'ID' : 'Bank'} verification document has been approved.`,
+                {
+                    type: 'success',
+                    notificationUrl: functionUrls.notification,
+                    emailHtml: htmlBody
+                }
+            );
         }
     }, [teachers, handleUpdateTeacher, addToast]);
 
@@ -636,7 +655,16 @@ export const useAdminActions = (deps: any) => {
                     <p>The Clazz.lk Team</p>
                 </div>
             `;
-            await sendNotification(functionUrls.notification, { email: teacher.email }, subject, htmlBody);
+            await notifyUser(
+                { id: teacher.id, email: teacher.email },
+                subject,
+                `Your course "${newCourses[courseIndex].title}" has been approved and published.`,
+                {
+                    type: 'success',
+                    notificationUrl: functionUrls.notification,
+                    emailHtml: htmlBody
+                }
+            );
         }
     }, [teachers, handleUpdateTeacher, addToast]);
 
@@ -663,7 +691,16 @@ export const useAdminActions = (deps: any) => {
                     <p>The Clazz.lk Team</p>
                 </div>
             `;
-            await sendNotification(functionUrls.notification, { email: teacher.email }, subject, htmlBody);
+            await notifyUser(
+                { id: teacher.id, email: teacher.email },
+                subject,
+                `Your product "${newProducts[productIndex].title}" has been approved and published.`,
+                {
+                    type: 'success',
+                    notificationUrl: functionUrls.notification,
+                    emailHtml: htmlBody
+                }
+            );
         }
     }, [teachers, handleUpdateTeacher, addToast]);
 
@@ -844,7 +881,17 @@ export const useAdminActions = (deps: any) => {
                         </div>
                     `;
 
-                    await sendNotification(functionUrls.notification, { email: student.email }, subject, htmlBody);
+                    await notifyUser(
+                        { id: student.id, email: student.email, name: student.firstName },
+                        subject,
+                        `You have completed the course ${certificateData.itemTitle}. Click to view certificate.`,
+                        {
+                            type: 'success',
+                            link: '/student/certificates', // Link to dashboard
+                            notificationUrl: functionUrls.notification,
+                            emailHtml: htmlBody
+                        }
+                    );
                 }
 
                 addToast("Certificate issued and sent successfully!", "success");

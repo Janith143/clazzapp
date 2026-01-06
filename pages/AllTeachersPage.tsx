@@ -159,7 +159,7 @@ const AllTeachersPage: React.FC = () => {
       {paginatedTeachers.length > 0 ? (
         <>
           <p className="text-sm text-light-subtle dark:text-dark-subtle mb-6">Showing {paginatedTeachers.length} of {filteredAndSortedTeachers.length} teachers.</p>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-8">
             {paginatedTeachers.map(teacher => (
               <TeacherCard
                 key={teacher.id}

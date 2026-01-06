@@ -91,4 +91,18 @@ export interface Teacher {
     events?: Event[]; // Reusing the Event type (likely needs import adjustment if there's a name collision)
     isPublished?: boolean;
     isDeleted?: boolean;
+    customClassSettings?: {
+        enabled: boolean;
+        rates: {
+            hourly: number;
+            halfHourly?: number; // Optional
+            daily?: number; // Optional
+        };
+        availability: {
+            days: string[]; // ['Monday', 'Tuesday', ...]
+            timeWindows: { start: string; end: string }[];
+            bufferMinutes: number;
+            blackoutDates: string[]; // ISO strings
+        };
+    };
 }

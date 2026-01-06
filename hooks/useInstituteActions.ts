@@ -6,6 +6,7 @@ import { db } from '../firebase';
 // FIX: Update Firebase imports for v9 modular SDK
 import { doc, setDoc, updateDoc, writeBatch, increment, arrayUnion, runTransaction, collection, getDoc } from 'firebase/firestore';
 import { generateStandardId, sendNotification } from '../utils';
+import { notifyUser } from '../utils/notificationHelper';
 
 interface InstituteActionDeps {
     ui: UIContextType;
@@ -336,13 +337,17 @@ export const useInstituteActions = (deps: InstituteActionDeps) => {
                 const smsMessage = `Dear Guardian, ${student.firstName} attended '${classTitle}' on ${dateStr}. - Clazz.lk`;
 
                 // Fire and forget notification
-                sendNotification(
-                    functionUrls.notification,
-                    { email: student.guardianEmail, contactNumber: student.guardianPhone },
-                    subject,
-                    htmlBody,
-                    smsMessage
-                ).catch(err => console.error("Failed to send guardian notification", err));
+                notifyUser(
+                    { id: student.id, email: student.guardianEmail, phone: student.guardianPhone, name: 'Guardian' },
+                    `Attendance Alert`,
+                    `${student.firstName} attended '${classTitle}' on ${dateStr}.`,
+                    {
+                        type: 'info',
+                        notificationUrl: functionUrls.notification,
+                        emailHtml: htmlBody,
+                        smsMessage: smsMessage
+                    }
+                );
             }
 
             return true;

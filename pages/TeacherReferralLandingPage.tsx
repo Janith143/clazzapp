@@ -4,9 +4,9 @@ import { useUI } from '../contexts/UIContext.tsx';
 import { useNavigation } from '../contexts/NavigationContext.tsx';
 import { useData } from '../contexts/DataContext.tsx';
 import { User, BillingDetails } from '../types.ts';
-import { 
-    ChevronLeftIcon, 
-    BanknotesIcon, 
+import {
+    ChevronLeftIcon,
+    BanknotesIcon,
     UserGroupIcon,
     SearchIcon,
     ClipboardListIcon,
@@ -62,7 +62,8 @@ const TeacherReferralLandingPage: React.FC<TeacherReferralLandingPageProps> = ({
     }, [refCode, users]);
 
     useEffect(() => {
-        if (level === '1' || level === '2') {
+        // Updated regex to support decimals like 1.2, 2.4, etc.
+        if (level && /^[1-3](\.[0-9])?$/.test(level)) {
             setIsSubscriptionModalOpen(true);
         }
     }, [level]);
@@ -75,11 +76,31 @@ const TeacherReferralLandingPage: React.FC<TeacherReferralLandingPageProps> = ({
         setSubscriptionForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
     };
 
+    const getPriceForLevel = (lvl: string): number => {
+        const l = parseFloat(lvl);
+        // Plan B: {1: 100000, 1.2: 180000, 1.4: 340000}
+        if (l === 1) return 100000;
+        if (l === 1.2) return 180000;
+        if (l === 1.4) return 340000;
+
+        // Plan C: {2: 500000, 2.2: 920000, 2.4: 1800000}
+        if (l === 2) return 500000;
+        if (l === 2.2) return 920000;
+        if (l === 2.4) return 1800000;
+
+        // Plan D: {3: 850000, 3.2: 1600000, 3.4: 3000000}
+        if (l === 3) return 850000;
+        if (l === 3.2) return 1600000;
+        if (l === 3.4) return 3000000;
+
+        return 100000; // Default fallback (Plan B base)
+    };
+
     const handleProceedToPayment = (e: React.FormEvent) => {
         e.preventDefault();
-        const planLevel = parseInt(level || '1');
-        const amount = planLevel === 1 ? 100000 : 500000;
-        
+        const planLevel = parseFloat(level || '1');
+        const amount = getPriceForLevel(level || '1');
+
         handleNavigate({
             name: 'payment_redirect',
             payload: {
@@ -102,27 +123,40 @@ const TeacherReferralLandingPage: React.FC<TeacherReferralLandingPageProps> = ({
         { icon: <PencilIcon className="w-6 h-6" />, title: "Smart Tools & Automation", description: "Automated reminders, analytics, and notifications let you focus purely on teaching." },
         { icon: <UserGroupIcon className="w-6 h-6" />, title: "Community & Support", description: "Join a network of top educators and get access to exclusive resources and support." },
     ];
-    
+
+    const currencyFormatter = new Intl.NumberFormat('en-LK', { style: 'currency', currency: 'LKR', minimumFractionDigits: 0 });
+
     const getPlanDetails = () => {
-        if (level === '1') {
+        const lvl = parseFloat(level || '0');
+        const price = getPriceForLevel(level || '1');
+        const formattedPrice = currencyFormatter.format(price) + " / year";
+
+        if (lvl >= 1 && lvl < 2) {
             return {
                 title: "Plan B - Pro Teacher",
-                price: "LKR 100,000 / year",
+                price: formattedPrice,
                 features: ["4% Transaction Fee", "Unlimited Courses", "Priority Support"]
             };
         }
-        if (level === '2') {
-             return {
+        if (lvl >= 2 && lvl < 3) {
+            return {
                 title: "Plan C - Premium Teacher",
-                price: "LKR 500,000 / year",
+                price: formattedPrice,
                 features: ["4% Transaction Fee", "Featured Listing", "Dedicated Account Manager"]
             };
         }
+        if (lvl >= 3 && lvl < 4) {
+            return {
+                title: "Plan D - Elite Teacher",
+                price: formattedPrice,
+                features: ["Zero Transaction Fee", "Top-Tier Featured Listing", "Personal Branding Consultation", "VIP Support"]
+            };
+        }
+
         return { title: "", price: "", features: [] };
     };
 
     const plan = getPlanDetails();
-    const currencyFormatter = new Intl.NumberFormat('en-LK', { style: 'currency', currency: 'LKR', minimumFractionDigits: 0 });
 
     return (
         <div className="bg-gradient-to-b from-indigo-50 via-white to-light-background dark:from-dark-background dark:to-dark-surface min-h-screen animate-fadeIn relative">
@@ -142,7 +176,7 @@ const TeacherReferralLandingPage: React.FC<TeacherReferralLandingPageProps> = ({
                     </p>
                 )}
 
-                <h1 
+                <h1
                     className="text-4xl md:text-5xl font-extrabold leading-tight"
                 >
                     Join Sri Lanka’s Fastest-Growing <span className="text-primary">Teaching Community</span>
@@ -153,13 +187,13 @@ const TeacherReferralLandingPage: React.FC<TeacherReferralLandingPageProps> = ({
                 </p>
 
                 <div className="mt-8 flex flex-col sm:flex-row justify-center gap-4">
-                    <button 
+                    <button
                         onClick={() => handleSignUp('email')}
                         className="bg-gradient-to-tr from-primary to-indigo-600 text-white font-bold py-3 px-8 rounded-lg shadow-lg hover:shadow-primary/50 transition-all"
                     >
                         Sign Up with Email
                     </button>
-                    <button 
+                    <button
                         onClick={() => handleSignUp('mobile')}
                         className="border-2 border-primary text-primary font-bold py-3 px-8 rounded-lg hover:bg-primary/10 transition-all"
                     >
@@ -183,15 +217,15 @@ const TeacherReferralLandingPage: React.FC<TeacherReferralLandingPageProps> = ({
                 <h2 className="text-2xl font-bold mb-6 text-primary">
                     Trusted by Sri Lanka’s Leading Educators
                 </h2>
-                
+
                 <div className="space-y-6">
                     <blockquote className="text-lg italic text-gray-700 dark:text-gray-300">
-                    “Clazz.lk helped me grow from a local tutor to a national educator. The exposure is unmatched.”
+                        “Clazz.lk helped me grow from a local tutor to a national educator. The exposure is unmatched.”
                     </blockquote>
                     <p className="font-semibold text-primary">— P. Weerasinghe, English Teacher</p>
 
                     <blockquote className="text-lg italic text-gray-700 dark:text-gray-300 mt-10">
-                    “The platform automates everything — I can focus entirely on my students.”
+                        “The platform automates everything — I can focus entirely on my students.”
                     </blockquote>
                     <p className="font-semibold text-primary">— K. Jayawardena, ICT Teacher</p>
                 </div>
@@ -202,7 +236,7 @@ const TeacherReferralLandingPage: React.FC<TeacherReferralLandingPageProps> = ({
             <section className="text-center pb-20">
                 <h2 className="text-3xl font-bold mb-4">Start Your Journey Today</h2>
                 <p className="text-light-subtle dark:text-dark-subtle mb-8">Join a growing network of passionate teachers empowering students everywhere.</p>
-                <button 
+                <button
                     onClick={() => handleSignUp('email')}
                     className="bg-gradient-to-tr from-primary to-indigo-600 text-white font-bold py-4 px-10 rounded-xl shadow-lg hover:shadow-primary/50 transition-all"
                 >
@@ -212,36 +246,36 @@ const TeacherReferralLandingPage: React.FC<TeacherReferralLandingPageProps> = ({
 
             {/* Subscription Modal for Levels 1 & 2 */}
             <Modal isOpen={isSubscriptionModalOpen} onClose={() => setIsSubscriptionModalOpen(false)} title="Exclusive Teacher Offer" size="2xl">
-                 <div className="space-y-6">
-                     <div className="text-center p-6 bg-gradient-to-br from-primary/10 to-indigo-100 dark:from-primary/20 dark:to-indigo-900/40 rounded-xl border border-primary/20">
-                         <h2 className="text-2xl font-bold text-primary mb-2">Thanks for selecting {plan.title}</h2>
-                         <p className="text-lg font-semibold">{plan.price}</p>
-                         <ul className="mt-4 space-y-2 text-sm text-left inline-block">
-                             {plan.features.map(f => (
-                                 <li key={f} className="flex items-center"><CheckCircleIcon className="w-4 h-4 text-green-500 mr-2"/> {f}</li>
-                             ))}
-                         </ul>
-                     </div>
+                <div className="space-y-6">
+                    <div className="text-center p-6 bg-gradient-to-br from-primary/10 to-indigo-100 dark:from-primary/20 dark:to-indigo-900/40 rounded-xl border border-primary/20">
+                        <h2 className="text-2xl font-bold text-primary mb-2">Thanks for selecting {plan.title}</h2>
+                        <p className="text-lg font-semibold">{plan.price}</p>
+                        <ul className="mt-4 space-y-2 text-sm text-left inline-block">
+                            {plan.features.map(f => (
+                                <li key={f} className="flex items-center"><CheckCircleIcon className="w-4 h-4 text-green-500 mr-2" /> {f}</li>
+                            ))}
+                        </ul>
+                    </div>
 
-                     <div className="text-center text-sm text-light-subtle dark:text-dark-subtle">
-                         Please fill in your details below to proceed to the payment gateway.
-                     </div>
+                    <div className="text-center text-sm text-light-subtle dark:text-dark-subtle">
+                        Please fill in your details below to proceed to the payment gateway.
+                    </div>
 
-                     <form onSubmit={handleProceedToPayment} className="space-y-4">
-                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                             <FormInput label="First Name" name="billingFirstName" value={subscriptionForm.billingFirstName} onChange={handleSubscriptionFormChange} required placeholder="e.g. Nimal" />
-                             <FormInput label="Last Name" name="billingLastName" value={subscriptionForm.billingLastName} onChange={handleSubscriptionFormChange} required placeholder="e.g. Perera" />
-                         </div>
-                         <FormInput label="Email Address" name="billingEmail" type="email" value={subscriptionForm.billingEmail} onChange={handleSubscriptionFormChange} required placeholder="nimal@example.com" />
-                         <FormInput label="Mobile Number" name="billingContactNumber" type="tel" value={subscriptionForm.billingContactNumber} onChange={handleSubscriptionFormChange} required placeholder="+94771234567" />
-                         
-                         <div className="pt-4">
-                             <button type="submit" className="w-full bg-primary text-white font-bold py-3 rounded-lg hover:bg-primary-dark transition-colors shadow-lg">
-                                 Proceed to Pay {plan.price}
-                             </button>
-                         </div>
-                     </form>
-                 </div>
+                    <form onSubmit={handleProceedToPayment} className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <FormInput label="First Name" name="billingFirstName" value={subscriptionForm.billingFirstName} onChange={handleSubscriptionFormChange} required placeholder="e.g. Nimal" />
+                            <FormInput label="Last Name" name="billingLastName" value={subscriptionForm.billingLastName} onChange={handleSubscriptionFormChange} required placeholder="e.g. Perera" />
+                        </div>
+                        <FormInput label="Email Address" name="billingEmail" type="email" value={subscriptionForm.billingEmail} onChange={handleSubscriptionFormChange} required placeholder="nimal@example.com" />
+                        <FormInput label="Mobile Number" name="billingContactNumber" type="tel" value={subscriptionForm.billingContactNumber} onChange={handleSubscriptionFormChange} required placeholder="+94771234567" />
+
+                        <div className="pt-4">
+                            <button type="submit" className="w-full bg-primary text-white font-bold py-3 rounded-lg hover:bg-primary-dark transition-colors shadow-lg">
+                                Proceed to Pay {plan.price}
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </Modal>
         </div>
     );

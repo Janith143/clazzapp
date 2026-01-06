@@ -1,8 +1,9 @@
 
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { Teacher, IndividualClass, Quiz, EditableImageType, ScheduleItem, Notification as SystemNotification, Product, Sale, Photo, User } from '../types';
+import { CustomClassRequest } from '../types/customRequest';
 import ProfileHeader from '../components/ProfileHeader';
-import ProfileTabs from '../components/ProfileTabs';
+import ProfileTabs, { allTabs } from '../components/ProfileTabs';
 import { DownloadIcon, UserPlusIcon, CheckCircleIcon, SpinnerIcon, XIcon, PlayCircleIcon, ChevronLeftIcon, ChevronRightIcon } from '../components/Icons';
 import ScheduleClassModal from '../components/ScheduleClassModal';
 import ScheduleQuizModal from '../components/ScheduleQuizModal';
@@ -15,11 +16,13 @@ import { useUI } from '../contexts/UIContext';
 import { useFirebase } from '../contexts/FirebaseContext';
 import { useNavigation } from '../contexts/NavigationContext';
 import MarkdownDisplay from '../components/MarkdownDisplay';
+import { useSmartBadge } from '../hooks/useSmartBadge';
 import { useSEO } from '../hooks/useSEO';
 import SEOHead from '../components/SEOHead';
 import { db } from '../firebase';
 import { collection, query, where, orderBy, onSnapshot, doc, writeBatch, increment, QuerySnapshot, DocumentData } from 'firebase/firestore';
 import { getDynamicClassStatus, getDynamicQuizStatus, calculateTeacherProfileCompletion, getYoutubeVideoId, getOptimizedImageUrl } from '../utils';
+import { notifyUser } from '../utils/notificationHelper';
 import ScheduleFreeSlotModal from '../components/ScheduleFreeSlotModal';
 import Modal from '../components/Modal';
 import { YouTubePlayer } from '../components/YouTubePlayer';
@@ -43,6 +46,11 @@ import AttendanceManager from '../components/ti/AttendanceManager';
 import TeacherEventsTab from '../components/teacherProfile/TeacherEventsTab';
 import TeacherPastClassesTab from '../components/teacherProfile/TeacherPastClassesTab';
 import TeacherGroupsTab from '../components/broadcast/TeacherGroupsTab';
+import CustomClassSettingsTab from '../components/teacherProfile/CustomClassSettingsTab';
+import TeacherSettingsTab from '../components/teacherProfile/TeacherSettingsTab';
+import CustomRequestsTab from '../components/teacherProfile/CustomRequestsTab';
+import RequestCustomClassModal from '../components/teacherProfile/RequestCustomClassModal';
+import TeacherDashboardTabs from '../components/teacherProfile/TeacherDashboardTabs'; // Added import
 
 // Inlined TeacherNotificationsTab Component
 const TeacherNotificationsTab: React.FC<{ teacher: Teacher }> = ({ teacher }) => {
@@ -211,6 +219,12 @@ const TeacherProfilePage: React.FC<TeacherProfilePageProps> = ({ teacherId, slug
 
     const [activeTab, setActiveTab] = useState('overview');
 
+
+
+
+
+
+
     // Modal states
     const [classToEdit, setClassToEdit] = useState<IndividualClass | null>(null);
     const [isScheduleClassModalOpen, setIsScheduleClassModalOpen] = useState(false);
@@ -258,6 +272,8 @@ const TeacherProfilePage: React.FC<TeacherProfilePageProps> = ({ teacherId, slug
     const [viewingImage, setViewingImage] = useState<{ url: string, title: string } | null>(null);
     const [showAllImages, setShowAllImages] = useState(false);
     const INITIAL_IMAGE_COUNT = 5;
+
+    const [isRequestClassModalOpen, setIsRequestClassModalOpen] = useState(false);
 
     useEffect(() => {
         if (!teacher?.googleDriveLink) {
@@ -328,6 +344,51 @@ const TeacherProfilePage: React.FC<TeacherProfilePageProps> = ({ teacherId, slug
         return teacherEvents.filter(e => e.event.isPublished).length;
     }, [teacherEvents, canEdit]);
 
+    // ------------------------------------------------------------------
+    // Dynamic Tab Filtering
+    // ------------------------------------------------------------------
+    const tabs = useMemo(() => {
+        if (!teacher) return allTabs;
+
+        // If owner/admin, show all tabs to allow editing/creation (except maybe completely irrelevant ones)
+        // But for now, we follow standard logic: owner sees controls.
+        if (canEdit) return allTabs;
+
+        // Public View: Check content availability
+        // Note: For students, we only show tabs that have *active/published* content.
+        const hasClasses = teacher.individualClasses?.some(c => !c.isDeleted && c.isPublished);
+        const hasCourses = teacher.courses?.some(c => !c.isDeleted && c.isPublished);
+        const hasQuizzes = teacher.quizzes?.some(q => !q.isDeleted && q.isPublished);
+        const hasProducts = teacher.products?.some(p => !p.isDeleted && p.isPublished);
+        const hasEvents = visibleEventsCount > 0;
+
+        return allTabs.filter(tab => {
+            switch (tab.id) {
+                case 'overview': return true;
+                case 'classes': return hasClasses;
+                case 'courses': return hasCourses;
+                case 'quizzes': return hasQuizzes;
+                case 'products': return hasProducts;
+                case 'my_events': return hasEvents;
+                case 'contact': return true; // Always show contact info
+                case 'timetable': return true; // Timetable usually relevant if they exist
+                default: return true;
+            }
+        });
+    }, [teacher, canEdit, visibleEventsCount]);
+
+    // Redirect if current activeTab becomes hidden (e.g. via direct URL or state change)
+    useEffect(() => {
+        if (teacher && tabs.length > 0) {
+            const isTabAvailable = tabs.some(t => t.id === activeTab);
+            if (!isTabAvailable) {
+                // Determine fallback: 'overview' if available, else first tab
+                const fallback = tabs.find(t => t.id === 'overview') ? 'overview' : tabs[0].id;
+                setActiveTab(fallback);
+            }
+        }
+    }, [activeTab, tabs, teacher]);
+
     useEffect(() => {
         const checkPayouts = async () => {
             if (teacher?.id) {
@@ -348,9 +409,37 @@ const TeacherProfilePage: React.FC<TeacherProfilePageProps> = ({ teacherId, slug
 
     // Timetable state
     const [currentWeekOffset, setCurrentWeekOffset] = useState(0);
+    const [customRequests, setCustomRequests] = useState<CustomClassRequest[]>([]);
+
+    useEffect(() => {
+        if (!teacherId || !isOwnProfile) return;
+        const q = query(
+            collection(db, 'customClassRequests'),
+            where('teacherId', '==', teacherId)
+        );
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            setCustomRequests(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as CustomClassRequest)));
+        });
+        return () => unsubscribe();
+    }, [teacherId, isOwnProfile]);
 
     // Business card state
     const [coverImageIndex, setCoverImageIndex] = useState(0);
+
+    // Badge Logic
+    const teacherSales = useMemo(() => {
+        if (!teacher) return [];
+        return sales.filter(s => s.teacherId === teacher.id && s.status === 'completed');
+    }, [sales, teacher]);
+
+    const { unseenCount: unseenEarnings, markAsViewed: markEarningsViewed } = useSmartBadge('teacher_earnings', teacherSales, 'saleDate');
+    const { unseenCount: unseenRequests, markAsViewed: markRequestsViewed } = useSmartBadge('teacher_requests', customRequests, 'updatedAt');
+
+    const handleTabChange = (tabId: string) => {
+        if (tabId === 'earnings') markEarningsViewed();
+        if (tabId === 'custom_requests') markRequestsViewed();
+        setActiveTab(tabId);
+    };
 
     const handleInternalSaveEvent = async (eventDetails: any) => {
         if (!teacher) return;
@@ -497,6 +586,22 @@ const TeacherProfilePage: React.FC<TeacherProfilePageProps> = ({ teacherId, slug
             const teacherRef = doc(db, "teachers", teacher.id);
             batch.update(teacherRef, { individualClasses: updatedClasses });
 
+            // Notify Students about Deletion
+            salesToRefund.forEach(sale => {
+                if (sale.billingDetails?.billingEmail) {
+                    notifyUser(
+                        { id: sale.studentId, email: sale.billingDetails.billingEmail },
+                        "Class Cancelled & Refunded",
+                        `The class "${classToDelete.title}" has been deleted by the teacher. A full refund has been initiated to your wallet.`,
+                        {
+                            type: 'warning',
+                            link: '/dashboard',
+                            notificationUrl: functionUrls.notification
+                        }
+                    );
+                }
+            });
+
             try {
                 await batch.commit();
                 if (refundedStudents > 0) {
@@ -585,8 +690,31 @@ const TeacherProfilePage: React.FC<TeacherProfilePageProps> = ({ teacherId, slug
             }
         });
 
+        // Add Paid Custom Requests to Timetable
+        if (canEdit) {
+            const paidRequests = customRequests.filter(r => r.status === 'paid');
+            paidRequests.forEach(req => {
+                req.requestedSlots.forEach(slot => {
+                    // Similar date construction
+                    const sDate = new Date(slot.date + 'T00:00:00');
+                    if (sDate >= weekStart && sDate <= weekEnd) {
+                        const dayName = daysOfWeek[sDate.getDay()];
+                        schedule.push({
+                            id: req.id,
+                            type: 'class', // Treat as class
+                            day: dayName,
+                            subject: req.topic,
+                            title: `Private: ${req.topic} (${req.studentName})`,
+                            startTime: slot.startTime,
+                            endTime: slot.endTime
+                        });
+                    }
+                });
+            });
+        }
+
         return { weekStart, weekEnd, scheduleForWeek: schedule };
-    }, [teacher, currentWeekOffset, canEdit]);
+    }, [teacher, currentWeekOffset, canEdit, customRequests]);
 
 
 
@@ -869,29 +997,57 @@ const TeacherProfilePage: React.FC<TeacherProfilePageProps> = ({ teacherId, slug
                 );
             case 'contact':
                 return <ContactSection teacher={teacher} />;
+            case 'custom_requests':
+                return <CustomRequestsTab teacher={teacher} />;
+            case 'settings':
+                return <TeacherSettingsTab teacher={teacher} />;
             default:
                 return <div>Select a tab</div>;
         }
     };
 
     return (
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className={canEdit ? "min-h-screen bg-light-background dark:bg-dark-background" : "container mx-auto px-4 sm:px-6 lg:px-8 py-8"}>
             <SEOHead
                 title={teacher ? `${teacher.name} | clazz.lk` : 'Teacher Profile'}
                 description={teacher ? teacher.tagline || teacher.bio.substring(0, 160) : 'View teacher profile.'}
                 image={teacher ? teacher.profileImage : undefined}
                 structuredData={structuredData}
             />
-            <div className="flex flex-col md:flex-row gap-8">
+            <div className={`flex flex-col md:flex-row ${canEdit ? '' : 'gap-8'}`}>
                 {/* Sidebar Navigation */}
-                <div className="md:w-64 flex-shrink-0 relative z-20">
-                    <div className="sticky top-24">
-                        <ProfileTabs activeTab={activeTab} setActiveTab={setActiveTab} isOwnProfile={canEdit} hasEvents={visibleEventsCount > 0} />
+                {canEdit ? (
+                    <div className="flex-shrink-0 z-20"> {/* Wrapper for Teacher Dashboard Sidebar */}
+                        <TeacherDashboardTabs
+                            activeTab={activeTab}
+                            setActiveTab={handleTabChange}
+                            isOwnProfile={true}
+                            badges={{
+                                earnings: unseenEarnings > 0,
+                                custom_requests: unseenRequests > 0
+                            }}
+                        />
                     </div>
-                </div>
+                ) : (
+                    <div className="w-full md:w-64 flex-shrink-0 relative z-20">
+                        <div className="sticky top-24">
+                            <ProfileTabs
+                                activeTab={activeTab}
+                                setActiveTab={handleTabChange}
+                                isOwnProfile={canEdit}
+                                hasEvents={visibleEventsCount > 0}
+                                tabs={tabs}
+                                badges={{
+                                    earnings: unseenEarnings > 0,
+                                    custom_requests: unseenRequests > 0
+                                }}
+                            />
+                        </div>
+                    </div>
+                )}
 
-                {/* Main Content Area - Added padding-left on mobile to avoid overlap with fixed sidebar */}
-                <div className="flex-1 min-w-0 space-y-8 pl-16 md:pl-0 animate-slideInUp relative z-0">
+                {/* Main Content Area */}
+                <div className={`flex-1 min-w-0 space-y-8 animate-slideInUp relative z-0 ${canEdit ? 'pl-14 p-4 md:pl-0 md:p-8' : ''}`}>
                     {/* Overview-only Header Content - These are placed inside the main content column */}
                     {activeTab === 'overview' && (
                         <>
@@ -966,18 +1122,16 @@ const TeacherProfilePage: React.FC<TeacherProfilePageProps> = ({ teacherId, slug
                                 )
                             )}
 
-                            {teacher.registrationStatus !== 'approved' && canEdit && (
-                                <div className={`p-4 rounded-md mb-6 text-center font-semibold text-white ${teacher.registrationStatus === 'pending' ? 'bg-yellow-500' : 'bg-red-500'}`}>
-                                    {teacher.registrationStatus === 'pending' ? 'Your profile is currently under review and not yet visible to the public. Please ensure that your profile is at least 50% complete to make it publicly visible.' : 'Your registration has been rejected. Please contact support.'}
-                                </div>
-                            )}
-
                             <ProfileHeader
-                                teacher={teacher} isOwnProfile={canEdit} onEditProfile={handleEditProfile}
+                                teacher={teacher}
+                                isOwnProfile={canEdit}
+                                onEditProfile={handleEditProfile}
                                 onEditImage={(type) => openImageUploadModal(type, { teacherId: teacher.id })}
                                 onRemoveCoverImage={handleRemoveCoverImage}
-                                coverImageIndex={coverImageIndex} setCoverImageIndex={setCoverImageIndex}
+                                coverImageIndex={coverImageIndex}
+                                setCoverImageIndex={setCoverImageIndex}
                                 followerCount={followerCount}
+                                onRequestCustomClass={() => setIsRequestClassModalOpen(true)}
                             />
 
                             {!isOwnProfile && currentUser?.role === 'student' && (
@@ -1040,6 +1194,12 @@ const TeacherProfilePage: React.FC<TeacherProfilePageProps> = ({ teacherId, slug
                     initialData={eventToEdit}
                 />
             )}
+            {/* Other Modals */}
+            <RequestCustomClassModal
+                isOpen={isRequestClassModalOpen}
+                onClose={() => setIsRequestClassModalOpen(false)}
+                teacher={teacher}
+            />
         </div>
     );
 };

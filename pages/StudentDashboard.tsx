@@ -11,8 +11,11 @@ import { useFirebase } from '../contexts/FirebaseContext';
 import { calculateStudentProfileCompletion } from '../utils';
 import ProgressBar from '../components/ProgressBar';
 
-
 import { useBroadcastData } from '../hooks/useBroadcastData';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { db } from '../firebase';
+import { CustomClassRequest } from '../types/customRequest';
+import { useSmartBadge } from '../hooks/useSmartBadge';
 
 // Tab Components
 import MyCourses from '../components/studentDashboard/MyCourses';
@@ -22,6 +25,7 @@ import MyEvents from '../components/studentDashboard/MyEvents';
 import TransactionHistory from '../components/studentDashboard/TransactionHistory';
 import MyProfile from '../components/studentDashboard/MyProfile';
 import MyAttendance from '../components/studentDashboard/MyAttendance';
+import MyRequests from '../components/studentDashboard/MyRequests';
 import TopUpModal from '../components/TopUpModal';
 import MyExamsSection from '../components/MyExamsSection';
 import MyOrders from '../components/studentDashboard/MyOrders';
@@ -73,7 +77,7 @@ const StatCard: React.FC<{ title: string; value: string | React.ReactNode; icon:
 
 const StudentDashboard: React.FC<StudentDashboardProps> = ({ userId, isAdminView = false }) => {
     const { currentUser } = useAuth();
-    const { sales, users, teachers, vouchers } = useData();
+    const { sales, users, teachers, vouchers, certificates, submissions } = useData();
     const { pageState, handleNavigate } = useNavigation();
     const { setModalState } = useUI();
     const { enableNotifications } = useFirebase();
@@ -88,9 +92,32 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ userId, isAdminView
     // Fetch broadcast unread count
     const { unreadTotal } = useBroadcastData(undefined, undefined, (!isAdminView && displayUser) ? displayUser.id : undefined);
 
+    // Fetch Custom Requests for Timetable
+    const [customRequests, setCustomRequests] = useState<CustomClassRequest[]>([]);
 
-    const initialTab = (pageState.name === 'student_dashboard' && pageState.initialTab) ? pageState.initialTab : 'overview';
-    const [activeTab, setActiveTab] = useState<DashboardTab>(initialTab);
+    React.useEffect(() => {
+        if (!displayUser) return;
+        const q = query(
+            collection(db, 'customClassRequests'),
+            where('studentId', '==', displayUser.id)
+        );
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            setCustomRequests(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as CustomClassRequest)));
+        });
+        return () => unsubscribe();
+    }, [displayUser?.id]);
+
+
+
+    const getInitialTab = (): DashboardTab => {
+        if (pageState.name === 'student_dashboard' && pageState.initialTab) return pageState.initialTab;
+        const params = new URLSearchParams(window.location.search);
+        const tabParam = params.get('tab');
+        // valid tabs check could be stricter, but casting is safe enough for UI state (will just default if invalid in switch)
+        return (tabParam as DashboardTab) || 'overview';
+    };
+
+    const [activeTab, setActiveTab] = useState<DashboardTab>(getInitialTab);
     const [isTopUpModalOpen, setIsTopUpModalOpen] = useState(false);
     const [classFilter, setClassFilter] = useState<'all' | 'upcoming'>('all');
 
@@ -98,6 +125,16 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ userId, isAdminView
         if (tab !== 'classes') {
             setClassFilter('all');
         }
+
+        // Smart Badges: Mark as viewed when tab is opened
+        if (tab === 'requests') markRequestsViewed();
+        if (tab === 'certificates') markCertificatesViewed();
+        if (tab === 'attendance') markAttendanceViewed();
+        if (tab === 'my_orders') markOrdersViewed();
+        if (tab === 'my_vouchers') markVouchersViewed();
+        if (tab === 'score_card') markScoresViewed();
+        if (tab === 'groups') markGroupsViewed();
+
         setActiveTab(tab);
     };
 
@@ -109,6 +146,73 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ userId, isAdminView
     const handleCloseTopUp = useCallback(() => setIsTopUpModalOpen(false), []);
 
     const { percentage: profileCompletion } = calculateStudentProfileCompletion(displayUser as User);
+
+
+    // Data for Badges (Destructured above)
+
+    // 1. Requests Badge
+    const { unseenCount: unseenRequests, markAsViewed: markRequestsViewed } = useSmartBadge('student_requests', customRequests, 'updatedAt');
+
+    // 2. Certificates Badge
+    const myCertificates = useMemo(() => {
+        if (!displayUser) return [];
+        return certificates.filter(c => c.studentId === displayUser.id);
+    }, [certificates, displayUser]);
+    const { unseenCount: unseenCertificates, markAsViewed: markCertificatesViewed } = useSmartBadge('student_certificates', myCertificates, 'issuedAt');
+
+    // 3. Attendance Badge 
+    const myAttendanceRecords = useMemo(() => {
+        if (!displayUser) return [];
+        const records: any[] = [];
+        teachers.forEach(teacher => {
+            teacher.individualClasses.forEach(classInfo => {
+                if (classInfo.attendance) {
+                    classInfo.attendance.forEach(record => {
+                        if (record.studentId === displayUser.id) {
+                            records.push({
+                                ...record,
+                                // timestamp is attendedAt
+                            });
+                        }
+                    });
+                }
+            });
+        });
+        return records;
+    }, [displayUser, teachers]);
+    const { unseenCount: unseenAttendance, markAsViewed: markAttendanceViewed } = useSmartBadge('student_attendance', myAttendanceRecords, 'attendedAt');
+
+    // 4. Orders Badge 
+    const myOrders = useMemo(() => {
+        if (!displayUser) return [];
+        return sales.filter(s => s.studentId === displayUser.id && (
+            s.itemType === 'photo_purchase' ||
+            s.itemType === 'marketplace_purchase' ||
+            (s.itemSnapshot && 'coverImages' in s.itemSnapshot && !s.cartItems)
+        ));
+    }, [sales, displayUser]);
+    const { unseenCount: unseenOrders, markAsViewed: markOrdersViewed } = useSmartBadge('student_orders', myOrders, 'saleDate');
+
+    // 5. Vouchers Badge
+    const myVouchers = useMemo(() => {
+        return vouchers.filter(v => v.assignedToUserId === displayUser?.id);
+    }, [vouchers, displayUser]);
+    const { unseenCount: unseenVouchers, markAsViewed: markVouchersViewed } = useSmartBadge('student_vouchers', myVouchers, 'issuedAt');
+
+    // 6. Score Card Badge 
+    const mySubmissions = useMemo(() => {
+        if (!displayUser) return [];
+        return submissions.filter(s => s.studentId === displayUser.id);
+    }, [submissions, displayUser]);
+    const { unseenCount: unseenScores, markAsViewed: markScoresViewed } = useSmartBadge('student_scores', mySubmissions, 'submittedAt');
+
+    // 7. Groups/Inbox Badge (Mocking 'updatedAt' from unread total if simpler, or just reset logic)
+    // Since 'unreadTotal' is a number, we can't track timestamps easily. 
+    // We will just use the number itself to show badge, and clearing it might require 'markAllAsRead' logic in Broadcast context.
+    // For now we pass it as badge directly.
+    const markGroupsViewed = () => { }; // Handled by opening the tab usually? Or need explicit broadcast action. 
+
+
 
     const { enrolledCoursesCount, enrolledClassesCount, enrolledQuizzesCount, enrolledEventsCount, purchaseHistoryCount, topUpHistoryCount, myOrdersCount, uncollectedVouchersCount } = useMemo(() => {
         if (!displayUser) return { enrolledCoursesCount: 0, enrolledClassesCount: 0, enrolledQuizzesCount: 0, enrolledEventsCount: 0, purchaseHistoryCount: 0, topUpHistoryCount: 0, myOrdersCount: 0, uncollectedVouchersCount: 0 };
@@ -145,9 +249,9 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ userId, isAdminView
     }, [displayUser, sales, vouchers]);
 
     // Better way: Grab certificates from useData directly for count
-    const { certificates } = useData();
-    const myCertificatesCount = useMemo(() => {
-        if (!displayUser) return 0;
+    // const { certificates } = useData(); // Removed redundant call
+    const certificatesCount = useMemo(() => {
+        if (!displayUser || !certificates) return 0;
         return certificates.filter(c => c.studentId === displayUser.id).length;
     }, [certificates, displayUser]);
 
@@ -266,8 +370,32 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ userId, isAdminView
             }
         });
 
+        // Get paid custom requests
+        const paidRequests = customRequests.filter(r => r.status === 'paid');
+        paidRequests.forEach(req => {
+            req.requestedSlots.forEach(slot => {
+                const slotDate = new Date(slot.date);
+                // No timezone offset needed for simple date string usually, but consistent with above:
+                // Actually YYYY-MM-DD string construction:
+                const sDate = new Date(slot.date + 'T00:00:00');
+
+                if (sDate >= weekStart && sDate <= weekEnd) {
+                    const dayName = daysOfWeek[sDate.getDay()];
+                    schedule.push({
+                        id: req.id,
+                        type: 'class', // Treat as class for display
+                        day: dayName,
+                        subject: req.topic,
+                        title: `Private: ${req.topic}`,
+                        startTime: slot.startTime,
+                        endTime: slot.endTime
+                    });
+                }
+            });
+        });
+
         return { weekStart, weekEnd, scheduleForWeek: schedule };
-    }, [displayUser, currentWeekOffset, sales, teachers]);
+    }, [displayUser, currentWeekOffset, sales, teachers, customRequests]);
 
 
     const currencyFormatter = new Intl.NumberFormat('en-LK', { style: 'currency', currency: 'LKR' });
@@ -400,7 +528,6 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ userId, isAdminView
                             <TimeTable
                                 schedule={scheduleForWeek}
                                 onItemClick={(item) => handleNavigate(item.type === 'class' ? { name: 'class_detail', classId: item.id as number } : { name: 'quiz_detail', quizId: item.id as string })}
-                                title="My Class Schedule"
                             />
                         </div>
                     </div>
@@ -416,6 +543,8 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ userId, isAdminView
             case 'attendance': return <MyAttendance user={displayUser} />;
             case 'profile': return <MyProfile user={displayUser} isAdminView={isAdminView} />;
             case 'my_orders': return <MyOrders user={displayUser} />;
+            case 'requests':
+                return <MyRequests student={displayUser} />;
             case 'score_card': return <MyScoreCard user={displayUser} />;
             case 'my_vouchers': return <MyVouchers user={displayUser} />;
             default: return null;
@@ -429,7 +558,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ userId, isAdminView
         events: enrolledEventsCount,
         orders: myOrdersCount,
         history: purchaseHistoryCount + topUpHistoryCount,
-        certificates: myCertificatesCount,
+        certificates: certificatesCount,
         groups: unreadTotal || 0
     };
 
@@ -439,7 +568,20 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ userId, isAdminView
                 {/* Sidebar Navigation */}
                 <div className="md:w-64 flex-shrink-0 order-1 md:order-1 relative z-20">
                     <div className="sticky top-24">
-                        <StudentDashboardTabs activeTab={activeTab} setActiveTab={handleTabChange} counts={tabCounts} />
+                        <StudentDashboardTabs
+                            activeTab={activeTab}
+                            setActiveTab={handleTabChange}
+                            counts={tabCounts}
+                            badges={{
+                                requests: unseenRequests > 0,
+                                certificates: unseenCertificates > 0,
+                                attendance: unseenAttendance > 0,
+                                my_orders: unseenOrders > 0,
+                                my_vouchers: unseenVouchers > 0,
+                                score_card: unseenScores > 0,
+                                groups: unreadTotal > 0
+                            }}
+                        />
                     </div>
                 </div>
 

@@ -1,0 +1,16 @@
+components/Header.tsx(344,40): error TS2339: Property 'homePageCardCounts' does not exist on type 'NavigationContextType'.
+components/studentDashboard/StudentCV.tsx(11,7): error TS2322: Type 'ForwardRefExoticComponent<Omit<{ children: ReactNode; ref?: Ref<HTMLDivElement>; }, "ref"> & RefAttributes<HTMLDivElement>>' is not assignable to type 'FC<{ children: ReactNode; ref?: Ref<HTMLDivElement>; }>'.
+  The types of 'propTypes.ref' are incompatible between these types.
+    Type 'Validator<LegacyRef<HTMLDivElement>>' is not assignable to type 'Validator<Ref<HTMLDivElement>>'.
+      Type 'LegacyRef<HTMLDivElement>' is not assignable to type 'Ref<HTMLDivElement>'.
+        Type 'string' is not assignable to type 'Ref<HTMLDivElement>'.
+components/teacherProfile/EarningsDashboard.tsx(643,46): error TS2367: This comparison appears to be unintentional because the types '"pending" | "approved" | "rejected"' and '"completed"' have no overlap.
+components/teacherProfile/EarningsDashboard.tsx(848,18): error TS2741: Property 'paymentGatewaySettings' is missing in type '{ onSelect: (method: PaymentMethod) => void; }' but required in type 'PaymentMethodSelectorProps'.
+components/TopUpModal.tsx(158,22): error TS2741: Property 'paymentGatewaySettings' is missing in type '{ onSelect: (method: PaymentMethod) => void; }' but required in type 'PaymentMethodSelectorProps'.
+data/mockData.ts(261,137): error TS2322: Type '"completed"' is not assignable to type '"pending" | "approved" | "rejected"'.
+data/mockData.ts(262,13): error TS2741: Property 'userType' is missing in type '{ id: string; userId: string; amount: number; requestedAt: string; status: "pending"; }' but required in type 'Withdrawal'.
+hooks/transactions/useFinancialManagementActions.ts(29,23): error TS2741: Property 'userType' is missing in type '{ id: string; userId: string; amount: number; requestedAt: string; status: "pending"; }' but required in type 'Withdrawal'.
+pages/ClassDetailPage.tsx(371,22): error TS2741: Property 'paymentGatewaySettings' is missing in type '{ onSelect: (method: PaymentMethod) => void; }' but required in type 'PaymentMethodSelectorProps'.
+pages/RegistrationPage.tsx(219,19): error TS2554: Expected 4-5 arguments, but got 3.
+pages/StudentDashboard.tsx(403,33): error TS2322: Type '{ schedule: ScheduleItem[]; onItemClick: (item: ScheduleItem) => void; title: string; }' is not assignable to type 'IntrinsicAttributes & TimeTableProps'.
+  Property 'title' does not exist on type 'IntrinsicAttributes & TimeTableProps'.

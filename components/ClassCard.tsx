@@ -88,60 +88,66 @@ const ClassCard: React.FC<ClassCardProps> = ({ classInfo, teacher, viewMode, enr
     const teacherRating = getAverageRating(teacher.ratings);
 
     return (
-        <div className="bg-light-surface dark:bg-dark-surface rounded-lg shadow-md overflow-hidden flex flex-col group animate-fadeIn transition-transform duration-300 hover:-translate-y-1 hover:shadow-xl">
-            <div className="p-5 flex-grow flex flex-col">
-                <div className="flex justify-between items-start">
-                    <div className="flex items-center gap-2 flex-wrap">
+        <div
+            className="bg-light-surface dark:bg-dark-surface rounded-lg shadow-md overflow-hidden flex flex-col group animate-fadeIn transition-transform duration-300 hover:-translate-y-1 hover:shadow-xl cursor-pointer"
+            onClick={() => onView(classInfo, teacher)}
+        >
+            <div className="p-4 flex-grow flex flex-col">
+                <div className="flex justify-between items-start mb-2">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                         {institute && (
-                            <span className="px-2 py-1 text-xs font-semibold rounded-full bg-indigo-100 text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 flex items-center">
+                            <span className="px-1.5 py-0.5 text-[10px] font-semibold rounded-full bg-indigo-100 text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 flex items-center">
                                 <span className="mr-1">🏛️</span>
                                 {institute.name}
                             </span>
                         )}
-                        <span className="px-2 py-1 text-xs font-semibold rounded-full bg-primary/10 text-primary-dark dark:text-primary-light uppercase tracking-wider">
+                        <span className="px-1.5 py-0.5 text-[10px] font-semibold rounded-full bg-primary/10 text-primary-dark dark:text-primary-light uppercase tracking-wider">
                             {classInfo.subject}
                             {classInfo.medium && <span className="opacity-70 ml-1">({classInfo.medium.charAt(0)})</span>}
                         </span>
                         {classInfo.isFreeSlot && (
-                            <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">
-                                1-on-1 Slot
+                            <span className="px-1.5 py-0.5 text-[10px] font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">
+                                1-on-1
                             </span>
                         )}
                     </div>
-                    <div className="text-right">
-                        <p className="text-xl font-bold text-primary">{currencyFormatter.format(classInfo.fee)}</p>
-                        {classInfo.fee > 0 && <p className="text-xs text-light-subtle dark:text-dark-subtle">{classInfo.weeklyPaymentOption === 'per_month' ? '/ month' : '/ session'}</p>}
-                        {classInfo.paymentMethod === 'manual' && <p className="text-xs font-bold text-green-600 dark:text-green-400">(Pay at venue)</p>}
+                </div>
+
+                <div className="flex justify-between items-start mb-1">
+                    <h3 className="text-base font-bold text-light-text dark:text-dark-text group-hover:text-primary transition-colors line-clamp-2 leading-tight pr-2">{classInfo.title}</h3>
+                    <div className="text-right flex-shrink-0">
+                        <p className="text-lg font-bold text-primary leading-none">{currencyFormatter.format(classInfo.fee)}</p>
+                        {classInfo.fee > 0 && <p className="text-[10px] text-light-subtle dark:text-dark-subtle">{classInfo.weeklyPaymentOption === 'per_month' ? '/ month' : '/ session'}</p>}
                     </div>
                 </div>
 
-                <h3 className="mt-3 text-lg font-bold text-light-text dark:text-dark-text group-hover:text-primary transition-colors">{classInfo.title}</h3>
-
-                <div className="mt-2 flex items-center space-x-2">
-                    <button onClick={() => onViewTeacher(teacher)} className="flex items-center space-x-2 text-sm group/teacher">
+                <div className="mb-2 flex items-center space-x-2">
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onViewTeacher(teacher);
+                        }}
+                        className="flex items-center space-x-1.5 text-xs group/teacher w-fit"
+                    >
                         {teacher.avatar ? (
-                            <img src={getOptimizedImageUrl(teacher.avatar, 32, 32)} alt={teacher.name} className="w-6 h-6 rounded-full" />
+                            <img src={getOptimizedImageUrl(teacher.avatar, 32, 32)} alt={teacher.name} className="w-5 h-5 rounded-full object-cover border border-light-border dark:border-dark-border" />
                         ) : (
-                            <div className="w-6 h-6 rounded-full bg-primary flex-shrink-0 flex items-center justify-center text-white text-xs font-bold">
+                            <div className="w-5 h-5 rounded-full bg-primary flex-shrink-0 flex items-center justify-center text-white text-[10px] font-bold">
                                 <span>
                                     {teacher.name?.split(' ')[0]?.charAt(0) || ''}
                                     {teacher.name?.split(' ')[1]?.charAt(0) || ''}
                                 </span>
                             </div>
                         )}
-                        <span className="font-medium text-light-subtle dark:text-dark-subtle group-hover/teacher:underline">{teacher.name}</span>
+                        <span className="font-medium text-light-subtle dark:text-dark-subtle group-hover/teacher:underline truncate max-w-[150px]">{teacher.name}</span>
                     </button>
                     {teacherRating.count > 0 && <StarRating rating={teacherRating.average} readOnly={true} size="xs" showLabel={false} />}
                 </div>
 
-                <p className="mt-3 text-xs text-light-subtle dark:text-dark-subtle flex-grow">
-                    {extractAndTruncate(classInfo.description, 100)}
-                </p>
-
-                <div className="mt-4 space-y-2 text-sm text-light-subtle dark:text-dark-subtle">
+                <div className="space-y-1.5 text-xs text-light-subtle dark:text-dark-subtle mb-3">
                     <div className="flex items-center">
-                        <CalendarIcon className="w-4 h-4 mr-2" />
-                        <span>
+                        <CalendarIcon className="w-3.5 h-3.5 mr-1.5 opacity-70" />
+                        <span className="font-medium">
                             {classInfo.recurrence === 'weekly' ? `Weekly on ${getDayOfWeek(classInfo.date)}s`
                                 : classInfo.recurrence === 'flexible' ? `${classInfo.flexibleDates?.length || 0} Sessions`
                                     : formattedDate}
@@ -149,96 +155,73 @@ const ClassCard: React.FC<ClassCardProps> = ({ classInfo, teacher, viewMode, enr
                     </div>
                     {classInfo.recurrence !== 'flexible' && (
                         <div className="flex items-center">
-                            <ClockIcon className="w-4 h-4 mr-2" />
+                            <ClockIcon className="w-3.5 h-3.5 mr-1.5 opacity-70" />
                             <span>{classInfo.startTime} - {classInfo.endTime}</span>
                         </div>
                     )}
                     <div className="flex items-center">
-                        <div className="w-4 h-4 mr-2 flex items-center justify-center">{getModeIcon(classInfo.mode)}</div>
+                        <div className="w-3.5 h-3.5 mr-1.5 flex items-center justify-center opacity-70">{getModeIcon(classInfo.mode)}</div>
                         <span>{classInfo.mode === 'Both' ? 'Online & Physical' : classInfo.mode}</span>
                     </div>
                 </div>
 
-                <div className="mt-4 pt-4 border-t border-light-border dark:border-dark-border flex flex-wrap gap-y-3 justify-between items-center">
+                <div className="mt-auto pt-3 border-t border-light-border dark:border-dark-border">
                     {viewMode === 'public' ? (
                         (dynamicStatus === 'canceled' && isOwnerView) ? (
-                            <div className="w-full text-center px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 dark:text-gray-200 dark:bg-gray-800 rounded-md">
-                                Canceled & Refunded to Balance
+                            <div className="w-full text-center px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 dark:text-gray-200 dark:bg-gray-800 rounded-md">
+                                Canceled
                             </div>
                         ) : (classInfo.isDeleted && !isOwnerView) ? (
-                            <div className="w-full text-center px-4 py-2 text-sm font-medium text-red-700 bg-red-100 dark:text-red-200 dark:bg-red-900/50 rounded-md">
-                                Removed by teacher
+                            <div className="w-full text-center px-3 py-1.5 text-xs font-medium text-red-700 bg-red-100 dark:text-red-200 dark:bg-red-900/50 rounded-md">
+                                Removed
                             </div>
-                        ) : (
-                            <button
-                                onClick={() => onView(classInfo, teacher)}
-                                className="w-full text-center px-4 py-2 text-sm font-medium text-white bg-primary rounded-md hover:bg-primary-dark transition-colors"
-                            >
-                                View Details
-                            </button>
-                        )
+                        ) : null
                     ) : (
-                        <>
-                            <div className="flex flex-wrap items-center gap-2">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="flex items-center gap-1.5 flex-wrap">
                                 <ClassStatusBadge status={dynamicStatus} />
                                 {!classInfo.isPublished && (
-                                    <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300">Unpublished</span>
-                                )}
-                                {typeof enrollmentCount !== 'undefined' && (
-                                    <div className="flex items-center text-sm text-light-subtle dark:text-dark-subtle" title={`${enrollmentCount} enrolled students`}>
-                                        <UserGroupIcon className="w-4 h-4 mr-1" />
-                                        <span>{enrollmentCount}</span>
-                                    </div>
+                                    <span className="px-1.5 py-0.5 text-[10px] font-medium rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300">Unpublished</span>
                                 )}
                             </div>
-                            <div className="flex items-center gap-1 ml-auto">
+
+                            <div className="flex items-center gap-1">
                                 {onManageRecordings && (
                                     <button
-                                        onClick={() => onManageRecordings(classInfo)}
-                                        className="p-2 text-light-subtle dark:text-dark-subtle hover:text-primary dark:hover:text-primary-light transition-colors"
-                                        aria-label="Manage Recordings"
-                                        title="Manage Recordings"
+                                        onClick={(e) => { e.stopPropagation(); onManageRecordings(classInfo); }}
+                                        className="p-1.5 text-light-subtle dark:text-dark-subtle hover:text-primary dark:hover:text-primary-light transition-colors"
+                                        title="Recordings"
                                     >
-                                        <VideoCameraIcon className="h-4 w-4" />
+                                        <VideoCameraIcon className="h-3.5 w-3.5" />
                                     </button>
                                 )}
-                                <button onClick={handleShare} className="p-2 text-light-subtle dark:text-dark-subtle hover:text-primary dark:hover:text-primary-light transition-colors" title="Share Link">
-                                    <ShareIcon className="h-4 w-4" />
+                                <button onClick={handleShare} className="p-1.5 text-light-subtle dark:text-dark-subtle hover:text-primary dark:hover:text-primary-light transition-colors" title="Share Link">
+                                    <ShareIcon className="h-3.5 w-3.5" />
                                 </button>
-                                <button onClick={() => onView(classInfo, teacher)} className="p-2 text-light-subtle dark:text-dark-subtle hover:text-primary dark:hover:text-primary-light transition-colors" title="Preview Class">
-                                    <ExternalLinkIcon className="h-4 w-4" />
+                                <button onClick={(e) => { e.stopPropagation(); onView(classInfo, teacher); }} className="p-1.5 text-light-subtle dark:text-dark-subtle hover:text-primary dark:hover:text-primary-light transition-colors" title="Preview">
+                                    <ExternalLinkIcon className="h-3.5 w-3.5" />
                                 </button>
                                 <button
-                                    onClick={() => onTogglePublish && onTogglePublish(classInfo.id)}
+                                    onClick={(e) => { e.stopPropagation(); onTogglePublish && onTogglePublish(classInfo.id); }}
                                     disabled={(enrollmentCount ?? 0) > 0 || dynamicStatus === 'finished' || dynamicStatus === 'canceled'}
-                                    className="p-2 text-light-subtle dark:text-dark-subtle hover:text-primary dark:hover:text-primary-light transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                    title={
-                                        (enrollmentCount ?? 0) > 0 ? "Cannot change publish status while students are enrolled" :
-                                            (dynamicStatus !== 'scheduled' ? "Can only publish/unpublish scheduled classes" :
-                                                (classInfo.isPublished ? "Unpublish this class from the website" : "Make this class public on the website"))
-                                    }
-                                    aria-label={classInfo.isPublished ? "Unpublish class" : "Publish class"}
+                                    className="p-1.5 text-light-subtle dark:text-dark-subtle hover:text-primary dark:hover:text-primary-light transition-colors disabled:opacity-50"
                                 >
-                                    {classInfo.isPublished ? <EyeSlashIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
+                                    {classInfo.isPublished ? <EyeSlashIcon className="h-3.5 w-3.5" /> : <EyeIcon className="h-3.5 w-3.5" />}
                                 </button>
                                 <button
-                                    onClick={() => onEdit && onEdit(classInfo)}
-                                    className="p-2 text-light-subtle dark:text-dark-subtle hover:text-primary dark:hover:text-primary-light transition-colors"
-                                    aria-label="Edit class"
-                                    title="Edit class"
+                                    onClick={(e) => { e.stopPropagation(); onEdit && onEdit(classInfo); }}
+                                    className="p-1.5 text-light-subtle dark:text-dark-subtle hover:text-primary dark:hover:text-primary-light transition-colors"
                                 >
-                                    <PencilIcon className="h-4 w-4" />
+                                    <PencilIcon className="h-3.5 w-3.5" />
                                 </button>
                                 <button
-                                    onClick={() => onDelete && onDelete(classInfo.id, enrollmentCount || 0)}
-                                    className="p-2 text-red-500 hover:text-red-700 dark:hover:text-red-400 transition-colors"
-                                    aria-label="Delete class"
-                                    title={(enrollmentCount ?? 0) > 0 ? `Delete class and refund ${enrollmentCount} enrolled student(s).` : "Delete class"}
+                                    onClick={(e) => { e.stopPropagation(); onDelete && onDelete(classInfo.id, enrollmentCount || 0); }}
+                                    className="p-1.5 text-red-500 hover:text-red-700 dark:hover:text-red-400 transition-colors"
                                 >
-                                    <TrashIcon className="h-4 w-4" />
+                                    <TrashIcon className="h-3.5 w-3.5" />
                                 </button>
                             </div>
-                        </>
+                        </div>
                     )}
                 </div>
             </div>

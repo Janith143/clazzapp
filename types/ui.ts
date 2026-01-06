@@ -7,7 +7,7 @@ import type { Course, IndividualClass, Quiz, Product } from './content';
 export type EditableImageType = 'profile' | 'student_profile' | 'cover_add' | { type: 'cover', index: number } | 'admin_default_cover' | 'id_verification_front' | 'id_verification_back' | 'bank_verification' | 'payment_slip' | 'event_flyer' | 'quiz_question_image' | 'product_cover' | 'course_cover' | 'og_image' | 'payment_method_logo';
 
 export type AdminView = 'analytics' | 'users' | 'staff' | 'content' | 'products' | 'allsales' | 'photo_orders' | 'physical_orders' | 'revenue' | 'vouchers' | 'referrals' | 'payment_gateways' | 'site_content' | 'calculation_guide' | 'developer' | 'requests' | 'communications' | 'institutes';
-export type DashboardTab = 'overview' | 'courses' | 'classes' | 'quizzes' | 'products' | 'history' | 'profile' | 'my_events' | 'my_orders' | 'past_classes' | 'score_card' | 'attendance' | 'timetable' | 'my_vouchers' | 'earnings' | 'certificates' | 'groups';
+export type DashboardTab = 'overview' | 'courses' | 'classes' | 'quizzes' | 'products' | 'history' | 'profile' | 'my_events' | 'my_orders' | 'past_classes' | 'score_card' | 'attendance' | 'timetable' | 'my_vouchers' | 'earnings' | 'certificates' | 'groups' | 'requests';
 
 type PaymentRedirectPayload =
   | { type: 'enrollment'; item: Course | IndividualClass | Quiz | Event; sale: Sale; updatedUser?: User; selectedMethod?: PaymentMethod }
@@ -17,7 +17,8 @@ type PaymentRedirectPayload =
   | { type: 'marketplace_purchase', cart: CartItem[], totalAmount: number, billingDetails: BillingDetails, shippingAddress?: import('./base').Address }
   | { type: 'photo_purchase', cart: PhotoCartItem[], totalAmount: number, instituteId: string, billingDetails: BillingDetails, shippingAddress?: import('./base').Address }
   | { type: 'teacher_subscription', planLevel: number, amount: number, refCode: string, billingDetails: BillingDetails, selectedMethod?: PaymentMethod }
-  | { type: 'additional_service', customDetails: { serviceDetails: { title: string; description?: string }; amountPaidFromBalance: number; totalAmount: number }, sale: Sale, updatedUser?: User, selectedMethod?: PaymentMethod };
+  | { type: 'additional_service', customDetails: { serviceDetails: { title: string; description?: string }; amountPaidFromBalance: number; totalAmount: number }, sale: Sale, updatedUser?: User, selectedMethod?: PaymentMethod }
+  | { type: 'custom_payment', item: import('./customRequest').CustomClassRequest, sale: Sale, updatedUser?: User, selectedMethod?: PaymentMethod };
 
 export type PageState =
   | { name: 'home' }

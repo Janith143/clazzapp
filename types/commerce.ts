@@ -1,6 +1,7 @@
 import type { Address, ContactInfo } from './base';
 import { AttendanceRecord, Course, IndividualClass, Product, Quiz } from './content';
-import { PayoutDetails, Withdrawal } from './payment';
+import { PayoutDetails, Withdrawal, BillingDetails } from './payment';
+import { CustomClassRequest } from './customRequest';
 
 export type EventCategory = 'Workshop' | 'Seminar' | 'Exhibition' | 'Competition' | 'Camp' | 'Class Series' | 'Award Ceremony' | 'School Event';
 
@@ -117,7 +118,7 @@ export interface Sale {
     teacherId?: string;
     instituteId?: string;
     itemId: string | number;
-    itemType: 'course' | 'class' | 'quiz' | 'event' | 'marketplace_purchase' | 'photo_purchase' | 'additional_service';
+    itemType: 'course' | 'class' | 'quiz' | 'event' | 'marketplace_purchase' | 'photo_purchase' | 'additional_service' | 'custom_class';
     itemName: string;
     totalAmount: number;
     amountPaidFromBalance: number;
@@ -129,11 +130,12 @@ export interface Sale {
     currency: 'LKR';
     status: 'completed' | 'refunded' | 'hold' | 'failed' | 'cleared' | 'canceled';
     paymentMethod?: 'gateway' | 'balance' | 'manual_at_venue';
-    itemSnapshot?: Course | IndividualClass | Quiz | Event | Product | AdditionalService;
+    itemSnapshot?: Course | IndividualClass | Quiz | Event | Product | AdditionalService | CustomClassRequest;
     cartItems?: CartItem[];
     photoOrderStatus?: 'pending' | 'processing' | 'shipped' | 'delivered';
     physicalOrderStatus?: 'pending' | 'processing' | 'shipped' | 'delivered';
     shippingAddress?: Address;
+    billingDetails?: BillingDetails;
     purchaseMetadata?: {
         type: 'full' | 'month' | 'session' | 'installment';
         index?: number; // 0-based index of the month, session, or installment

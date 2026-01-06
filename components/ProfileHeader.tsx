@@ -17,6 +17,7 @@ interface ProfileHeaderProps {
     coverImageIndex: number;
     setCoverImageIndex: (index: number) => void;
     followerCount?: number;
+    onRequestCustomClass?: () => void;
 }
 
 const ProfileHeader = React.forwardRef<HTMLDivElement, ProfileHeaderProps>(({
@@ -27,7 +28,8 @@ const ProfileHeader = React.forwardRef<HTMLDivElement, ProfileHeaderProps>(({
     onRemoveCoverImage,
     coverImageIndex,
     setCoverImageIndex,
-    followerCount
+    followerCount,
+    onRequestCustomClass
 }, ref) => {
     const { defaultCoverImages, tuitionInstitutes } = useData();
 
@@ -140,14 +142,21 @@ const ProfileHeader = React.forwardRef<HTMLDivElement, ProfileHeaderProps>(({
                                         )}
                                     </div>
                                 </div>
-                                <div>
-                                    <strong className="font-semibold text-light-subtle dark:text-dark-subtle block mb-1">Qualifications</strong>
-                                    <p className="text-xs">{teacher.qualifications.join(' • ')}</p>
-                                </div>
+                                <p className="text-xs">{teacher.qualifications.join(' • ')}</p>
                             </div>
+                            {teacher.customClassSettings?.enabled && !isOwnProfile && (
+                                <div className="pt-2">
+                                    <button
+                                        onClick={onRequestCustomClass}
+                                        className="w-full sm:w-auto px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold rounded-full shadow-md hover:from-blue-700 hover:to-indigo-700 transition-all flex items-center justify-center space-x-2"
+                                    >
+                                        <StarIcon className="w-5 h-5" />
+                                        <span>Request Private Class</span>
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </div>
-
                     {isOwnProfile && (
                         <div className="absolute top-0 right-0 download-ignore">
                             <button onClick={onEditProfile} className="flex-shrink-0 flex items-center space-x-2 px-3 py-1.5 text-xs font-medium text-white bg-primary rounded-md hover:bg-primary-dark transition-colors">
@@ -171,10 +180,10 @@ const ProfileHeader = React.forwardRef<HTMLDivElement, ProfileHeaderProps>(({
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <div className="border-t border-light-border dark:border-dark-border mt-6 pt-4 text-center">
-                    <p className="text-sm italic text-light-subtle dark:text-dark-subtle">"Join me on clazz.lk to learn, grow, and achieve."</p>
-                </div>
+            <div className="border-t border-light-border dark:border-dark-border mt-6 pt-4 text-center">
+                <p className="text-sm italic text-light-subtle dark:text-dark-subtle">"Join me on clazz.lk to learn, grow, and achieve."</p>
             </div>
         </div>
     );

@@ -7,6 +7,7 @@ import { useData } from '../contexts/DataContext.tsx';
 import { useAuth } from '../contexts/AuthContext.tsx';
 import { YouTubePlayer } from './YouTubePlayer.tsx';
 import MarkdownDisplay from './MarkdownDisplay.tsx';
+import { getYoutubeVideoId } from '../utils';
 
 const VideoPlayerModal: React.FC = () => {
     const { videoPlayerState, setVideoPlayerState } = useUI();
@@ -26,15 +27,7 @@ const VideoPlayerModal: React.FC = () => {
                 return { provider: 'vimeo', videoId };
             }
             if (urlObj.hostname.includes('youtube.com') || urlObj.hostname.includes('youtu.be')) {
-                let videoId: string | null = null;
-                if (urlObj.hostname.includes('youtu.be')) {
-                    videoId = urlObj.pathname.split('/').pop() || null;
-                } else if (urlObj.pathname.includes('/shorts/')) {
-                    const parts = urlObj.pathname.split('/shorts/');
-                    videoId = parts[1] ? parts[1].split('/')[0] : null;
-                } else {
-                    videoId = urlObj.searchParams.get('v');
-                }
+                const videoId = getYoutubeVideoId(url);
                 return { provider: 'youtube', videoId };
             }
             if (urlObj.hostname.includes('drive.google.com')) {
@@ -79,10 +72,8 @@ const VideoPlayerModal: React.FC = () => {
             }
             // YouTube - Note: This is now a fallback, the dedicated component is preferred
             if (urlObj.hostname.includes('youtube.com') || urlObj.hostname.includes('youtu.be')) {
-                const videoId = urlObj.hostname.includes('youtu.be')
-                    ? urlObj.pathname.split('/').pop()
-                    : urlObj.searchParams.get('v');
-                return `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+                const videoId = getYoutubeVideoId(url);
+                return videoId ? `https://www.youtube.com/embed/${videoId}?autoplay=1` : null;
             }
             // Google Drive
             if (urlObj.hostname.includes('drive.google.com')) {

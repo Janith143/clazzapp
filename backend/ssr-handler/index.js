@@ -283,7 +283,7 @@ app.get('**', async (req, res) => {
                     return {
                         title: `${found.title} | ${t.name}`,
                         description: found.description?.substring(0, 160),
-                        image: t.profileImage || meta.image,
+                        image: found.coverImage || t.profileImage || meta.image,
                         jsonLd: {
                             "@context": "https://schema.org",
                             "@type": ldType,

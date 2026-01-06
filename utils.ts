@@ -210,7 +210,7 @@ export const getYoutubeVideoId = (url: string): string | null => {
     // - youtube.com/embed/VIDEO_ID
     // - youtube.com/v/VIDEO_ID
     // and other variations.
-    const regex = /(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?|shorts)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
+    const regex = /(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?|shorts|live)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
     const match = url.match(regex);
     return match ? match[1] : null;
 };
@@ -647,4 +647,31 @@ export const extractAndTruncate = (content: any, length: number = 80): string =>
 
     // Truncate and add ellipsis
     return plainText.substring(0, length).trim() + '...';
+};
+
+/**
+ * Detects if the current environment is a Mobile WebView.
+ * Useful for adjusting UI or behavior for the mobile app wrapper.
+ */
+export const isWebView = (): boolean => {
+    if (typeof window === 'undefined' || !window.navigator) return false;
+
+    const userAgent = window.navigator.userAgent.toLowerCase();
+
+    // Android: The token 'wv' (WebView) is usually present in the UA string.
+    const isAndroidWebView = /wv/.test(userAgent) || /android.*version\/.*chrome\//.test(userAgent);
+    // Note: Standard Chrome on Android has 'Android' and 'Chrome' but usually not 'Version/X.X' combined in a specific way that WebViews do, 
+    // BUT 'wv' is the standard indicator since Android 5.
+
+    // iOS: Safari always includes 'safari'. WebViews (UIWebView/WKWebView) usually do not,
+    // or they include 'mobile' and 'applewebkit' but omit 'safari' (or use a different string).
+    // However, Chrome on iOS (CriOS) also behaves like a browser.
+    // A common check:
+    const isIOS = /iphone|ipod|ipad/.test(userAgent);
+    const isIOSWebView = isIOS && (!/safari/.test(userAgent) || /crios/i.test(userAgent) === false && /fxios/i.test(userAgent) === false);
+
+    // Explicit check for potentially Custom User Agents if the app sets one (e.g. "ClazzApp")
+    const isCustomApp = userAgent.includes('clazzapp');
+
+    return isAndroidWebView || (isIOSWebView && !/safari/.test(userAgent)) || isCustomApp;
 };

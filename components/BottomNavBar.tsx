@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigation } from '../contexts/NavigationContext.tsx';
-import { HomeIcon, UserGroupIcon, BookOpenIcon, VideoCameraIcon, ClipboardListIcon } from './Icons.tsx';
+import { HomeIcon, AcademicCapIcon, BookOpenIcon, VideoCameraIcon, ClipboardListIcon } from './Icons.tsx';
 import { PageState } from '../types.ts';
 
 const ShoppingBagIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
@@ -15,7 +15,7 @@ const BottomNavBar: React.FC = () => {
 
     const navItems = [
         { name: 'home', label: 'Home', icon: HomeIcon, page: { name: 'home' } },
-        { name: 'all_teachers', label: 'Teachers', icon: UserGroupIcon, page: { name: 'all_teachers' } },
+        { name: 'all_teachers', label: 'Teachers', icon: AcademicCapIcon, page: { name: 'all_teachers' } },
         { name: 'all_courses', label: 'Courses', icon: BookOpenIcon, page: { name: 'all_courses' } },
         { name: 'all_classes', label: 'Classes', icon: VideoCameraIcon, page: { name: 'all_classes' } },
         { name: 'all_products', label: 'Store', icon: ShoppingBagIcon, page: { name: 'all_products' } },
@@ -33,8 +33,8 @@ const BottomNavBar: React.FC = () => {
                         key={item.name}
                         onClick={() => handleNavigate(item.page as PageState)}
                         className={`flex flex-col items-center justify-center w-full h-full transition-colors duration-200 ${isActive(item.name)
-                                ? 'text-primary'
-                                : 'text-light-subtle dark:text-dark-subtle hover:text-primary'
+                            ? 'text-primary'
+                            : 'text-light-subtle dark:text-dark-subtle hover:text-primary'
                             }`}
                         aria-current={isActive(item.name) ? 'page' : undefined}
                     >

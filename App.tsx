@@ -23,6 +23,7 @@ import CartModal from './components/CartModal';
 import MobileWelcomeGate from './components/MobileWelcomeGate';
 import LazyChatWidget from './components/LazyChatWidget';
 import ChristmasAnimation from './components/ChristmasAnimation';
+import NetworkStatusBanner from './components/NetworkStatusBanner';
 import Modal from './components/Modal'; // Import standard Modal for notification popup
 
 // Pages
@@ -510,6 +511,7 @@ function AppContent() {
 
   return (
     <div className={`min-h-screen flex flex-col font-sans bg-light-background dark:bg-dark-background text-light-text dark:text-dark-text`}>
+      <NetworkStatusBanner />
       {isMobile && !currentUser && !authLoading && showWelcomeGate && (
         <MobileWelcomeGate onLogin={handleGateLogin} onBrowse={handleGateBrowse} />
       )}

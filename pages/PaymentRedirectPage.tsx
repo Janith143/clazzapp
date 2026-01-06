@@ -183,6 +183,23 @@ const PaymentRedirectPage: React.FC<PaymentRedirectPageProps> = ({ user: context
                     data = { ...baseUserDetails, items };
                     break;
                 }
+                case 'custom_payment': {
+                    const { item, sale } = payload;
+                    // item is CustomClassRequest
+                    customFieldsObject = {
+                        type: 'custom_payment',
+                        requestId: item.id,
+                        saleId: sale.id,
+                        teacherId: item.teacherId,
+                        amountPaidFromBalance: sale.amountPaidFromBalance,
+                        frontend_url
+                    };
+                    order_id = sale.id;
+                    items = `Private Class: ${item.topic}`;
+                    amount = sale.totalAmount;
+                    data = { ...baseUserDetails, items };
+                    break;
+                }
                 default:
                     setError("Invalid payment type.");
                     return;

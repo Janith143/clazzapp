@@ -11,3 +11,4 @@ export * from './types/teacher';
 export * from './types/ui';
 export * from './types/user';
 export * from './types/verification';
+export * from './types/customRequest';
