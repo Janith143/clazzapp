@@ -22,9 +22,9 @@ type PaymentRedirectPayload =
 
 export type PageState =
   | { name: 'home' }
-  | { name: 'all_teachers' }
-  | { name: 'all_courses' }
-  | { name: 'all_classes'; options?: { ongoingOnly?: boolean } }
+  | { name: 'all_teachers'; filters?: Record<string, any> }
+  | { name: 'all_courses'; filters?: Record<string, any> }
+  | { name: 'all_classes'; options?: { ongoingOnly?: boolean }; filters?: Record<string, any> }
   | { name: 'all_quizzes' }
   | { name: 'all_exams' }
   | { name: 'all_events' }

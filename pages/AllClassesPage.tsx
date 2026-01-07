@@ -28,7 +28,9 @@ const AllClassesPage: React.FC = () => {
   const { handleNavigate, allSubjects, subjects, pageState } = useNavigation();
   const options = (pageState as any).options;
 
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(() => {
+    return (pageState as any).filters?.searchQuery || '';
+  });
   const [districtFilter, setDistrictFilter] = useState('all');
   const [townFilter, setTownFilter] = useState('all');
   const [audienceFilter, setAudienceFilter] = useState('all');
@@ -36,6 +38,7 @@ const AllClassesPage: React.FC = () => {
   const [mediumFilter, setMediumFilter] = useState('all');
   const [modeFilter, setModeFilter] = useState<'all' | 'Online' | 'Physical'>('all');
   const [paymentFilter, setPaymentFilter] = useState<'all' | 'platform' | 'manual'>('all');
+  const [instituteFilter, setInstituteFilter] = useState('all'); // Added Institute Filter
   const [sortOption, setSortOption] = useState('date_asc');
   const [showLiveOnly, setShowLiveOnly] = useState(false);
   const [isFilterVisible, setIsFilterVisible] = useState(true);
@@ -43,6 +46,20 @@ const AllClassesPage: React.FC = () => {
   const [visibleCount, setVisibleCount] = useState(ITEMS_PER_PAGE);
   const isLoadingMore = useRef(false);
   const loader = useRef(null);
+
+  // Initialize filters from PageState
+  useEffect(() => {
+    const filters = (pageState as any).filters;
+    if (filters) {
+      if (filters.district) setDistrictFilter(filters.district);
+      if (filters.town) setTownFilter(filters.town);
+      if (filters.subject) setSubjectFilter(filters.subject);
+      if (filters.medium) setMediumFilter(filters.medium);
+      if (filters.mode) setModeFilter(filters.mode);
+      if (filters.grade) setAudienceFilter(filters.grade);
+      if (filters.institute) setInstituteFilter(filters.institute);
+    }
+  }, [pageState]);
 
   // Scroll Logic for Sticky Header
   const lastScrollY = useRef(0);
@@ -163,8 +180,21 @@ const AllClassesPage: React.FC = () => {
         (paymentFilter === 'platform' && (item.paymentMethod === 'platform' || !item.paymentMethod)) ||
         (paymentFilter === 'manual' && item.paymentMethod === 'manual');
 
+      // Filter by Institute
+      const matchesInstitute = instituteFilter === 'all' || item.institute === instituteFilter;
+
       // Filter by Audience
-      const matchesAudience = audienceFilter === 'all' || item.targetAudience === audienceFilter;
+      let matchesAudience = audienceFilter === 'all';
+      if (!matchesAudience) {
+        const docAudience = (item.targetAudience || '').toLowerCase();
+        const filterAudience = String(audienceFilter).toLowerCase();
+
+        if (docAudience === filterAudience) matchesAudience = true;
+        else if (filterAudience.includes(docAudience) || docAudience.includes(filterAudience)) matchesAudience = true;
+        else if (filterAudience.includes('secondary') && docAudience.includes('secondary')) matchesAudience = true;
+        else if ((filterAudience.includes('advanced level') || filterAudience.includes('a/l')) &&
+          (docAudience.includes('advanced level') || docAudience.includes('a/l'))) matchesAudience = true;
+      }
 
       // Filter by Subject
       const matchesSubject = subjectFilter === 'all' || item.subject === subjectFilter;
@@ -176,7 +206,7 @@ const AllClassesPage: React.FC = () => {
         return false;
       }
 
-      return matchesSearch && matchesMode && matchesDistrict && matchesTown && matchesPayment && matchesAudience && matchesSubject && matchesMedium;
+      return matchesSearch && matchesMode && matchesDistrict && matchesTown && matchesPayment && matchesAudience && matchesSubject && matchesMedium && matchesInstitute;
     });
 
     return [...filtered].sort((a, b) => {

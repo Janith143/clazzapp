@@ -248,27 +248,85 @@ export const getDynamicClassStatus = (classInfo: any, now: Date = new Date()): '
 
     // Logic for one-time and weekly
     const startDateTime = new Date(`${classInfo.date}T${classInfo.startTime}`);
-    const endDateTime = new Date(`${classInfo.date}T${classInfo.endTime}`);
+    let endDateTime = new Date(`${classInfo.date}T${classInfo.endTime}`);
+
+    // Fix for midnight crossover (One-time)
+    if (endDateTime <= startDateTime) {
+        endDateTime.setDate(endDateTime.getDate() + 1);
+    }
 
     if (classInfo.recurrence === 'weekly') {
         const classDay = startDateTime.getDay();
+        // For weekly, we need to handle the day matching carefully if it crosses midnight.
+        // Actually, the simple "classDay === todayDay" check assumes the class STARTS today.
+        // If a class starts on Monday 23:00 and ends Tuesday 01:00, and it's Tuesday 00:30:
+        // - todayDay is Tuesday. classDay is Monday. They don't match.
+        // - BUT checking "yesterday's class" is complex.
+        // - Standard convention: "Live" status usually triggered by the START day.
+        // - If I am on Tuesday, and I want to join Monday's class?
+        // - Current basic implementation: Only checks if TODAY matches the start day.
+        // - So we strictly stick to: Is today the start day? If so, is time within range?
+        // - (Handling "Is live now but started yesterday" requires checking yesterday too, which is an enhancement)
+        // - For now, we fix the "Range Logic" for the start day.
+
         const todayDay = now.getDay();
 
         if (classDay === todayDay) {
             const nowTime = now.getHours() * 60 + now.getMinutes();
             const startTime = startDateTime.getHours() * 60 + startDateTime.getMinutes();
-            const endTime = endDateTime.getHours() * 60 + endDateTime.getMinutes();
+            const endTime = endDateTime.getHours() * 60 + endDateTime.getMinutes(); // This might be smaller than startTime
 
-            if (nowTime >= startTime && nowTime <= endTime) {
-                const seriesStartDate = new Date(classInfo.date);
-                const seriesEndDate = classInfo.endDate ? new Date(classInfo.endDate) : null;
-                if (now >= seriesStartDate && (!seriesEndDate || now <= seriesEndDate)) {
-                    return 'live';
+            const seriesStartDate = new Date(classInfo.date);
+            const seriesEndDate = classInfo.endDate ? new Date(classInfo.endDate) : null;
+
+            // Check if we are within the date range of the series
+            if (now >= seriesStartDate && (!seriesEndDate || now <= seriesEndDate)) {
+                // Midnight Check:
+                if (endTime <= startTime) {
+                    // Crossover (e.g. 23:00 to 01:00)
+                    // Logic: It is live if Now >= Start OR Now <= End (Wait, Now <= End only applies if we are on the NEXT day)
+                    // BUT: We are inside `if (classDay === todayDay)`.
+                    // So we are on the START day.
+                    // So on the start day, it is live if Now >= Start.
+                    // (The "Now <= End" part would happen on the next day, which fails the classDay check).
+                    // So: If today is start day, and it's a crossover class, it is Live if Now >= Start.
+                    // (It technically stays live until midnight).
+                    if (nowTime >= startTime) return 'live';
+                } else {
+                    // Normal range
+                    if (nowTime >= startTime && nowTime <= endTime) return 'live';
                 }
             }
         }
-        const seriesEndDate = classInfo.endDate ? new Date(`${classInfo.endDate}T23:59:59`) : null;
-        if (seriesEndDate && now > seriesEndDate) {
+        // Correction: If today is the day *after* class day, and it's a crossover class, check if before end time?
+        // e.g. Class Mon 23:00 - Tue 01:00. Now is Tue 00:30.
+        // classDay=Mon, todayDay=Tue. Fails.
+        // To support this, we'd need to check (today - 1).
+        // Let's implement that for robustness.
+        const yesterdayDay = (todayDay + 6) % 7;
+        if (classDay === yesterdayDay) {
+            const nowTime = now.getHours() * 60 + now.getMinutes();
+            const startTime = startDateTime.getHours() * 60 + startDateTime.getMinutes();
+            const endTime = endDateTime.getHours() * 60 + endDateTime.getMinutes();
+
+            if (endTime <= startTime) {
+                // It IS a crossover class.
+                // We are on the second day. It is live if Now <= End.
+                // Also check date range (series must have started by yesterday).
+                const seriesStartDate = new Date(classInfo.date);
+                const seriesEndDate = classInfo.endDate ? new Date(classInfo.endDate) : null;
+                // effectively check if yesterday was valid valid
+                const yesterdayDate = new Date(now);
+                yesterdayDate.setDate(now.getDate() - 1);
+
+                if (yesterdayDate >= seriesStartDate && (!seriesEndDate || yesterdayDate <= seriesEndDate)) {
+                    if (nowTime <= endTime) return 'live';
+                }
+            }
+        }
+
+        const seriesEndDate2 = classInfo.endDate ? new Date(`${classInfo.endDate}T23:59:59`) : null;
+        if (seriesEndDate2 && now > seriesEndDate2) {
             return 'finished';
         }
         return 'scheduled';
@@ -342,13 +400,20 @@ export const getDynamicCourseStatus = (course: any, now: Date = new Date()): 'on
         // Scenario A: Has explicit live sessions
         if (course.liveSessions && course.liveSessions.length > 0) {
             // Find the last session
-            // We assume sessions might not be sorted, so we find the max end time.
             let lastSessionEnd: Date | null = null;
 
             for (const session of course.liveSessions) {
-                const sessionEnd = new Date(`${session.date}T${session.endTime}`);
-                if (!lastSessionEnd || sessionEnd > lastSessionEnd) {
-                    lastSessionEnd = sessionEnd;
+                if (session.date && session.endTime) {
+                    const sessionStart = new Date(`${session.date}T${session.startTime || '00:00'}`);
+                    const sessionEnd = new Date(`${session.date}T${session.endTime}`);
+
+                    if (sessionEnd <= sessionStart) {
+                        sessionEnd.setDate(sessionEnd.getDate() + 1);
+                    }
+
+                    if (!lastSessionEnd || sessionEnd > lastSessionEnd) {
+                        lastSessionEnd = sessionEnd;
+                    }
                 }
             }
 
@@ -380,6 +445,64 @@ export const getDynamicCourseStatus = (course: any, now: Date = new Date()): 'on
     }
 
     return 'ongoing';
+};
+
+/**
+ * Determines if a live course has an active session RIGHT NOW.
+ */
+export const isCourseSessionLive = (course: any, now: Date = new Date()): boolean => {
+    if (course.type !== 'live') return false;
+
+    // 1. Check explicit live sessions
+    if (course.liveSessions && course.liveSessions.length > 0) {
+        const isLive = course.liveSessions.some((session: any) => {
+            if (!session.date || !session.startTime || !session.endTime) return false;
+            const startStr = `${session.date}T${session.startTime}`;
+            const endStr = `${session.date}T${session.endTime}`;
+            const start = new Date(startStr);
+            let end = new Date(endStr);
+
+            if (end <= start) {
+                end.setDate(end.getDate() + 1);
+            }
+
+            return now >= new Date(start.getTime() - 15 * 60000) && now <= end;
+        });
+        if (isLive) return true;
+    }
+
+    // 2. Check recurring schedule config
+    if (course.scheduleConfig && course.scheduleConfig.startDate && course.scheduleConfig.startTime) {
+        const startDate = new Date(`${course.scheduleConfig.startDate}T00:00:00`);
+        const durationWeeks = course.scheduleConfig.weekCount || 10; // Default to 10 if missing? Or strict?
+        // Let's assume closely matches week count logic in getDynamicCourseStatus
+        const durationMs = durationWeeks * 7 * 24 * 60 * 60 * 1000;
+        const endDate = new Date(startDate.getTime() + durationMs);
+
+        // Check if today is within the course date range
+        if (now < startDate || now > endDate) return false;
+
+        // Check day of week
+        // scheduleConfig.days is array of numbers (0=Sun, 1=Mon)
+        if (course.scheduleConfig.days && !course.scheduleConfig.days.includes(now.getDay())) {
+            return false;
+        }
+
+        // Check time window
+        // We need startTime and durationMinutes
+        const [startH, startM] = course.scheduleConfig.startTime.split(':').map(Number);
+        const sessionStart = new Date(now);
+        sessionStart.setHours(startH, startM, 0, 0);
+
+        const durationMinutes = course.scheduleConfig.durationMinutes || 60; // fallback
+        const sessionEnd = new Date(sessionStart.getTime() + durationMinutes * 60000);
+
+        if (now >= sessionStart && now <= sessionEnd) {
+            return true;
+        }
+    }
+
+    return false;
 };
 
 /**

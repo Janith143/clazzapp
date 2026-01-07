@@ -1,11 +1,13 @@
 import React from 'react';
 import { Event, TuitionInstitute } from '../types.ts';
-import { ClockIcon, CalendarIcon, MapPinIcon, OnlineIcon, PencilIcon, TrashIcon } from './Icons.tsx';
+import { ClockIcon, CalendarIcon, MapPinIcon, OnlineIcon, PencilIcon, TrashIcon, ShareIcon } from './Icons.tsx';
 import { getDynamicEventStatus, getOptimizedImageUrl } from '../utils.ts';
 import { slugify } from '../utils/slug.ts';
 
 
 import { Teacher } from '../types';
+import ShareModal from './ShareModal';
+import { useState } from 'react';
 
 interface EventCardProps {
   event: Event;
@@ -33,6 +35,7 @@ const EventStatusBadge: React.FC<{ status: DynamicStatus }> = ({ status }) => {
 };
 
 const EventCard: React.FC<EventCardProps> = ({ event, organizer, onView, onEdit, onDelete, onTogglePublish }) => {
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const currencyFormatter = new Intl.NumberFormat('en-LK', {
     style: 'currency',
     currency: 'LKR',
@@ -87,17 +90,12 @@ const EventCard: React.FC<EventCardProps> = ({ event, organizer, onView, onEdit,
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            const url = `${window.location.origin}/events/${event.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '')}`;
-            navigator.clipboard.writeText(url);
-            // Ideally show toast
-            alert("Link copied to clipboard!");
+            setIsShareModalOpen(true);
           }}
           className="absolute top-2 left-2 p-2 bg-white/80 dark:bg-black/50 rounded-full hover:bg-white dark:hover:bg-black/70 transition-colors text-gray-700 dark:text-gray-200"
           title="Share"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
-            <path d="M13 4.5a2.5 2.5 0 11.702 1.737L6.97 9.604a2.51 2.51 0 010 .792l6.733 3.367a2.5 2.5 0 11-.671 1.341l-6.733-3.367a2.5 2.5 0 110-3.508l6.733-3.367A2.5 2.5 0 0113 4.5z" />
-          </svg>
+          <ShareIcon className="w-5 h-5" />
         </button>
       </div>
       <div className="p-5 flex-grow flex flex-col">
@@ -184,6 +182,13 @@ const EventCard: React.FC<EventCardProps> = ({ event, organizer, onView, onEdit,
         </div>
 
       </div>
+      <ShareModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        url={`${window.location.origin}/events/${event.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '')}`}
+        title={event.title}
+        description={`Check out this event by ${organizer.name}`}
+      />
     </div>
   );
 };

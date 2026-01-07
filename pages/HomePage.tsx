@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { Teacher, Course, IndividualClass, Quiz, Event, TuitionInstitute } from '../types';
-import HomeSlider from '../components/HomeSlider';
+import AdvancedHeroFilter from '../components/AdvancedSearch/AdvancedHeroFilter';
+// import HomeSlider from '../components/HomeSlider';
 import SearchBar from '../components/SearchBar';
 import TeacherCard from '../components/TeacherCard';
 import CourseCard from '../components/CourseCard';
@@ -9,12 +10,11 @@ import QuizCard from '../components/QuizCard';
 import EventCard from '../components/EventCard';
 import OngoingClassesBar from '../components/OngoingClassesBar';
 import UpcomingExamsSection from '../components/UpcomingExamsSection';
-import AIRecommendations from '../components/AIRecommendations';
-import AISearchSuggestions from '../components/AISearchSuggestions';
+
 // FIX: Import the 'MyExamsSection' component to resolve the "Cannot find name" error.
 import MyExamsSection from '../components/MyExamsSection';
 import AndroidAppBanner from '../components/AndroidAppBanner';
-import { getDynamicClassStatus, getDynamicQuizStatus, getDynamicEventStatus, getNextSessionDateTime } from '../utils';
+import { getDynamicClassStatus, getDynamicQuizStatus, getDynamicEventStatus, getNextSessionDateTime, isCourseSessionLive } from '../utils';
 import { slugify } from '../utils/slug';
 import { useNavigation } from '../contexts/NavigationContext';
 import { useData } from '../contexts/DataContext';
@@ -103,13 +103,51 @@ const HomePage: React.FC = () => {
         }
     };
 
-    const approvedTeachers = useMemo(() => teachers.filter(t => t.registrationStatus === 'approved'), [teachers]);
+    const approvedTeachers = useMemo(() => teachers.filter(t => t.registrationStatus === 'approved' && t.isPublished !== false), [teachers]);
 
     // --- LIVE & DEFAULT CONTENT ---
-    const ongoingClasses = useMemo(() => {
-        return approvedTeachers
+    const liveItems = useMemo(() => {
+        const liveClasses = approvedTeachers
             .flatMap(t => t.individualClasses.map(c => ({ classInfo: c, teacher: t })))
-            .filter(({ classInfo }) => classInfo.isPublished && (classInfo.mode === 'Online' || classInfo.mode === 'Both') && getDynamicClassStatus(classInfo) === 'live' && !!classInfo.joiningLink);
+            .filter(({ classInfo }) => classInfo.isPublished && (classInfo.mode === 'Online' || classInfo.mode === 'Both') && getDynamicClassStatus(classInfo) === 'live' && !!classInfo.joiningLink)
+            .map(({ classInfo, teacher }) => ({
+                id: classInfo.id,
+                title: classInfo.title,
+                teacher,
+                type: 'class' as const,
+                originalItem: classInfo
+            }));
+
+        const liveCourses = approvedTeachers
+            .flatMap(t => t.courses.map(c => ({ course: c, teacher: t })))
+            .filter(({ course }) => {
+                // Course must be published and live type
+                if (!course.isPublished || course.type !== 'live') return false;
+
+                // Must be currently live according to schedule/sessions
+                if (!isCourseSessionLive(course)) return false;
+
+                // CRITICAL: Must have a join link! 
+                // Either in a currently active specific session, or generally (if we supported that, but we don't seem to).
+                // We check if there's an active session with a join link.
+                const hasJoinableSession = course.liveSessions?.some(s => {
+                    const now = new Date(); // Use closure 'now' if available, otherwise new Date()
+                    const start = new Date(`${s.date}T${s.startTime}`);
+                    const end = new Date(`${s.date}T${s.endTime}`);
+                    return now >= start && now <= end && !!s.joinLink;
+                });
+
+                return !!hasJoinableSession;
+            })
+            .map(({ course, teacher }) => ({
+                id: course.id,
+                title: course.title,
+                teacher,
+                type: 'course' as const,
+                originalItem: course
+            }));
+
+        return [...liveClasses, ...liveCourses];
     }, [approvedTeachers, now]);
 
     const featuredTeachers = useMemo(() => {
@@ -125,9 +163,11 @@ const HomePage: React.FC = () => {
             const userMap = new Map(users.map(u => [u.id, u]));
             return [...approvedTeachers]
                 .sort((a, b) => {
-                    const userA = userMap.get(a.userId);
-                    const userB = userMap.get(b.userId);
-                    return new Date(userB?.createdAt || 0).getTime() - new Date(userA?.createdAt || 0).getTime();
+                    const userA = userMap.get(a.userId || '');
+                    const userB = userMap.get(b.userId || '');
+                    const dateA = userA?.createdAt ? new Date(userA.createdAt).getTime() : 0;
+                    const dateB = userB?.createdAt ? new Date(userB.createdAt).getTime() : 0;
+                    return dateB - dateA;
                 })
                 .slice(0, config.count || 3);
         }
@@ -229,103 +269,148 @@ const HomePage: React.FC = () => {
         }
     }, [tuitionInstitutes, now, homePageLayoutConfig]);
 
+    const handleLiveItemClick = (item: any, type: 'class' | 'course') => {
+        if (type === 'class') {
+            onViewClass(item, undefined);
+        } else {
+            onViewCourse(item, undefined);
+        }
+    };
+
 
     // --- SEARCH RESULTS ---
     const searchResults = useMemo(() => {
         if (!searchQuery.trim()) {
-            return { teachers: [], courses: [], classes: [], quizzes: [], events: [] };
+            return {
+                data: { teachers: [], courses: [], classes: [], quizzes: [], events: [] },
+                isExact: true
+            };
         }
-        const lowerQuery = searchQuery.toLowerCase();
 
-        const teachers = approvedTeachers.filter(teacher => {
-            const locations = teacher.teachingLocations
-                ? teacher.teachingLocations.map(l => `${l.instituteName} ${l.town} ${l.district}`).join(' ')
-                : '';
+        const performSearch = (query: string, mode: 'exact' | 'fuzzy') => {
+            const lowerQuery = query.toLowerCase();
+            const queryWords = mode === 'fuzzy' ? lowerQuery.split(/\s+/) : [lowerQuery];
 
-            const searchableContent = [
-                teacher.name,
-                teacher.tagline,
-                teacher.contact?.location,
-                teacher.id, // Added teacher ID
-                teacher.username, // Added username
-                ...teacher.subjects,
-                ...teacher.qualifications,
-                locations
-            ].join(' ').toLowerCase();
-            return searchableContent.includes(lowerQuery);
-        });
+            const checkMatch = (content: string) => {
+                const lowerContent = content.toLowerCase();
+                if (mode === 'exact') {
+                    return lowerContent.includes(lowerQuery);
+                }
+                // Fuzzy: matches any word in the query
+                return queryWords.some(word => lowerContent.includes(word));
+            };
 
-        const courses = approvedTeachers
-            .flatMap(teacher => teacher.courses.map(course => ({ ...course, teacher })))
-            .filter(course => {
-                if (!course.isPublished) return false;
+            const teachers = approvedTeachers.filter(teacher => {
+                const locations = teacher.teachingLocations
+                    ? teacher.teachingLocations.map(l => `${l.instituteName} ${l.town} ${l.district}`).join(' ')
+                    : '';
+
                 const searchableContent = [
-                    course.title,
-                    course.description,
-                    course.subject,
-                    course.teacher.name,
-                    course.teacher.id, // Added teacher ID
-                    course.teacher.username, // Added username
-                    course.teacher.contact?.location
-                ].join(' ').toLowerCase();
-                return searchableContent.includes(lowerQuery);
+                    teacher.name,
+                    teacher.tagline,
+                    teacher.contact?.location,
+                    teacher.id,
+                    teacher.username,
+                    ...teacher.subjects,
+                    ...teacher.qualifications,
+                    locations
+                ].join(' ');
+                return checkMatch(searchableContent);
             });
 
-        const classes = approvedTeachers
-            .flatMap(teacher => teacher.individualClasses.map(classInfo => ({ ...classInfo, teacher })))
-            .filter(classInfo => {
-                const status = getDynamicClassStatus(classInfo);
-                if (!classInfo.isPublished || status === 'finished' || status === 'canceled') return false;
-                const searchableContent = [
-                    classInfo.title,
-                    classInfo.description,
-                    classInfo.subject,
-                    classInfo.teacher.name,
-                    classInfo.teacher.id, // Added teacher ID
-                    classInfo.teacher.username, // Added username
-                    classInfo.teacher.contact?.location
-                ].join(' ').toLowerCase();
-                return searchableContent.includes(lowerQuery);
-            });
+            const courses = approvedTeachers
+                .flatMap(teacher => teacher.courses.map(course => ({ ...course, teacher })))
+                .filter(course => {
+                    if (!course.isPublished) return false;
+                    const searchableContent = [
+                        course.title,
+                        course.description,
+                        course.subject,
+                        course.teacher.name,
+                        course.teacher.id,
+                        course.teacher.username,
+                        course.teacher.contact?.location
+                    ].join(' ');
+                    return checkMatch(searchableContent);
+                });
 
-        const quizzes = approvedTeachers
-            .flatMap(teacher => teacher.quizzes.map(quiz => ({ ...quiz, teacher })))
-            .filter(quiz => {
-                if (!quiz.isPublished || getDynamicQuizStatus(quiz) !== 'scheduled') return false;
-                const searchableContent = [
-                    quiz.title,
-                    quiz.description,
-                    quiz.subject,
-                    quiz.teacher.name,
-                    quiz.teacher.id, // Added teacher ID
-                    quiz.teacher.username, // Added username
-                    quiz.teacher.contact?.location
-                ].join(' ').toLowerCase();
-                return searchableContent.includes(lowerQuery);
-            });
+            const classes = approvedTeachers
+                .flatMap(teacher => teacher.individualClasses.map(classInfo => ({ ...classInfo, teacher })))
+                .filter(classInfo => {
+                    const status = getDynamicClassStatus(classInfo);
+                    if (!classInfo.isPublished || status === 'finished' || status === 'canceled') return false;
+                    const searchableContent = [
+                        classInfo.title,
+                        classInfo.description,
+                        classInfo.subject,
+                        classInfo.teacher.name,
+                        classInfo.teacher.id,
+                        classInfo.teacher.username,
+                        classInfo.teacher.contact?.location
+                    ].join(' ');
+                    return checkMatch(searchableContent);
+                });
 
-        const events = tuitionInstitutes
-            .flatMap(ti => (ti.events || []).map(event => ({ ...event, organizer: ti })))
-            .filter(event => {
-                if (!event.isPublished || getDynamicEventStatus(event) !== 'scheduled') return false;
-                const searchableContent = [
-                    event.title,
-                    event.description,
-                    event.category,
-                    event.venue,
-                    event.organizer.name,
-                    event.organizer.id, // Added organizer ID
-                    event.organizer.contact?.location
-                ].join(' ').toLowerCase();
-                return searchableContent.includes(lowerQuery);
-            });
+            const quizzes = approvedTeachers
+                .flatMap(teacher => teacher.quizzes.map(quiz => ({ ...quiz, teacher })))
+                .filter(quiz => {
+                    if (!quiz.isPublished || getDynamicQuizStatus(quiz) !== 'scheduled') return false;
+                    const searchableContent = [
+                        quiz.title,
+                        quiz.description,
+                        quiz.subject,
+                        quiz.teacher.name,
+                        quiz.teacher.id,
+                        quiz.teacher.username,
+                        quiz.teacher.contact?.location
+                    ].join(' ');
+                    return checkMatch(searchableContent);
+                });
 
-        return { teachers, courses, classes, quizzes, events };
+            const events = tuitionInstitutes
+                .flatMap(ti => (ti.events || []).map(event => ({ ...event, organizer: ti })))
+                .filter(event => {
+                    if (!event.isPublished || getDynamicEventStatus(event) !== 'scheduled') return false;
+                    const searchableContent = [
+                        event.title,
+                        event.description,
+                        event.category,
+                        event.venue,
+                        event.organizer.name,
+                        event.organizer.id,
+                        event.organizer.contact?.location
+                    ].join(' ');
+                    return checkMatch(searchableContent);
+                });
+
+            return { teachers, courses, classes, quizzes, events };
+        };
+
+        // 1. First Pass: Exact Match
+        const exactResults = performSearch(searchQuery, 'exact');
+        const hasExact = Object.values(exactResults).some(arr => arr.length > 0);
+
+        if (hasExact) {
+            return { data: exactResults, isExact: true };
+        }
+
+        // 2. Second Pass: Fuzzy Match (fallback)
+        // Only run if query has multiple words or is long enough to warrant it? 
+        // For now, simple standard fuzzy.
+        const fuzzyResults = performSearch(searchQuery, 'fuzzy');
+        const hasFuzzy = Object.values(fuzzyResults).some(arr => arr.length > 0);
+
+        return {
+            data: hasFuzzy ? fuzzyResults : exactResults, // return empty exactResults if fuzzy also empty
+            isExact: !hasFuzzy // If fuzzy found something, isExact is false. If fuzzy failed too, it doesn't matter (empty).
+        };
+
     }, [searchQuery, approvedTeachers, tuitionInstitutes, now]);
 
     const hasSearchResults = useMemo(() => {
         if (!searchQuery.trim()) return false;
-        return searchResults.teachers.length > 0 || searchResults.courses.length > 0 || searchResults.classes.length > 0 || searchResults.quizzes.length > 0 || searchResults.events.length > 0;
+        const data = searchResults.data;
+        return data.teachers.length > 0 || data.courses.length > 0 || data.classes.length > 0 || data.quizzes.length > 0 || data.events.length > 0;
     }, [searchQuery, searchResults]);
     const noResultsFound = useMemo(() => searchQuery.trim() !== '' && !hasSearchResults, [searchQuery, hasSearchResults]);
 
@@ -342,21 +427,25 @@ const HomePage: React.FC = () => {
     return (
         <div className="space-y-12">
             <SEOHead />
-            {ongoingClasses.length > 0 &&
+            {liveItems.length > 0 &&
                 <OngoingClassesBar
-                    ongoingClasses={ongoingClasses}
-                    onClassClick={(c) => onViewClass(c, undefined)}
+                    items={liveItems}
+                    onItemClick={handleLiveItemClick}
                     onBarClick={() => onViewAllClasses({ ongoingOnly: true })}
                 />
             }
 
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="lg:grid lg:grid-cols-3 lg:gap-8 items-start">
+                <div className="lg:grid lg:grid-cols-3 lg:gap-8 items-stretch">
                     <div className="lg:col-span-2">
-                        <HomeSlider slides={homeSlides} onCtaClick={onCtaClick} />
+                        <div className="lg:col-span-2">
+                            <AdvancedHeroFilter />
+                        </div>
                     </div>
-                    <div className="hidden lg:block lg:col-span-1">
-                        <UpcomingExamsSection />
+                    <div className="hidden lg:block lg:col-span-1 relative">
+                        <div className="absolute inset-0 py-8">
+                            <UpcomingExamsSection />
+                        </div>
                     </div>
                 </div>
             </div>
@@ -369,26 +458,34 @@ const HomePage: React.FC = () => {
                 <MyExamsSection user={currentUser} />
             </div>
 
-            {currentUser && currentUser.role === 'student' && !searchQuery.trim() && (
-                <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-                    <AIRecommendations currentUser={currentUser} />
-                </div>
-            )}
+
 
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 space-y-16 pb-16">
                 {hasSearchResults ? (
                     <section>
                         <h2 className="text-3xl font-bold mb-6">Search Results for "{searchQuery}"</h2>
+
+                        {!searchResults.isExact && (
+                            <div className="bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-400 p-4 mb-8 rounded-r-md">
+                                <p className="text-yellow-800 dark:text-yellow-200 font-medium">
+                                    No exact matches found for "{searchQuery}". Showing similar results containing related terms.
+                                </p>
+                            </div>
+                        )}
+
                         <div className="space-y-12">
-                            {searchResults.teachers.length > 0 && <div><h3 className="text-2xl font-semibold mb-4">Teachers</h3><div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-8"><>{searchResults.teachers.map(teacher => <TeacherCard key={teacher.id} teacher={teacher} onViewProfile={(id) => handleNavigate({ name: 'teacher_profile', teacherId: id })} />)}</></div></div>}
-                            {searchResults.courses.length > 0 && <div><h3 className="text-2xl font-semibold mb-4">Courses</h3><div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-8"><>{searchResults.courses.map(course => <CourseCard key={course.id} course={course} teacher={course.teacher} viewMode="public" onView={onViewCourse} />)}</></div></div>}
-                            {searchResults.classes.length > 0 && <div><h3 className="text-2xl font-semibold mb-4">Classes</h3><div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-8"><>{searchResults.classes.map(classInfo => <ClassCard key={classInfo.id} classInfo={classInfo} teacher={classInfo.teacher} viewMode="public" onView={onViewClass} />)}</></div></div>}
-                            {searchResults.quizzes.length > 0 && <div><h3 className="text-2xl font-semibold mb-4">Quizzes</h3><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"><>{searchResults.quizzes.map(quiz => <QuizCard key={quiz.id} quiz={quiz} teacher={quiz.teacher} viewMode="public" onView={onViewQuiz} currentUser={currentUser} />)}</></div></div>}
-                            {searchResults.events.length > 0 && <div><h3 className="text-2xl font-semibold mb-4">Events</h3><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"><>{searchResults.events.map(event => <EventCard key={event.id} event={event} organizer={event.organizer} onView={onViewEvent} />)}</></div></div>}
+                            {searchResults.data.teachers.length > 0 && <div><h3 className="text-2xl font-semibold mb-4">Teachers</h3><div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-8"><>{searchResults.data.teachers.map(teacher => <TeacherCard key={teacher.id} teacher={teacher} onViewProfile={(id) => handleNavigate({ name: 'teacher_profile', teacherId: id })} />)}</></div></div>}
+                            {searchResults.data.courses.length > 0 && <div><h3 className="text-2xl font-semibold mb-4">Courses</h3><div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-8"><>{searchResults.data.courses.map(course => <CourseCard key={course.id} course={course} teacher={course.teacher} viewMode="public" onView={onViewCourse} />)}</></div></div>}
+                            {searchResults.data.classes.length > 0 && <div><h3 className="text-2xl font-semibold mb-4">Classes</h3><div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-8"><>{searchResults.data.classes.map(classInfo => <ClassCard key={classInfo.id} classInfo={classInfo} teacher={classInfo.teacher} viewMode="public" onView={onViewClass} />)}</></div></div>}
+                            {searchResults.data.quizzes.length > 0 && <div><h3 className="text-2xl font-semibold mb-4">Quizzes</h3><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"><>{searchResults.data.quizzes.map(quiz => <QuizCard key={quiz.id} quiz={quiz} teacher={quiz.teacher} viewMode="public" onView={onViewQuiz} currentUser={currentUser} />)}</></div></div>}
+                            {searchResults.data.events.length > 0 && <div><h3 className="text-2xl font-semibold mb-4">Events</h3><div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"><>{searchResults.data.events.map(event => <EventCard key={event.id} event={event} organizer={event.organizer} onView={onViewEvent} />)}</></div></div>}
                         </div>
                     </section>
                 ) : noResultsFound ? (
-                    <AISearchSuggestions searchQuery={searchQuery} />
+                    <div className="text-center py-16 text-light-subtle dark:text-dark-subtle bg-light-surface dark:bg-dark-surface rounded-xl border border-light-border dark:border-dark-border">
+                        <p className="text-xl font-semibold mb-2">No results found for "{searchQuery}"</p>
+                        <p>Try checking your spelling or using more general terms.</p>
+                    </div>
                 ) : (
                     <>
                         {!hasContent && (

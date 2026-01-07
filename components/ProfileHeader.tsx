@@ -1,6 +1,7 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Teacher, EditableImageType } from '../types';
-import { PencilIcon, StarIcon, UserGroupIcon, PhoneIcon, LinkIcon, LogoIcon } from './Icons';
+import { PencilIcon, StarIcon, UserGroupIcon, PhoneIcon, LinkIcon, LogoIcon, ShareIcon } from './Icons';
+import ShareModal from './ShareModal';
 import ImageCarousel from './ImageCarousel';
 import StarRating from './StarRating';
 import { getAverageRating, createSrcSet, calculateTeacherProfileCompletion, getOptimizedImageUrl } from '../utils';
@@ -32,6 +33,7 @@ const ProfileHeader = React.forwardRef<HTMLDivElement, ProfileHeaderProps>(({
     onRequestCustomClass
 }, ref) => {
     const { defaultCoverImages, tuitionInstitutes } = useData();
+    const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
     const profileUrl = teacher.username
         ? `${window.location.origin}/${teacher.username}`
@@ -116,6 +118,12 @@ const ProfileHeader = React.forwardRef<HTMLDivElement, ProfileHeaderProps>(({
                                 </div>
                             )}
 
+                            {/* Teacher ID Display */}
+                            <div className="mt-1 text-xs text-light-subtle dark:text-dark-subtle flex justify-center sm:justify-start items-center space-x-1">
+                                <span>Teacher ID:</span>
+                                <span className="font-mono bg-light-background dark:bg-dark-background px-1 rounded border border-light-border dark:border-dark-border">{teacher.id}</span>
+                            </div>
+
                             {isOwnProfile && (
                                 <div className="mt-4">
                                     <div className="flex justify-between items-center mb-1 text-sm">
@@ -174,6 +182,13 @@ const ProfileHeader = React.forwardRef<HTMLDivElement, ProfileHeaderProps>(({
                             <a href={profileUrl} target="_blank" rel="noopener noreferrer" className="mt-3 text-[10px] sm:text-xs text-light-subtle dark:text-dark-subtle hover:text-primary dark:hover:text-primary-light break-all font-mono bg-gray-50 dark:bg-white/5 px-2 py-1.5 rounded border border-light-border dark:border-dark-border transition-colors max-w-full">
                                 {profileUrl}
                             </a>
+                            <button
+                                onClick={() => setIsShareModalOpen(true)}
+                                className="mt-3 flex items-center justify-center space-x-1.5 px-4 py-1.5 text-xs font-semibold text-white bg-primary rounded-md hover:bg-primary-dark transition-colors shadow-sm"
+                            >
+                                <ShareIcon className="w-4 h-4" />
+                                <span>Share Profile</span>
+                            </button>
                         </div>
                         <div className="mt-4 space-y-2 text-sm">
                             <div className="flex items-center"><PhoneIcon className="w-4 h-4 mr-2 text-light-subtle dark:text-dark-subtle" /><span>{teacher.contact.phone}</span></div>
@@ -185,6 +200,14 @@ const ProfileHeader = React.forwardRef<HTMLDivElement, ProfileHeaderProps>(({
             <div className="border-t border-light-border dark:border-dark-border mt-6 pt-4 text-center">
                 <p className="text-sm italic text-light-subtle dark:text-dark-subtle">"Join me on clazz.lk to learn, grow, and achieve."</p>
             </div>
+            <ShareModal
+                isOpen={isShareModalOpen}
+                onClose={() => setIsShareModalOpen(false)}
+                url={profileUrl}
+                title={teacher.name}
+                description={teacher.tagline}
+                quote={`Join classes by ${teacher.name} on Clazz.lk`}
+            />
         </div>
     );
 });

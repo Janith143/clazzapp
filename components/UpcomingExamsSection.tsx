@@ -21,7 +21,7 @@ const UpcomingExamsSection: React.FC = () => {
             }
             return new Date(a.date).getTime() - new Date(b.date).getTime();
         });
-        
+
         if (currentUser?.targetAudience) {
             const userAudience = currentUser.targetAudience;
             const matchingExams: UpcomingExam[] = [];
@@ -47,14 +47,14 @@ const UpcomingExamsSection: React.FC = () => {
     }
 
     return (
-        <div className="lg:bg-light-surface lg:dark:bg-dark-surface lg:p-6 lg:rounded-lg lg:shadow-md lg:h-[500px] lg:flex lg:flex-col">
+        <div className="lg:bg-light-surface lg:dark:bg-dark-surface lg:p-6 lg:rounded-lg lg:shadow-md h-full lg:flex lg:flex-col">
             <div className="flex justify-between items-center mb-6 lg:mb-4">
                 <h2 className="text-3xl lg:text-xl font-bold">Upcoming Exams</h2>
                 <button onClick={() => handleNavigate({ name: 'all_exams' })} className="text-sm font-medium text-primary hover:underline">View All</button>
             </div>
-            
+
             <div className="lg:flex-grow lg:overflow-y-auto lg:pr-2">
-                
+
                 {/* Mobile/Tablet Grid (hidden on large screens) */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 lg:hidden">
                     {mobileExams.map(exam => (

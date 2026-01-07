@@ -1,5 +1,6 @@
 
-import React from 'react';
+import React, { useState } from 'react';
+import ShareModal from './ShareModal';
 import { Product, Teacher } from '../types';
 import { PencilIcon, TrashIcon, EyeIcon, EyeSlashIcon, ClockIcon, ShoppingCartIcon, ShareIcon, ExternalLinkIcon } from './Icons';
 import { useUI } from '../contexts/UIContext';
@@ -18,18 +19,14 @@ interface ProductCardProps {
 
 const ProductCard: React.FC<ProductCardProps> = ({ product, teacher, viewMode, onViewDetails, onEdit, onDelete, onTogglePublish }) => {
     const { addToast } = useUI();
+    const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
     const currencyFormatter = new Intl.NumberFormat('en-LK', { style: 'currency', currency: 'LKR', minimumFractionDigits: 0 });
     const optimizedCoverImage = getOptimizedImageUrl(product.coverImages?.[0] || '', 400);
 
     const handleShare = (e: React.MouseEvent) => {
         e.stopPropagation();
-        const url = `${window.location.origin}/store/${slugify(product.title)}`;
-        navigator.clipboard.writeText(url).then(() => {
-            addToast('Product link copied to clipboard!', 'success');
-        }).catch(() => {
-            addToast('Failed to copy link.', 'error');
-        });
+        setIsShareModalOpen(true);
     };
 
     const renderPublicationButton = () => {
@@ -107,6 +104,13 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, teacher, viewMode, o
                     </button>
                 </div>
             )}
+            <ShareModal
+                isOpen={isShareModalOpen}
+                onClose={() => setIsShareModalOpen(false)}
+                url={`${window.location.origin}/store/${slugify(product.title)}`}
+                title={product.title}
+                quote={`Buy ${product.title} by ${teacher.name} on Clazz.lk`}
+            />
         </div>
     );
 
@@ -120,3 +124,4 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, teacher, viewMode, o
 };
 
 export default ProductCard;
+

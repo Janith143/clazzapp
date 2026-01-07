@@ -202,7 +202,9 @@ const TeacherProfilePage: React.FC<TeacherProfilePageProps> = ({ teacherId, slug
     const isAdminView = currentUser?.role === 'admin';
     const canEdit = isOwnProfile || isAdminView;
 
-    // ... (existing code)
+    // View As Public Toggle (Default: false)
+    const [isViewAsPublic, setIsViewAsPublic] = useState(false);
+    const effectiveCanEdit = canEdit && !isViewAsPublic;
 
     // SEO Implementation
     const seoTitle = teacher ? `${teacher.name} | Clazz.lk` : 'Teacher Profile | Clazz.lk';
@@ -340,9 +342,9 @@ const TeacherProfilePage: React.FC<TeacherProfilePageProps> = ({ teacherId, slug
 
     const visibleEventsCount = useMemo(() => {
         if (!teacherEvents.length) return 0;
-        if (canEdit) return teacherEvents.length;
+        if (effectiveCanEdit) return teacherEvents.length;
         return teacherEvents.filter(e => e.event.isPublished).length;
-    }, [teacherEvents, canEdit]);
+    }, [teacherEvents, effectiveCanEdit]);
 
     // ------------------------------------------------------------------
     // Dynamic Tab Filtering
@@ -352,7 +354,7 @@ const TeacherProfilePage: React.FC<TeacherProfilePageProps> = ({ teacherId, slug
 
         // If owner/admin, show all tabs to allow editing/creation (except maybe completely irrelevant ones)
         // But for now, we follow standard logic: owner sees controls.
-        if (canEdit) return allTabs;
+        if (effectiveCanEdit) return allTabs;
 
         // Public View: Check content availability
         // Note: For students, we only show tabs that have *active/published* content.
@@ -839,7 +841,7 @@ const TeacherProfilePage: React.FC<TeacherProfilePageProps> = ({ teacherId, slug
                                 </div>
                                 <TeacherClassesTab
                                     teacher={teacher}
-                                    canEdit={canEdit}
+                                    canEdit={effectiveCanEdit}
                                     onScheduleNew={() => { setClassToEdit(null); setIsScheduleClassModalOpen(true); }}
                                     onScheduleFreeSlot={() => setIsScheduleFreeSlotModalOpen(true)}
                                     onScheduleGoogleMeet={() => { setClassToEdit({ meetProvider: 'google' } as IndividualClass); setIsScheduleClassModalOpen(true); }}
@@ -857,7 +859,7 @@ const TeacherProfilePage: React.FC<TeacherProfilePageProps> = ({ teacherId, slug
                                         <button onClick={() => setActiveTab('courses')} className="text-sm font-medium text-primary hover:underline">View All</button>
                                     )}
                                 </div>
-                                <TeacherCoursesTab teacher={teacher} canEdit={canEdit} onDelete={(id) => setItemToDelete({ id, type: 'course' })} />
+                                <TeacherCoursesTab teacher={teacher} canEdit={effectiveCanEdit} onDelete={(id) => setItemToDelete({ id, type: 'course' })} />
                             </section>
                         )}
 
@@ -869,7 +871,7 @@ const TeacherProfilePage: React.FC<TeacherProfilePageProps> = ({ teacherId, slug
                                         <button onClick={() => setActiveTab('quizzes')} className="text-sm font-medium text-primary hover:underline">View All</button>
                                     )}
                                 </div>
-                                <TeacherQuizzesTab teacher={teacher} canEdit={canEdit} onScheduleNew={() => setIsScheduleQuizModalOpen(true)} onEdit={(q) => { setQuizToEdit(q); setIsScheduleQuizModalOpen(true); }} onCancel={(id) => setItemToCancel({ id, type: 'quiz' })} />
+                                <TeacherQuizzesTab teacher={teacher} canEdit={effectiveCanEdit} onScheduleNew={() => setIsScheduleQuizModalOpen(true)} onEdit={(q) => { setQuizToEdit(q); setIsScheduleQuizModalOpen(true); }} onCancel={(id) => setItemToCancel({ id, type: 'quiz' })} />
                             </section>
                         )}
 
@@ -881,7 +883,7 @@ const TeacherProfilePage: React.FC<TeacherProfilePageProps> = ({ teacherId, slug
                                         <button onClick={() => setActiveTab('products')} className="text-sm font-medium text-primary hover:underline">View All</button>
                                     )}
                                 </div>
-                                <TeacherProductsTab teacher={teacher} canEdit={canEdit} onDelete={(id) => setItemToDelete({ id, type: 'product' })} />
+                                <TeacherProductsTab teacher={teacher} canEdit={effectiveCanEdit} onDelete={(id) => setItemToDelete({ id, type: 'product' })} />
                             </section>
                         )}
                     </div>
@@ -889,7 +891,7 @@ const TeacherProfilePage: React.FC<TeacherProfilePageProps> = ({ teacherId, slug
             case 'classes':
                 return <TeacherClassesTab
                     teacher={teacher}
-                    canEdit={canEdit}
+                    canEdit={effectiveCanEdit}
                     onScheduleNew={() => {
                         setClassToEdit(null); // Ensure it's a new class
                         setIsScheduleClassModalOpen(true);
@@ -907,17 +909,17 @@ const TeacherProfilePage: React.FC<TeacherProfilePageProps> = ({ teacherId, slug
                     onDelete={(id, count) => setItemToDelete({ id, type: 'class', enrollmentCount: count })}
                 />;
             case 'courses':
-                return <TeacherCoursesTab teacher={teacher} canEdit={canEdit} onDelete={(id) => setItemToDelete({ id, type: 'course' })} />;
+                return <TeacherCoursesTab teacher={teacher} canEdit={effectiveCanEdit} onDelete={(id) => setItemToDelete({ id, type: 'course' })} />;
             case 'quizzes':
-                return <TeacherQuizzesTab teacher={teacher} canEdit={canEdit} onScheduleNew={() => setIsScheduleQuizModalOpen(true)} onEdit={(q) => { setQuizToEdit(q); setIsScheduleQuizModalOpen(true); }} onCancel={(id) => setItemToCancel({ id, type: 'quiz' })} />;
+                return <TeacherQuizzesTab teacher={teacher} canEdit={effectiveCanEdit} onScheduleNew={() => setIsScheduleQuizModalOpen(true)} onEdit={(q) => { setQuizToEdit(q); setIsScheduleQuizModalOpen(true); }} onCancel={(id) => setItemToCancel({ id, type: 'quiz' })} />;
             case 'products':
-                return <TeacherProductsTab teacher={teacher} canEdit={canEdit} onDelete={(id) => setItemToDelete({ id, type: 'product' })} />;
+                return <TeacherProductsTab teacher={teacher} canEdit={effectiveCanEdit} onDelete={(id) => setItemToDelete({ id, type: 'product' })} />;
             case 'my_events':
                 return (
                     <TeacherEventsTab
                         teacher={teacher}
                         events={teacherEvents}
-                        canEdit={isOwnProfile}
+                        canEdit={effectiveCanEdit}
                         onScheduleNew={() => {
                             setEventToEdit(null);
                             setIsEventModalOpen(true);
@@ -931,11 +933,11 @@ const TeacherProfilePage: React.FC<TeacherProfilePageProps> = ({ teacherId, slug
                     />
                 );
             case 'past_classes':
-                return canEdit ? <TeacherPastClassesTab teacher={teacher} sales={sales} /> : null;
+                return effectiveCanEdit ? <TeacherPastClassesTab teacher={teacher} sales={sales} /> : null;
             case 'groups':
-                return canEdit ? <TeacherGroupsTab teacher={teacher} /> : null;
+                return effectiveCanEdit ? <TeacherGroupsTab teacher={teacher} /> : null;
             case 'earnings':
-                return canEdit ? <EarningsDashboard
+                return effectiveCanEdit ? <EarningsDashboard
                     teacher={teacher} allSales={sales} allUsers={users} isAdminView={isAdminView}
                     onWithdraw={(amount) => handleRequestWithdrawal(teacher.id, amount)}
                     onSaveBankDetails={(details) => handleSaveBankDetails(teacher.id, details)}
@@ -944,7 +946,7 @@ const TeacherProfilePage: React.FC<TeacherProfilePageProps> = ({ teacherId, slug
                     onUpdatePhysicalOrderStatus={handleUpdatePhysicalOrderStatus}
                 /> : null;
             case 'attendance':
-                return canEdit ? (
+                return effectiveCanEdit ? (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div className="md:col-span-1">
                             <h3 className="text-xl font-bold mb-4">Select a Class</h3>
@@ -983,7 +985,7 @@ const TeacherProfilePage: React.FC<TeacherProfilePageProps> = ({ teacherId, slug
                     </div>
                 ) : null;
             case 'notifications':
-                return canEdit ? <TeacherNotificationsTab teacher={teacher} /> : null;
+                return effectiveCanEdit ? <TeacherNotificationsTab teacher={teacher} /> : null;
             case 'timetable':
                 return (
                     <div>
@@ -1034,7 +1036,7 @@ const TeacherProfilePage: React.FC<TeacherProfilePageProps> = ({ teacherId, slug
                             <ProfileTabs
                                 activeTab={activeTab}
                                 setActiveTab={handleTabChange}
-                                isOwnProfile={canEdit}
+                                isOwnProfile={effectiveCanEdit}
                                 hasEvents={visibleEventsCount > 0}
                                 tabs={tabs}
                                 badges={{
@@ -1082,6 +1084,40 @@ const TeacherProfilePage: React.FC<TeacherProfilePageProps> = ({ teacherId, slug
                             </div>
 
                             {canEdit && (
+                                <div className="mb-4 flex items-center justify-end">
+                                    <div className="flex items-center space-x-2 bg-white dark:bg-gray-800 p-2 rounded-lg shadow-sm border border-light-border dark:border-dark-border">
+                                        <span className="text-xs font-medium text-light-subtle dark:text-dark-subtle">
+                                            {isViewAsPublic ? 'Viewing as Public' : 'Editing Mode'}
+                                        </span>
+                                        <button
+                                            onClick={() => setIsViewAsPublic(!isViewAsPublic)}
+                                            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${isViewAsPublic ? 'bg-gray-200 dark:bg-gray-700' : 'bg-primary'}`}
+                                            role="switch"
+                                            aria-checked={!isViewAsPublic}
+                                            title={isViewAsPublic ? "Switch to Edit Mode" : "Switch to Public View"}
+                                        >
+                                            <span
+                                                aria-hidden="true"
+                                                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${isViewAsPublic ? 'translate-x-0' : 'translate-x-5'}`}
+                                            />
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {effectiveCanEdit && (
+                                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg flex items-center justify-between mb-6">
+                                    <div>
+                                        <h4 className="font-bold text-blue-800 dark:text-blue-200">Want to host a live class?</h4>
+                                        <p className="text-sm text-blue-600 dark:text-blue-300">Schedule a new group class or individual session.</p>
+                                    </div>
+                                    <button onClick={() => setActiveTab('classes')} className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors">
+                                        Manage Classes
+                                    </button>
+                                </div>
+                            )}
+
+                            {canEdit && (
                                 profileCompletion === 100 ? (
                                     <div className="mb-6 animate-fadeIn">
                                         <div className="bg-green-50 dark:bg-green-900/30 border-l-4 border-green-500 p-3 rounded-r-lg shadow-sm flex items-center justify-between">
@@ -1124,7 +1160,7 @@ const TeacherProfilePage: React.FC<TeacherProfilePageProps> = ({ teacherId, slug
 
                             <ProfileHeader
                                 teacher={teacher}
-                                isOwnProfile={canEdit}
+                                isOwnProfile={effectiveCanEdit}
                                 onEditProfile={handleEditProfile}
                                 onEditImage={(type) => openImageUploadModal(type, { teacherId: teacher.id })}
                                 onRemoveCoverImage={handleRemoveCoverImage}

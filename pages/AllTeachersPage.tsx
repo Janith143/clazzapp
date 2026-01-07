@@ -20,9 +20,13 @@ const ITEMS_PER_PAGE = 9;
 const AllTeachersPage: React.FC = () => {
   const { teachers, users } = useData();
   const { handleNavigate } = useNavigation();
+  const pageState = useNavigation().pageState;
+
   const [visibleCount, setVisibleCount] = useState(ITEMS_PER_PAGE);
   const [sortOption, setSortOption] = useState('newest');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(() => {
+    return (pageState as any).filters?.searchQuery || '';
+  });
   const loader = useRef(null);
   const isLoadingMore = useRef(false);
 
@@ -45,25 +49,99 @@ const AllTeachersPage: React.FC = () => {
   const filteredAndSortedTeachers = useMemo(() => {
     const approvedTeachers = teachers.filter(t => t.registrationStatus === 'approved' && t.isPublished !== false);
 
+    const pageState = useNavigation().pageState;
+
     const filtered = approvedTeachers.filter(teacher => {
-      if (!searchQuery.trim()) return true;
-      const lowerQuery = searchQuery.toLowerCase();
+      // 1. Text Search (Name, Bio, etc.)
+      if (searchQuery.trim()) {
+        const lowerQuery = searchQuery.toLowerCase();
+        const locations = teacher.teachingLocations
+          ? teacher.teachingLocations.map(l => `${l.instituteName} ${l.town} ${l.district}`).join(' ')
+          : '';
+        const searchableContent = [
+          teacher.id,
+          teacher.name,
+          teacher.tagline,
+          teacher.bio,
+          teacher.contact?.location,
+          ...teacher.subjects,
+          ...teacher.qualifications,
+          locations
+        ].join(' ').toLowerCase();
+        if (!searchableContent.includes(lowerQuery)) return false;
+      }
 
-      const locations = teacher.teachingLocations
-        ? teacher.teachingLocations.map(l => `${l.instituteName} ${l.town} ${l.district}`).join(' ')
-        : '';
+      // 2. Advanced Filters from PageState
+      if (pageState.name === 'all_teachers' && pageState.filters) {
+        const { mode, district, town, subject, medium, institute, audience } = pageState.filters;
 
-      const searchableContent = [
-        teacher.id,
-        teacher.name,
-        teacher.tagline,
-        teacher.bio,
-        teacher.contact?.location,
-        ...teacher.subjects,
-        ...teacher.qualifications,
-        locations
-      ].join(' ').toLowerCase();
-      return searchableContent.includes(lowerQuery);
+        // Mode Filter
+        if (mode) {
+          if (mode === 'online' && !teacher.contact?.onlineAvailable) {
+            if (!teacher.individualClasses.some(c => c.mode === 'Online')) return false;
+          }
+          if (mode === 'physical' && (!teacher.teachingLocations || teacher.teachingLocations.length === 0)) {
+            return false;
+          }
+        }
+
+        // Location Filter
+        if (district) {
+          const districtMatch = teacher.teachingLocations?.some(l => l.district === district) ||
+            (teacher.contact?.location ?? '').toLowerCase().includes(String(district).toLowerCase());
+          if (!districtMatch) return false;
+        }
+        if (town) {
+          const townMatch = teacher.teachingLocations?.some(l => l.town === town) ||
+            (teacher.contact?.location ?? '').toLowerCase().includes(String(town).toLowerCase());
+          if (!townMatch) return false;
+        }
+
+        // Institute Filter
+        if (institute) {
+          const instituteMatch = teacher.teachingLocations?.some(l => l.instituteName === institute);
+          if (!instituteMatch) return false;
+        }
+
+        // Audience Filter
+        if (audience) {
+          const audienceMatch = teacher.individualClasses.some(c => {
+            const docAudience = (c.targetAudience || '').toLowerCase();
+            const filterAudience = String(audience).toLowerCase();
+
+            // Exact match check
+            if (docAudience === filterAudience) return true;
+
+            // Lenient match logic
+            if (filterAudience.includes(docAudience) || docAudience.includes(filterAudience)) return true;
+
+            // Keyword match
+            if (filterAudience.includes('secondary') && docAudience.includes('secondary')) return true;
+            if ((filterAudience.includes('advanced level') || filterAudience.includes('a/l')) &&
+              (docAudience.includes('advanced level') || docAudience.includes('a/l'))) return true;
+
+            return false;
+          });
+          if (!audienceMatch) return false;
+        }
+
+        // Subject / Medium
+        if (subject) {
+          const hasSubject = teacher.subjects.some(s => s === subject) ||
+            teacher.teachingItems?.some(i => i.subject === subject) ||
+            teacher.individualClasses.some(c => c.subject === subject) ||
+            teacher.courses.some(c => c.subject === subject);
+          if (!hasSubject) return false;
+        }
+        if (medium) {
+          const hasMedium = teacher.teachingItems?.some(i => i.mediums.includes(medium)) ||
+            teacher.individualClasses.some(c => c.medium === medium) ||
+            teacher.courses.some(c => c.medium === medium);
+          if (!hasMedium) return false;
+        }
+      }
+
+      return true;
     });
 
     const userMap = new Map(users.map(u => [u.id, u]));
@@ -118,7 +196,7 @@ const AllTeachersPage: React.FC = () => {
         observer.unobserve(currentLoader);
       }
     };
-  }, [handleObserver, paginatedTeachers]); // Added paginatedTeachers to dependency array
+  }, [handleObserver, paginatedTeachers]);
 
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-slideInUp">

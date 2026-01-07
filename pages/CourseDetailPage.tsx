@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Course, Teacher, Lecture, LiveSession, Sale, PaymentMethod, PaymentPlan } from '../types.ts';
 import { ChevronLeftIcon, LockClosedIcon, PlayCircleIcon, SpinnerIcon, LinkIcon, VideoCameraIcon, ClockIcon, CalendarIcon, CheckCircleIcon, PencilIcon, SaveIcon, XIcon } from '../components/Icons.tsx';
 import StarRating from '../components/StarRating.tsx';
@@ -48,9 +48,23 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId, slug }) =
         return '';
     }, [courseId, slug, teachers]);
 
-    const { item: fetchedCourse, teacher, isOwner, isEnrolled } = useFetchItem('course', resolvedCourseId);
+    const { item: fetchedCourse, teacher, isOwner: originalIsOwner, isEnrolled: originalIsEnrolled } = useFetchItem('course', resolvedCourseId);
 
     const course = fetchedCourse as Course | null;
+
+    // View as Student Toggle
+    const [isViewAsStudent, setIsViewAsStudent] = useState(false);
+    const [isViewAsEnrolled, setIsViewAsEnrolled] = useState(false); // New state for enrollment simulation
+
+    const [currentTime, setCurrentTime] = useState(new Date());
+
+    useEffect(() => {
+        const timer = setInterval(() => setCurrentTime(new Date()), 30000); // Update every 30s
+        return () => clearInterval(timer);
+    }, []);
+
+    const isOwner = (originalIsOwner || currentUser?.role === 'admin') && !isViewAsStudent; // Override isOwner for view mode
+    const isEnrolled = originalIsEnrolled || isViewAsEnrolled; // Override isEnrolled for view mode
 
     const [isConfirmingEnrollment, setIsConfirmingEnrollment] = useState(false);
     const [showPaymentSelector, setShowPaymentSelector] = useState(false);
@@ -160,9 +174,9 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId, slug }) =
     }, [sales, currentUser, course]);
 
     const hasFullAccess = useMemo(() => {
-        if (isOwner) return true;
+        if (isOwner || isViewAsEnrolled) return true;
         return userPurchases.some(s => !s.purchaseMetadata || s.purchaseMetadata.type === 'full');
-    }, [isOwner, userPurchases]);
+    }, [isOwner, userPurchases, isViewAsEnrolled]);
 
     const isBlockUnlocked = (type: 'month' | 'session' | 'installment', index: number) => {
         if (hasFullAccess) return true;
@@ -294,8 +308,9 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId, slug }) =
         }
     };
 
+
     const renderLiveSessionList = () => {
-        const now = new Date();
+        const now = currentTime;
         const sortedSessions = (course.liveSessions || []).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
         let groups: { title: string, sessions: LiveSession[], unlockCost: number, isLocked: boolean, metadata: any }[] = [];
 
@@ -385,7 +400,12 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId, slug }) =
                             )}
                             {group.sessions.map((session, idx) => {
                                 const startDateTime = new Date(`${session.date}T${session.startTime}`);
-                                const endDateTime = new Date(`${session.date}T${session.endTime}`);
+                                let endDateTime = new Date(`${session.date}T${session.endTime}`);
+                                // If end time is before start time (e.g., 21:30 to 00:00), assume it ends the next day
+                                if (endDateTime <= startDateTime) {
+                                    endDateTime.setDate(endDateTime.getDate() + 1);
+                                }
+
                                 const isLive = now >= new Date(startDateTime.getTime() - 15 * 60000) && now <= endDateTime;
                                 const isEditing = editSessionId === session.id;
                                 const canAccess = !group.isLocked || isOwner;
@@ -425,12 +445,21 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId, slug }) =
                                                 ) : (
                                                     <div className="flex flex-col gap-2">
                                                         <div className="flex items-center justify-between text-xs">
-                                                            <div className="flex items-center gap-2 overflow-hidden">
-                                                                <VideoCameraIcon className="w-3 h-3 text-green-600" />
-                                                                <span className="font-semibold">Join Link:</span>
-                                                                {session.joinLink ? <a href={session.joinLink} target="_blank" rel="noopener noreferrer" className="text-blue-500 truncate">{session.joinLink}</a> : <span className="text-gray-400 italic">Not set</span>}
+                                                            <div className="flex items-center gap-2 overflow-hidden flex-grow mr-2">
+                                                                <VideoCameraIcon className="w-3 h-3 text-green-600 flex-shrink-0" />
+                                                                <span className="font-semibold flex-shrink-0">Join Link:</span>
+                                                                {session.joinLink ? (
+                                                                    <div className="flex items-center gap-2 overflow-hidden">
+                                                                        <a href={session.joinLink} target="_blank" rel="noopener noreferrer" className="text-blue-500 truncate">{session.joinLink}</a>
+                                                                        <a href={session.joinLink} target="_blank" rel="noopener noreferrer" className="flex-shrink-0 px-2 py-0.5 bg-green-600 text-white text-[10px] font-bold rounded hover:bg-green-700 transition-colors uppercase">
+                                                                            Launch
+                                                                        </a>
+                                                                    </div>
+                                                                ) : (
+                                                                    <span className="text-gray-400 italic">Not set</span>
+                                                                )}
                                                             </div>
-                                                            <button onClick={() => handleEditLink(session.id, session.joinLink || '', 'join')} className="p-1 hover:bg-light-border dark:hover:bg-dark-border rounded text-primary" title="Edit Join Link"><PencilIcon className="w-3 h-3" /></button>
+                                                            <button onClick={() => handleEditLink(session.id, session.joinLink || '', 'join')} className="p-1 hover:bg-light-border dark:hover:bg-dark-border rounded text-primary flex-shrink-0" title="Edit Join Link"><PencilIcon className="w-3 h-3" /></button>
                                                         </div>
                                                         <div className="flex items-center justify-between text-xs">
                                                             <div className="flex items-center gap-2 overflow-hidden">
@@ -451,8 +480,8 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId, slug }) =
                     </div>
                 ))}
             </div>
-        )
-    }
+        );
+    };
 
     const currencyFormatter = new Intl.NumberFormat('en-LK', { style: 'currency', currency: 'LKR' });
     const totalDurationHours = courseType === 'recorded'
@@ -462,14 +491,15 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId, slug }) =
     const balanceToApply = Math.min(currentUser?.accountBalance || 0, initialPayment.amount);
     const remainingFee = initialPayment.amount - balanceToApply;
     const coverImageSrcSet = createSrcSet(course.coverImage, [400, 800]);
+
     const getEnrollButtonText = () => {
         if (hasFullAccess) return "Course Fully Unlocked";
         if (userPurchases.length > 0 && selectedPaymentPlan !== 'full') return "Continue Learning";
-        if (currentUser?.role === 'teacher' || currentUser?.role === 'admin') return "Only students can enroll";
+        if (!isViewAsStudent && (currentUser?.role === 'teacher' || currentUser?.role === 'admin')) return "Only students can enroll";
         return "Register Now";
     };
     const isFullyEnrolled = hasFullAccess || (selectedPaymentPlan === 'full' && isEnrolled);
-    const disableEnrollButton = isFullyEnrolled || currentUser?.role === 'teacher' || currentUser?.role === 'admin';
+    const disableEnrollButton = isFullyEnrolled || (!isViewAsStudent && (currentUser?.role === 'teacher' || currentUser?.role === 'admin'));
 
     return (
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-slideInUp">
@@ -479,11 +509,51 @@ const CourseDetailPage: React.FC<CourseDetailPageProps> = ({ courseId, slug }) =
                 image={course && 'coverImage' in course ? course.coverImage : undefined}
                 structuredData={structuredData}
             />
-            <div className="mb-4">
+            <div className="flex justify-between items-center mb-4">
                 <button onClick={handleBack} className="flex items-center space-x-2 text-sm font-medium text-primary hover:text-primary-dark transition-colors">
                     <ChevronLeftIcon className="h-5 w-5" />
                     <span>Back</span>
                 </button>
+                {(originalIsOwner || currentUser?.role === 'admin') && (
+                    <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs font-medium text-light-subtle dark:text-dark-subtle">
+                                {isViewAsStudent ? 'Viewing as Student' : 'Admin View'}
+                            </span>
+                            <button
+                                onClick={() => {
+                                    const newState = !isViewAsStudent;
+                                    setIsViewAsStudent(newState);
+                                    if (!newState) setIsViewAsEnrolled(false); // Reset enrolled simulation when turning off student view
+                                }}
+                                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${isViewAsStudent ? 'bg-primary' : 'bg-gray-200 dark:bg-gray-700'}`}
+                            >
+                                <span
+                                    aria-hidden="true"
+                                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${isViewAsStudent ? 'translate-x-5' : 'translate-x-0'}`}
+                                />
+                            </button>
+                        </div>
+
+                        {/* Simulate Enrolled Toggle - Only visible when viewing as student */}
+                        {isViewAsStudent && (
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs font-medium text-light-subtle dark:text-dark-subtle">
+                                    {isViewAsEnrolled ? 'Simulating Enrolled' : 'Not Enrolled'}
+                                </span>
+                                <button
+                                    onClick={() => setIsViewAsEnrolled(!isViewAsEnrolled)}
+                                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 ${isViewAsEnrolled ? 'bg-green-600' : 'bg-gray-200 dark:bg-gray-700'}`}
+                                >
+                                    <span
+                                        aria-hidden="true"
+                                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${isViewAsEnrolled ? 'translate-x-5' : 'translate-x-0'}`}
+                                    />
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2">

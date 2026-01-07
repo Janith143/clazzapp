@@ -88,7 +88,20 @@ export const usePaymentResponseHandler = (deps: PaymentResponseHandlerDeps) => {
                                     { id: teacher.id, email: teacher.email },
                                     "New Enrollment",
                                     `New student enrolled in ${sale.itemName}: ${student ? student.firstName + ' ' + student.lastName : 'Guest'}`,
-                                    { type: 'success', link: '/teacher/dashboard' }
+                                    {
+                                        type: 'success',
+                                        link: '/teacher/dashboard?tab=earnings',
+                                        notificationUrl: functionUrls.notification,
+                                        emailHtml: `
+                                            <div style="font-family: Arial, sans-serif;">
+                                                <h2>New Enrollment</h2>
+                                                <p><strong>Student:</strong> ${student ? student.firstName + ' ' + student.lastName : 'Guest'}</p>
+                                                <p><strong>Item:</strong> ${sale.itemName}</p>
+                                                <p><strong>Amount:</strong> ${currencyFormatter.format(sale.totalAmount)}</p>
+                                                <p>Please check your dashboard for details.</p>
+                                            </div>
+                                        `
+                                    }
                                 );
                             }
                         }

@@ -1,5 +1,4 @@
 
-
 import React, { useState, useMemo, useCallback } from 'react';
 import { DashboardTab, User, ScheduleItem, Quiz } from '../types';
 import { BookOpenIcon, VideoCameraIcon, BanknotesIcon, CheckCircleIcon, TicketIcon } from '../components/Icons';
@@ -31,7 +30,7 @@ import MyExamsSection from '../components/MyExamsSection';
 import MyOrders from '../components/studentDashboard/MyOrders';
 import MyPastClasses from '../components/studentDashboard/MyPastClasses';
 import MyScoreCard from '../components/studentDashboard/MyScoreCard';
-import AIRecommendations from '../components/AIRecommendations';
+
 import StudentDashboardTabs from '../components/studentDashboard/StudentDashboardTabs';
 import TimeTable from '../components/teacherProfile/TimeTable';
 import MyVouchers from '../components/studentDashboard/MyVouchers';
@@ -82,6 +81,10 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ userId, isAdminView
     const { setModalState } = useUI();
     const { enableNotifications } = useFirebase();
 
+    // View as Student Toggle
+    const [isViewAsStudent, setIsViewAsStudent] = useState(false);
+    const effectiveIsAdminView = isAdminView && !isViewAsStudent;
+
     const displayUser = useMemo(() => {
         if (isAdminView && userId) {
             return users.find(u => u.id === userId);
@@ -90,7 +93,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ userId, isAdminView
     }, [isAdminView, userId, users, currentUser]);
 
     // Fetch broadcast unread count
-    const { unreadTotal } = useBroadcastData(undefined, undefined, (!isAdminView && displayUser) ? displayUser.id : undefined);
+    const { unreadTotal } = useBroadcastData(undefined, undefined, (!effectiveIsAdminView && displayUser) ? displayUser.id : undefined);
 
     // Fetch Custom Requests for Timetable
     const [customRequests, setCustomRequests] = useState<CustomClassRequest[]>([]);
@@ -408,7 +411,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ userId, isAdminView
     }
 
     const renderTabContent = () => {
-        const isOwnerView = !isAdminView;
+        const isOwnerView = !effectiveIsAdminView;
         switch (activeTab) {
             case 'overview':
                 return (
@@ -416,11 +419,34 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ userId, isAdminView
                         {/* Header Content Specific to Overview */}
                         <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
                             <div>
-                                <h1 className="text-3xl font-bold">Welcome{isAdminView ? '' : ' back'}, {displayUser.firstName}!</h1>
-                                <p className="text-light-subtle dark:text-dark-subtle mt-1">{isAdminView ? `Viewing dashboard for ${displayUser.firstName} ${displayUser.lastName} (${displayUser.id})` : "Here's a summary of your learning activities."}</p>
+                                <h1 className="text-3xl font-bold">Welcome{effectiveIsAdminView ? '' : ' back'}, {displayUser.firstName}!</h1>
+                                <p className="text-light-subtle dark:text-dark-subtle mt-1">{effectiveIsAdminView ? `Viewing dashboard for ${displayUser.firstName} ${displayUser.lastName} (${displayUser.id})` : "Here's a summary of your learning activities."}</p>
+                                {!effectiveIsAdminView && (
+                                    <div className="mt-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                                        Student ID: {displayUser.id}
+                                    </div>
+                                )}
                             </div>
 
-                            {!isAdminView && 'Notification' in window && Notification.permission === 'default' && (
+                            {/* View as Student Toggle for Admins */}
+                            {isAdminView && (
+                                <div className="flex items-center gap-2 mb-2 md:mb-0">
+                                    <span className="text-xs font-medium text-light-subtle dark:text-dark-subtle">
+                                        {isViewAsStudent ? 'Viewing as Student' : 'Admin View'}
+                                    </span>
+                                    <button
+                                        onClick={() => setIsViewAsStudent(!isViewAsStudent)}
+                                        className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${isViewAsStudent ? 'bg-primary' : 'bg-gray-200 dark:bg-gray-700'}`}
+                                    >
+                                        <span
+                                            aria-hidden="true"
+                                            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${isViewAsStudent ? 'translate-x-5' : 'translate-x-0'}`}
+                                        />
+                                    </button>
+                                </div>
+                            )}
+
+                            {!effectiveIsAdminView && 'Notification' in window && Notification.permission === 'default' && (
                                 <button
                                     onClick={() => enableNotifications()}
                                     className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg shadow-md hover:shadow-lg transition-all animate-pulse"
@@ -434,7 +460,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ userId, isAdminView
                         </div>
 
                         {/* Voucher Notification */}
-                        {uncollectedVouchersCount > 0 && !isAdminView && (
+                        {uncollectedVouchersCount > 0 && !effectiveIsAdminView && (
                             <div className="mb-6 animate-fadeIn">
                                 <button
                                     onClick={() => setActiveTab('my_vouchers')}
@@ -475,11 +501,11 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ userId, isAdminView
                                 </div>
                             </div>
                         ) : (
-                            (profileCompletion < 100 || isAdminView) && (
+                            (profileCompletion < 100 || effectiveIsAdminView) && (
                                 <div className="mb-6 animate-fadeIn">
                                     <div className="bg-yellow-100 dark:bg-yellow-900/50 border-l-4 border-yellow-500 text-yellow-800 dark:text-yellow-200 p-4 rounded-r-lg shadow-lg flex flex-col sm:flex-row items-center justify-between gap-4">
                                         <div className="flex-grow">
-                                            <p className="font-bold">Complete {isAdminView ? 'this student\'s' : 'your'} profile for a better experience!</p>
+                                            <p className="font-bold">Complete {effectiveIsAdminView ? 'this student\'s' : 'your'} profile for a better experience!</p>
                                             <div className="flex items-center gap-4 mt-2">
                                                 <ProgressBar value={profileCompletion} max={100} />
                                                 <span className="font-bold text-sm flex-shrink-0">{profileCompletion}%</span>
@@ -507,13 +533,13 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ userId, isAdminView
                                     title="Account Balance"
                                     value={currencyFormatter.format(displayUser.accountBalance)}
                                     icon={<BanknotesIcon className="w-6 h-6" />}
-                                    onAction={!isAdminView ? () => setIsTopUpModalOpen(true) : undefined}
+                                    onAction={!effectiveIsAdminView ? () => setIsTopUpModalOpen(true) : undefined}
                                     actionLabel="Top Up"
                                 />
                             </div>
                         </div>
 
-                        <AIRecommendations currentUser={displayUser} />
+
                     </div>
                 );
             case 'timetable':
@@ -541,7 +567,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ userId, isAdminView
             case 'my_events': return <MyEvents user={displayUser} />;
             case 'history': return <TransactionHistory user={displayUser} />;
             case 'attendance': return <MyAttendance user={displayUser} />;
-            case 'profile': return <MyProfile user={displayUser} isAdminView={isAdminView} />;
+            case 'profile': return <MyProfile user={displayUser} isAdminView={effectiveIsAdminView} />;
             case 'my_orders': return <MyOrders user={displayUser} />;
             case 'requests':
                 return <MyRequests student={displayUser} />;
@@ -591,7 +617,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ userId, isAdminView
                 </div>
             </div>
 
-            {!isAdminView && isTopUpModalOpen && (
+            {!effectiveIsAdminView && isTopUpModalOpen && (
                 <TopUpModal
                     isOpen={isTopUpModalOpen}
                     onClose={handleCloseTopUp}

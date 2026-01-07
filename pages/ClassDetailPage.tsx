@@ -25,7 +25,7 @@ interface ClassDetailPageProps {
 
 const ClassDetailPage: React.FC<ClassDetailPageProps> = ({ classId, slug }) => {
     const { currentUser } = useAuth();
-    const { handleBack, handleNavigate } = useNavigation();
+    const { handleBack, handleNavigate, paymentGatewaySettings } = useNavigation();
     const { setModalState, setVideoPlayerState } = useUI();
     const { handleRateTeacher, handleEnroll, loading: dataLoading, teachers, sales, markAttendance } = useData();
 
@@ -40,7 +40,14 @@ const ClassDetailPage: React.FC<ClassDetailPageProps> = ({ classId, slug }) => {
         return 0; // Return 0 or undefined as fallback
     }, [classId, slug, teachers]);
 
-    const { item: classInfo, teacher, isEnrolled } = useFetchItem('class', resolvedClassId || 0);
+    const { item: classInfo, teacher, isEnrolled: originalIsEnrolled, isOwner: originalIsOwner } = useFetchItem('class', resolvedClassId || 0);
+
+    // View as Student Toggle
+    const [isViewAsStudent, setIsViewAsStudent] = useState(false);
+    const [isViewAsEnrolled, setIsViewAsEnrolled] = useState(false); // New state for enrollment simulation
+
+    const isOwner = (originalIsOwner || currentUser?.role === 'admin') && !isViewAsStudent; // Override isOwner for view mode
+    const isEnrolled = originalIsEnrolled || isViewAsEnrolled; // Override isEnrolled for view mode
 
     const structuredData = useMemo(() => {
         if (!classInfo || !teacher) return null;
@@ -100,19 +107,54 @@ const ClassDetailPage: React.FC<ClassDetailPageProps> = ({ classId, slug }) => {
     const [isRecordingsOpen, setIsRecordingsOpen] = useState(false);
     const recordingsRef = useRef<HTMLDivElement>(null);
 
-    const dynamicStatus = useMemo(() => (classInfo && 'endTime' in classInfo) ? getDynamicClassStatus(classInfo) : 'scheduled', [classInfo]);
-    const nextSessionDateTime = useMemo(() => (classInfo && 'endTime' in classInfo) ? getNextSessionDateTime(classInfo) : null, [classInfo]);
+    const [currentTime, setCurrentTime] = useState(new Date());
+
+    useEffect(() => {
+        const timer = setInterval(() => setCurrentTime(new Date()), 30000); // 30s update
+        return () => clearInterval(timer);
+    }, []);
+
+    const dynamicStatus = useMemo(() => (classInfo && 'endTime' in classInfo) ? getDynamicClassStatus(classInfo) : 'scheduled', [classInfo, currentTime]); // Add currentTime dependency
+    const nextSessionDateTime = useMemo(() => (classInfo && 'endTime' in classInfo) ? getNextSessionDateTime(classInfo) : null, [classInfo, currentTime]); // Add currentTime dependency
 
     const classEndDateTime = useMemo(() => {
         if (!classInfo || !('endTime' in classInfo)) return new Date();
-        const baseDateString = classInfo.recurrence === 'weekly' ? new Date().toISOString().split('T')[0] : classInfo.date;
+
+        const now = new Date();
+        const baseDateString = classInfo.recurrence === 'weekly' ? now.toISOString().split('T')[0] : classInfo.date;
         const [endHours, endMinutes] = classInfo.endTime.split(':').map(Number);
+        const [startHours, startMinutes] = classInfo.startTime.split(':').map(Number);
 
         const [year, month, day] = baseDateString.split('-').map(Number);
-        const endDate = new Date(year, month - 1, day, endHours, endMinutes, 0, 0);
+        let endDate = new Date(year, month - 1, day, endHours, endMinutes, 0, 0);
+
+        // Check for midnight crossover
+        // (If EndTime is earlier than or equal to StartTime, it assumes next day)
+        const endTimeValue = endHours * 60 + endMinutes;
+        const startTimeValue = startHours * 60 + startMinutes;
+
+        if (endTimeValue <= startTimeValue) {
+            if (classInfo.recurrence === 'weekly') {
+                // For weekly, we determine if we are on the Start Day or the End Day.
+                // If we are on Start Day (today == classDay), it ends Tomorrow.
+                // If we are on End Day (today == classDay + 1), it ends Today.
+                const classStartDay = new Date(classInfo.date).getDay();
+                const currentDay = now.getDay();
+
+                if (currentDay === classStartDay) {
+                    // We are on start day, so it ends tomorrow
+                    endDate.setDate(endDate.getDate() + 1);
+                }
+                // If we are on the next day, endDate is already "Today at 01:00", which is correct.
+            } else {
+                // One-time class crossing midnight always ends the next day relative to start date
+                // But here baseDateString is classInfo.date.
+                endDate.setDate(endDate.getDate() + 1);
+            }
+        }
 
         return endDate;
-    }, [classInfo]);
+    }, [classInfo, currentTime]); // Added currentTime to ensure day checks are accurate if component stays open overnight
 
     const recordingUrlsToShow = useMemo(() => {
         if (!classInfo || !('endTime' in classInfo) || !classInfo.recordingUrls) {
@@ -149,14 +191,18 @@ const ClassDetailPage: React.FC<ClassDetailPageProps> = ({ classId, slug }) => {
     }, []);
 
     const canRate = useMemo(() => {
-        if (!currentUser || !teacher || !classInfo || !('endTime' in classInfo) || currentUser.role !== 'student' || !isEnrolled) return false;
+        // If viewing as student, allow seeing the rate card if conditions met (even if actually admin)
+        // Note: Actual rating submission might still be blocked by backend if not student, but UI will show.
+        const roleCheck = isViewAsStudent || (currentUser?.role === 'student');
+        if (!currentUser || !teacher || !classInfo || !('endTime' in classInfo) || !roleCheck || !isEnrolled) return false;
+
         const status = getDynamicClassStatus(classInfo);
         if (status !== 'finished') return false;
         const oneHourAfterEnd = new Date(classEndDateTime.getTime() + 60 * 60 * 1000);
         const now = new Date();
         const alreadyRatedThisClass = teacher.ratings.some(r => r.studentId === currentUser.id && r.classId === classInfo.id);
         return now > classEndDateTime && now < oneHourAfterEnd && !alreadyRatedThisClass;
-    }, [currentUser, isEnrolled, classInfo, teacher, classEndDateTime]);
+    }, [currentUser, isEnrolled, classInfo, teacher, classEndDateTime, isViewAsStudent]);
 
     if (dataLoading) {
         return (
@@ -265,7 +311,7 @@ const ClassDetailPage: React.FC<ClassDetailPageProps> = ({ classId, slug }) => {
         if (dynamicStatus === 'canceled') return 'Class Canceled';
         if (dynamicStatus === 'finished') return 'Class Finished';
         if (isEnrolled) return "You are enrolled";
-        if (currentUser?.role === 'teacher' || currentUser?.role === 'admin') return "Only students can enroll";
+        if (!isViewAsStudent && (currentUser?.role === 'teacher' || currentUser?.role === 'admin')) return "Only students can enroll";
         if (isManualPayment) return "Register Now (Free)";
         return "Register Now";
     };
@@ -278,11 +324,51 @@ const ClassDetailPage: React.FC<ClassDetailPageProps> = ({ classId, slug }) => {
                 image={teacher ? (teacher.avatar || teacher.profileImage) : undefined}
                 structuredData={structuredData}
             />
-            <div className="mb-4">
+            <div className="flex justify-between items-center mb-4">
                 <button onClick={handleBack} className="flex items-center space-x-2 text-sm font-medium text-primary hover:text-primary-dark transition-colors">
                     <ChevronLeftIcon className="h-5 w-5" />
                     <span>Back</span>
                 </button>
+                {(originalIsOwner || currentUser?.role === 'admin') && (
+                    <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs font-medium text-light-subtle dark:text-dark-subtle">
+                                {isViewAsStudent ? 'Viewing as Student' : 'Admin View'}
+                            </span>
+                            <button
+                                onClick={() => {
+                                    const newState = !isViewAsStudent;
+                                    setIsViewAsStudent(newState);
+                                    if (!newState) setIsViewAsEnrolled(false);
+                                }}
+                                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${isViewAsStudent ? 'bg-primary' : 'bg-gray-200 dark:bg-gray-700'}`}
+                            >
+                                <span
+                                    aria-hidden="true"
+                                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${isViewAsStudent ? 'translate-x-5' : 'translate-x-0'}`}
+                                />
+                            </button>
+                        </div>
+
+                        {/* Simulate Enrolled Toggle - Only visible when viewing as student */}
+                        {isViewAsStudent && (
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs font-medium text-light-subtle dark:text-dark-subtle">
+                                    {isViewAsEnrolled ? 'Simulating Enrolled' : 'Not Enrolled'}
+                                </span>
+                                <button
+                                    onClick={() => setIsViewAsEnrolled(!isViewAsEnrolled)}
+                                    className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 ${isViewAsEnrolled ? 'bg-green-600' : 'bg-gray-200 dark:bg-gray-700'}`}
+                                >
+                                    <span
+                                        aria-hidden="true"
+                                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${isViewAsEnrolled ? 'translate-x-5' : 'translate-x-0'}`}
+                                    />
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2 space-y-8">
@@ -337,7 +423,7 @@ const ClassDetailPage: React.FC<ClassDetailPageProps> = ({ classId, slug }) => {
                                     Join Class Now
                                 </button>
                             )}
-                            <button onClick={handleEnrollClick} disabled={isEnrolled || (dynamicStatus !== 'scheduled' && dynamicStatus !== 'live') || currentUser?.role === 'teacher' || currentUser?.role === 'admin'} className="w-full bg-primary text-white font-bold py-3 rounded-md hover:bg-primary-dark transition-colors disabled:bg-gray-500 disabled:cursor-not-allowed">{getButtonText()}</button>
+                            <button onClick={handleEnrollClick} disabled={isEnrolled || (dynamicStatus !== 'scheduled' && dynamicStatus !== 'live') || (!isViewAsStudent && (currentUser?.role === 'teacher' || currentUser?.role === 'admin'))} className="w-full bg-primary text-white font-bold py-3 rounded-md hover:bg-primary-dark transition-colors disabled:bg-gray-500 disabled:cursor-not-allowed">{getButtonText()}</button>
                             {isEnrolled && classInfo.documentLink && <a href={classInfo.documentLink} target="_blank" rel="noopener noreferrer" className="w-full text-center flex items-center justify-center gap-2 bg-blue-600 text-white font-bold py-3 rounded-md hover:bg-blue-700 transition-colors"><LinkIcon className="w-5 h-5" />View Class Documents</a>}
                         </div>
                     </div>
@@ -368,7 +454,7 @@ const ClassDetailPage: React.FC<ClassDetailPageProps> = ({ classId, slug }) => {
             })()}
             {showPaymentSelector && (
                 <Modal isOpen={true} onClose={() => setShowPaymentSelector(false)} title="Select Payment Method">
-                    <PaymentMethodSelector onSelect={handlePaymentMethodSelected} />
+                    <PaymentMethodSelector onSelect={handlePaymentMethodSelected} paymentGatewaySettings={paymentGatewaySettings} />
                 </Modal>
             )}
             {showGuestPrompt && classInfo && teacher && (

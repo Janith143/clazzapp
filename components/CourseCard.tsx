@@ -1,5 +1,6 @@
 
-import React from 'react';
+import React, { useState } from 'react';
+import ShareModal from './ShareModal';
 import { Course, Teacher } from '../types';
 import { PencilIcon, TrashIcon, UserGroupIcon, EyeIcon, EyeSlashIcon, ClockIcon, ShareIcon, ExternalLinkIcon } from './Icons';
 import StarRating from './StarRating';
@@ -26,6 +27,7 @@ interface CourseCardProps {
 const CourseCard: React.FC<CourseCardProps> = ({ course, teacher, viewMode, enrollmentCount, completionPercentage, onView, onEdit, onDelete, onTogglePublish, isOwnerView = false }) => {
     const { handleNavigate } = useNavigation();
     const { addToast } = useUI();
+    const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
     const onViewTeacher = (teacher: Teacher) => {
         if (teacher.username) {
@@ -37,12 +39,7 @@ const CourseCard: React.FC<CourseCardProps> = ({ course, teacher, viewMode, enro
 
     const handleShare = (e: React.MouseEvent) => {
         e.stopPropagation();
-        const url = `${window.location.origin}/courses/${generateEntitySlug(course.title, course.id)}`;
-        navigator.clipboard.writeText(url).then(() => {
-            addToast('Course link copied to clipboard!', 'success');
-        }).catch(() => {
-            addToast('Failed to copy link.', 'error');
-        });
+        setIsShareModalOpen(true);
     };
 
     const currencyFormatter = new Intl.NumberFormat('en-LK', {
@@ -170,11 +167,18 @@ const CourseCard: React.FC<CourseCardProps> = ({ course, teacher, viewMode, enro
 
             <div className="px-3 pb-3 mt-auto">
                 {viewMode === 'public' ? (
-                    (course.isDeleted && !isOwnerView) && (
-                        <div className="w-full text-center px-3 py-1.5 text-xs font-medium text-red-700 bg-red-100 dark:text-red-200 dark:bg-red-900/50 rounded-md">
-                            Removed by teacher
-                        </div>
-                    )
+                    <div className="flex justify-between items-center border-t border-light-border dark:border-dark-border pt-2 w-full">
+                        {(course.isDeleted && !isOwnerView) ? (
+                            <div className="px-3 py-1.5 text-xs font-medium text-red-700 bg-red-100 dark:text-red-200 dark:bg-red-900/50 rounded-md">
+                                Removed by teacher
+                            </div>
+                        ) : (
+                            <div className="flex-grow"></div>
+                        )}
+                        <button onClick={handleShare} className="p-1.5 text-light-subtle dark:text-dark-subtle hover:text-primary dark:hover:text-primary-light transition-colors ml-auto" title="Share Course">
+                            <ShareIcon className="h-4 w-4" />
+                        </button>
+                    </div>
                 ) : (
                     <div className="flex justify-end items-center space-x-1 border-t border-light-border dark:border-dark-border pt-2">
                         <button onClick={handleShare} className="p-1.5 text-light-subtle dark:text-dark-subtle hover:text-primary dark:hover:text-primary-light transition-colors" title="Share Link">
@@ -198,6 +202,14 @@ const CourseCard: React.FC<CourseCardProps> = ({ course, teacher, viewMode, enro
                     </div>
                 )}
             </div>
+            <ShareModal
+                isOpen={isShareModalOpen}
+                onClose={() => setIsShareModalOpen(false)}
+                url={`${window.location.origin}/courses/${generateEntitySlug(course.title, course.id)}`}
+                title={course.title}
+                description={course.description}
+                quote={`Enroll in ${course.title} by ${teacher.name} on Clazz.lk`}
+            />
         </div>
     );
 };

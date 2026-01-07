@@ -15,6 +15,7 @@ import { useBroadcastData } from '../hooks/useBroadcastData.ts';
 import { BroadcastGroup } from '../types/broadcast.ts';
 import { Teacher } from '../types.ts';
 import { UserGroupIcon } from './Icons.tsx';
+import SearchResultsOverlay from './SearchResultsOverlay.tsx';
 
 const BellIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
@@ -108,7 +109,7 @@ const NotificationsPanel: React.FC<{ userNotifications: UserNotification[], broa
                                 return (
                                     <button key={`bg_${group.id}`} onClick={() => handleNotificationClick(group)} className="w-full text-left p-3 flex items-start space-x-3 hover:bg-light-border dark:hover:bg-dark-border bg-blue-50 dark:bg-blue-900/20">
                                         <div className="relative">
-                                            <img src={getOptimizedImageUrl(avatar, 32, 32)} alt={group.teacherName} className="w-8 h-8 rounded-full" />
+                                            <img src={getOptimizedImageUrl(avatar || '', 32, 32)} alt={group.teacherName} className="w-8 h-8 rounded-full" />
                                             <div className="absolute -bottom-1 -right-1 bg-green-500 rounded-full p-0.5 border border-white dark:border-gray-800">
                                                 <UserGroupIcon className="w-2 h-2 text-white" />
                                             </div>
@@ -341,7 +342,7 @@ const MobileMenu: React.FC<{
 const Header: React.FC = () => {
     const { theme, toggleTheme, setModalState, cart } = useUI();
     const { currentUser, handleLogout } = useAuth();
-    const { pageState, handleNavigate, homePageCardCounts, searchQuery, setSearchQuery } = useNavigation();
+    const { pageState, handleNavigate, searchQuery, setSearchQuery } = useNavigation();
     const { teachers, tuitionInstitutes, handleMarkAllAsRead } = useData();
     const { groups: broadcastGroups, unreadTotal: broadcastUnreadCount } = useBroadcastData(undefined, undefined, currentUser && currentUser.role !== 'teacher' && currentUser.role !== 'admin' && currentUser.role !== 'tuition_institute' ? currentUser.id : undefined);
 
@@ -468,12 +469,17 @@ const Header: React.FC = () => {
                                 )}
                                 <button
                                     onClick={() => {
-                                        setIsSearchOpen(!isSearchOpen);
-                                        if (!isSearchOpen && searchInputRef.current) setTimeout(() => searchInputRef.current?.focus(), 100);
+                                        if (isSearchOpen) {
+                                            setIsSearchOpen(false);
+                                            setSearchQuery('');
+                                        } else {
+                                            setIsSearchOpen(true);
+                                            if (searchInputRef.current) setTimeout(() => searchInputRef.current?.focus(), 100);
+                                        }
                                     }}
                                     className={`absolute right-0 p-2 rounded-full text-light-subtle dark:text-dark-subtle hover:bg-light-border dark:hover:bg-dark-border ${isSearchOpen ? 'text-primary' : ''}`}
                                 >
-                                    <SearchIcon className="h-5 w-5" />
+                                    {isSearchOpen ? <XIcon className="h-5 w-5" /> : <SearchIcon className="h-5 w-5" />}
                                 </button>
                             </div>
 
@@ -572,6 +578,16 @@ const Header: React.FC = () => {
                     </div>
                 </div>
             </header>
+
+            {isSearchOpen && (
+                <SearchResultsOverlay
+                    query={searchQuery}
+                    onClose={() => {
+                        setIsSearchOpen(false);
+                        setSearchQuery('');
+                    }}
+                />
+            )}
 
             <MobileMenu
                 isOpen={isMobileMenuOpen}

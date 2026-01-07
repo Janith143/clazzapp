@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import CourseCard from '../components/CourseCard.tsx';
 import { ChevronLeftIcon } from '../components/Icons.tsx';
@@ -24,15 +23,30 @@ const courseSortOptions = [
 const AllCoursesPage: React.FC = () => {
   const { teachers } = useData();
   const { handleNavigate, allSubjects, subjects } = useNavigation();
+  const pageState = useNavigation().pageState;
 
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(() => {
+    return (pageState as any).filters?.searchQuery || '';
+  });
   const [audienceFilter, setAudienceFilter] = useState('all');
+  const [instituteFilter, setInstituteFilter] = useState('all');
   const [subjectFilter, setSubjectFilter] = useState('all');
   const [sortOption, setSortOption] = useState<string>('newest');
   const [visibleCount, setVisibleCount] = useState(ITEMS_PER_PAGE);
   const [isFilterVisible, setIsFilterVisible] = useState(true);
   const isLoadingMore = useRef(false);
   const loader = useRef(null);
+
+  // Initialize filters from PageState
+  useEffect(() => {
+    const filters = (pageState as any).filters;
+    if (filters) {
+      if (filters.subject) setSubjectFilter(filters.subject);
+      if (filters.audience) setAudienceFilter(filters.audience);
+      if (filters.institute) setInstituteFilter(filters.institute);
+      if (filters.grade && !filters.audience) setAudienceFilter(filters.grade);
+    }
+  }, [pageState]);
 
   // Scroll Logic for Sticky Header
   const lastScrollY = useRef(0);
@@ -42,7 +56,7 @@ const AllCoursesPage: React.FC = () => {
 
       if (currentScrollY < 50) {
         setIsFilterVisible(true);
-      } else if (currentScrollY > lastScrollY.current + 5) { // Threshold to avoid jitter
+      } else if (currentScrollY > lastScrollY.current + 5) {
         setIsFilterVisible(false);
       } else if (currentScrollY < lastScrollY.current - 5) {
         setIsFilterVisible(true);
@@ -121,18 +135,48 @@ const AllCoursesPage: React.FC = () => {
           item.description,
           item.subject,
           item.teacher.name,
-          item.teacher.id, // Enable searching by Teacher ID
-          item.teacher.username, // Enable searching by username
-          item.teacher.contact?.location
+          item.teacher.id,
+          item.teacher.username,
+          item.teacher.contact?.location,
+          item.teacher.teachingLocations?.map((l: any) => l.instituteName).join(' ')
         ].filter(Boolean).join(' ').toLowerCase();
         if (!searchableContent.includes(lowerQuery)) return false;
       }
 
-      // Audience filter (inferred via subject if applicable)
+      // Institute filter
+      if (instituteFilter !== 'all') {
+        const teacherHasInstitute = item.teacher.teachingLocations?.some((l: any) => l.instituteName === instituteFilter);
+        if (!teacherHasInstitute) return false;
+      }
+
+      // Audience filter
       if (audienceFilter !== 'all') {
-        // Check if the course's subject belongs to the selected audience's subject list
-        const validSubjects = subjects[audienceFilter]?.map(s => s.value);
-        if (!validSubjects || !validSubjects.includes(item.subject)) {
+        let validSubjects = subjects[audienceFilter]?.map(s => s.value);
+
+        if (!validSubjects) {
+          const lowerAudience = audienceFilter.toLowerCase();
+          const allKeys = Object.keys(subjects);
+          for (const key of allKeys) {
+            if ((lowerAudience.includes('secondary') || lowerAudience.includes('o/l')) && key.toLowerCase().includes('secondary')) {
+              validSubjects = subjects[key].map(s => s.value);
+              break;
+            }
+            if ((lowerAudience.includes('advanced level') || lowerAudience.includes('a/l')) && key.toLowerCase().includes('advanced')) {
+              validSubjects = subjects[key].map(s => s.value);
+              break;
+            }
+          }
+        }
+
+        // If even fallback fails, maybe we shouldn't filter strict? Or assume mismatch = empty?
+        // If validSubjects is still undefined, it means this audience has no specific subject mapping (e.g. 'Other').
+        // In that case, should we hide all courses? Or show all?
+        // The previous logic `if (!validSubjects ... return false` hid EVERYTHING.
+        // Better behavior: If no mapping found, SHOW ALL (return true) or proceed.
+        // BUT, if it's "Secondary" and we failed to find mapping, we shouldn't show A/L subjects.
+        // Robust fallback ideally finds the mapping.
+
+        if (validSubjects && !validSubjects.includes(item.subject)) {
           return false;
         }
       }
@@ -162,11 +206,11 @@ const AllCoursesPage: React.FC = () => {
           return a.title.localeCompare(b.title);
       }
     });
-  }, [approvedTeachers, searchQuery, sortOption, subjectFilter, priceFilter, audienceFilter, subjects]);
+  }, [approvedTeachers, searchQuery, sortOption, subjectFilter, priceFilter, audienceFilter, subjects, instituteFilter]);
 
   useEffect(() => {
     setVisibleCount(ITEMS_PER_PAGE);
-  }, [searchQuery, sortOption, subjectFilter, priceFilter, audienceFilter]);
+  }, [searchQuery, sortOption, subjectFilter, priceFilter, audienceFilter, instituteFilter]);
 
   const paginatedCourses = useMemo(() => {
     return filteredAndSortedCourses.slice(0, visibleCount);
@@ -199,7 +243,7 @@ const AllCoursesPage: React.FC = () => {
         observer.unobserve(currentLoader);
       }
     };
-  }, [handleObserver, paginatedCourses]); // Added paginatedCourses to dependencies
+  }, [handleObserver, paginatedCourses]);
 
   const currencyFormatter = new Intl.NumberFormat('en-LK', { style: 'currency', currency: 'LKR', minimumFractionDigits: 0 });
 
@@ -221,7 +265,6 @@ const AllCoursesPage: React.FC = () => {
         <div className="max-w-5xl mx-auto space-y-4">
           <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} />
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {/* 1. Audience */}
             <div>
               <label htmlFor="filter-audience" className="block text-sm font-medium text-light-text dark:text-dark-text mb-1">Audience</label>
               <select
@@ -237,7 +280,6 @@ const AllCoursesPage: React.FC = () => {
               </select>
             </div>
 
-            {/* 2. Subject */}
             <div>
               <label htmlFor="filter-subject" className="block text-sm font-medium text-light-text dark:text-dark-text mb-1">Subject</label>
               <select
@@ -251,7 +293,6 @@ const AllCoursesPage: React.FC = () => {
               </select>
             </div>
 
-            {/* 3. Sort */}
             <div>
               <label htmlFor="sort-courses" className="block text-sm font-medium text-light-text dark:text-dark-text mb-1">Sort by</label>
               <select
@@ -264,7 +305,6 @@ const AllCoursesPage: React.FC = () => {
               </select>
             </div>
 
-            {/* 4. Price */}
             <div className="">
               <label htmlFor="filter-price" className="block text-sm font-medium text-light-text dark:text-dark-text mb-1">Max Price: <span className="font-bold text-primary">{currencyFormatter.format(priceFilter)}</span></label>
               <input

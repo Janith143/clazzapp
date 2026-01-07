@@ -160,9 +160,22 @@ const getPageStateFromURL = (): PageState => {
 
     // Static Routes
     if (pathname === '/' || pathname === '') return { name: 'home' };
-    if (pathname === '/teachers') return { name: 'all_teachers' };
-    if (pathname === '/courses') return { name: 'all_courses' };
-    if (pathname === '/classes') return { name: 'all_classes' };
+
+    if (pathname === '/teachers') {
+        const filters: Record<string, any> = {};
+        params.forEach((value, key) => filters[key] = value);
+        return { name: 'all_teachers', filters: Object.keys(filters).length ? filters : undefined };
+    }
+    if (pathname === '/courses') {
+        const filters: Record<string, any> = {};
+        params.forEach((value, key) => filters[key] = value);
+        return { name: 'all_courses', filters: Object.keys(filters).length ? filters : undefined };
+    }
+    if (pathname === '/classes') {
+        const filters: Record<string, any> = {};
+        params.forEach((value, key) => filters[key] = value);
+        return { name: 'all_classes', filters: Object.keys(filters).length ? filters : undefined };
+    }
     if (pathname === '/quizzes') return { name: 'all_quizzes' };
     if (pathname === '/exams') return { name: 'all_exams' };
     if (pathname === '/events') return { name: 'all_events' };
@@ -212,7 +225,6 @@ const getPageStateFromURL = (): PageState => {
     match = matchPath(pathname, '/admin/institute/:instituteId');
     if (match) return { name: 'admin_ti_dashboard', instituteId: match.instituteId };
 
-    match = matchPath(pathname, '/admin/student/:userId');
     match = matchPath(pathname, '/admin/student/:userId');
     if (match) return { name: 'admin_view_student_dashboard', userId: match.userId };
 
@@ -268,9 +280,48 @@ const getURLPathFromPageState = (page: PageState): string => {
             path = `/best-${page.subject}-classes-in-${page.location}`;
             break;
 
-        case 'all_teachers': path = '/teachers'; break;
-        case 'all_courses': path = '/courses'; break;
-        case 'all_classes': path = '/classes'; break;
+        case 'all_teachers': {
+            path = '/teachers';
+            if (page.filters) {
+                const searchParams = new URLSearchParams();
+                Object.entries(page.filters).forEach(([key, value]) => {
+                    if (value !== undefined && value !== null && value !== '') {
+                        searchParams.append(key, String(value));
+                    }
+                });
+                const qs = searchParams.toString();
+                if (qs) path += `?${qs}`;
+            }
+            break;
+        }
+        case 'all_courses': {
+            path = '/courses';
+            if (page.filters) {
+                const searchParams = new URLSearchParams();
+                Object.entries(page.filters).forEach(([key, value]) => {
+                    if (value !== undefined && value !== null && value !== '') {
+                        searchParams.append(key, String(value));
+                    }
+                });
+                const qs = searchParams.toString();
+                if (qs) path += `?${qs}`;
+            }
+            break;
+        }
+        case 'all_classes': {
+            path = '/classes';
+            if (page.filters) {
+                const searchParams = new URLSearchParams();
+                Object.entries(page.filters).forEach(([key, value]) => {
+                    if (value !== undefined && value !== null && value !== '') {
+                        searchParams.append(key, String(value));
+                    }
+                });
+                const qs = searchParams.toString();
+                if (qs) path += `?${qs}`;
+            }
+            break;
+        }
         case 'all_quizzes': path = '/quizzes'; break;
         case 'all_exams': path = '/exams'; break;
         case 'all_events': path = '/events'; break;

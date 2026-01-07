@@ -2,23 +2,24 @@ import React from 'react';
 import { IndividualClass, Teacher } from '../types.ts';
 
 interface OngoingClassesBarProps {
-  ongoingClasses: { classInfo: IndividualClass; teacher: Teacher }[];
-  onClassClick: (classInfo: IndividualClass) => void;
+  items: { id: string | number; title: string; teacher: Teacher; type: 'class' | 'course'; originalItem: any }[];
+  onItemClick: (item: any, type: 'class' | 'course') => void;
   onBarClick: () => void;
 }
 
-const OngoingClassesBar: React.FC<OngoingClassesBarProps> = ({ ongoingClasses, onClassClick, onBarClick }) => {
+const OngoingClassesBar: React.FC<OngoingClassesBarProps> = ({ items, onItemClick, onBarClick }) => {
   const separator = <span className="mx-4 font-normal">|</span>;
 
   // Create an array of JSX elements for the classes
-  const classElements = ongoingClasses.map((item, index) => (
-    <React.Fragment key={item.classInfo.id}>
+  const itemElements = items.map((item, index) => (
+    <React.Fragment key={`${item.type}-${item.id}`}>
       {index > 0 && separator}
       <button
-        onClick={() => onClassClick(item.classInfo)}
+        onClick={() => onItemClick(item.originalItem, item.type)}
         className="hover:underline focus:underline focus:outline-none text-left"
       >
-        {`${item.classInfo.title} by ${item.teacher.name}`}
+        <span className="opacity-75 mr-1 text-xs uppercase border border-white/30 px-1 rounded">{item.type}</span>
+        {`${item.title} by ${item.teacher.name}`}
       </button>
     </React.Fragment>
   ));
@@ -34,16 +35,16 @@ const OngoingClassesBar: React.FC<OngoingClassesBarProps> = ({ ongoingClasses, o
             </span>
             <span className="ml-2 font-bold text-sm uppercase tracking-wider">Live Now</span>
           </button>
-          
+
           <div className="flex-1 overflow-hidden whitespace-nowrap">
             <div className="inline-block animate-marquee group-hover:[animation-play-state:paused]">
               {/* The content to be scrolled */}
               <span className="inline-flex items-center mx-8 font-medium text-sm">
-                {classElements}
+                {itemElements}
               </span>
               {/* The duplicated content for seamless effect */}
               <span className="inline-flex items-center mx-8 font-medium text-sm">
-                {classElements}
+                {itemElements}
               </span>
             </div>
           </div>

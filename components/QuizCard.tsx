@@ -1,5 +1,6 @@
 
-import React from 'react';
+import React, { useState } from 'react';
+import ShareModal from './ShareModal';
 import { Quiz, Teacher, User, StudentSubmission } from '../types.ts';
 import { ClockIcon, CalendarIcon, PencilIcon, TrashIcon, TrophyIcon, UserGroupIcon, EyeIcon, EyeSlashIcon, ShareIcon, ExternalLinkIcon } from './Icons.tsx';
 import StarRating from './StarRating.tsx';
@@ -38,6 +39,7 @@ const QuizStatusBadge: React.FC<{ status: 'scheduled' | 'finished' | 'canceled' 
 const QuizCard: React.FC<QuizCardProps> = ({ quiz, teacher, viewMode, currentUser, enrollmentCount, onView, onEdit, onManage, onCancel, onTogglePublish, isOwnerView = false }) => {
     const { handleNavigate } = useNavigation();
     const { addToast } = useUI();
+    const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
     const onViewTeacher = (teacher: Teacher) => {
         if (teacher.username) {
@@ -49,12 +51,7 @@ const QuizCard: React.FC<QuizCardProps> = ({ quiz, teacher, viewMode, currentUse
 
     const handleShare = (e: React.MouseEvent) => {
         e.stopPropagation();
-        const url = `${window.location.origin}/quizzes/${slugify(quiz.title)}`;
-        navigator.clipboard.writeText(url).then(() => {
-            addToast('Quiz link copied to clipboard!', 'success');
-        }).catch(() => {
-            addToast('Failed to copy link.', 'error');
-        });
+        setIsShareModalOpen(true);
     };
 
     const currencyFormatter = new Intl.NumberFormat('en-LK', {
@@ -130,9 +127,16 @@ const QuizCard: React.FC<QuizCardProps> = ({ quiz, teacher, viewMode, currentUse
             return <div className="w-full text-center px-4 py-2 text-sm font-medium text-red-700 bg-red-100 dark:text-red-200 dark:bg-red-900/50 rounded-md">Canceled</div>;
         }
 
-        return <button onClick={() => onView(quiz)} className="w-full text-center px-4 py-2 text-sm font-medium text-white bg-primary rounded-md hover:bg-primary-dark transition-colors">
-            {dynamicStatus === 'finished' ? 'View Results' : (isEnrolled ? 'View Quiz' : 'View Details')}
-        </button>;
+        return (
+            <div className="flex items-center space-x-2 w-full">
+                <button onClick={() => onView(quiz)} className="flex-grow text-center px-4 py-2 text-sm font-medium text-white bg-primary rounded-md hover:bg-primary-dark transition-colors">
+                    {dynamicStatus === 'finished' ? 'View Results' : (isEnrolled ? 'View Quiz' : 'View Details')}
+                </button>
+                <button onClick={handleShare} className="p-2 text-light-subtle dark:text-dark-subtle hover:text-primary dark:hover:text-primary-light transition-colors border border-light-border dark:border-dark-border rounded-md" title="Share Quiz">
+                    <ShareIcon className="h-5 w-5" />
+                </button>
+            </div>
+        );
     };
 
     const formattedDate = new Date(quiz.date).toLocaleDateString('en-US', {
@@ -196,8 +200,16 @@ const QuizCard: React.FC<QuizCardProps> = ({ quiz, teacher, viewMode, currentUse
                 <div className="mt-4 pt-4 border-t border-light-border dark:border-dark-border flex justify-between items-center">
                     {getAction()}
                 </div>
+
             </div>
-        </div>
+            <ShareModal
+                isOpen={isShareModalOpen}
+                onClose={() => setIsShareModalOpen(false)}
+                url={`${window.location.origin}/quizzes/${slugify(quiz.title)}`}
+                title={quiz.title}
+                quote={`Take ${quiz.title} by ${teacher.name} on Clazz.lk`}
+            />
+        </div >
     );
 };
 

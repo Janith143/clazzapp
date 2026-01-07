@@ -1,5 +1,6 @@
 
-import React from 'react';
+import React, { useState } from 'react';
+import ShareModal from './ShareModal';
 import { IndividualClass, Teacher } from '../types';
 import { ClockIcon, CalendarIcon, UserGroupIcon, PencilIcon, TrashIcon, MapPinIcon, OnlineIcon, EyeIcon, EyeSlashIcon, VideoCameraIcon, ShareIcon, ExternalLinkIcon } from './Icons';
 import StarRating from './StarRating';
@@ -44,6 +45,7 @@ const ClassCard: React.FC<ClassCardProps> = ({ classInfo, teacher, viewMode, enr
     const { tuitionInstitutes } = useData();
     const { handleNavigate } = useNavigation();
     const { addToast } = useUI();
+    const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
     const institute = classInfo.instituteId ? tuitionInstitutes.find(i => i.id === classInfo.instituteId) : null;
 
@@ -57,12 +59,7 @@ const ClassCard: React.FC<ClassCardProps> = ({ classInfo, teacher, viewMode, enr
 
     const handleShare = (e: React.MouseEvent) => {
         e.stopPropagation();
-        const url = `${window.location.origin}/classes/${slugify(classInfo.title)}`;
-        navigator.clipboard.writeText(url).then(() => {
-            addToast('Class link copied to clipboard!', 'success');
-        }).catch(() => {
-            addToast('Failed to copy link.', 'error');
-        });
+        setIsShareModalOpen(true);
     };
 
     const currencyFormatter = new Intl.NumberFormat('en-LK', {
@@ -167,15 +164,22 @@ const ClassCard: React.FC<ClassCardProps> = ({ classInfo, teacher, viewMode, enr
 
                 <div className="mt-auto pt-3 border-t border-light-border dark:border-dark-border">
                     {viewMode === 'public' ? (
-                        (dynamicStatus === 'canceled' && isOwnerView) ? (
-                            <div className="w-full text-center px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 dark:text-gray-200 dark:bg-gray-800 rounded-md">
-                                Canceled
-                            </div>
-                        ) : (classInfo.isDeleted && !isOwnerView) ? (
-                            <div className="w-full text-center px-3 py-1.5 text-xs font-medium text-red-700 bg-red-100 dark:text-red-200 dark:bg-red-900/50 rounded-md">
-                                Removed
-                            </div>
-                        ) : null
+                        <div className="flex justify-between items-center w-full gap-2">
+                            {(dynamicStatus === 'canceled' && isOwnerView) ? (
+                                <div className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 dark:text-gray-200 dark:bg-gray-800 rounded-md">
+                                    Canceled
+                                </div>
+                            ) : (classInfo.isDeleted && !isOwnerView) ? (
+                                <div className="px-3 py-1.5 text-xs font-medium text-red-700 bg-red-100 dark:text-red-200 dark:bg-red-900/50 rounded-md">
+                                    Removed
+                                </div>
+                            ) : (
+                                <div className="flex-grow"></div>
+                            )}
+                            <button onClick={handleShare} className="p-1.5 text-light-subtle dark:text-dark-subtle hover:text-primary dark:hover:text-primary-light transition-colors ml-auto" title="Share Class">
+                                <ShareIcon className="h-4 w-4" />
+                            </button>
+                        </div>
                     ) : (
                         <div className="flex flex-wrap items-center justify-between gap-2">
                             <div className="flex items-center gap-1.5 flex-wrap">
@@ -225,6 +229,14 @@ const ClassCard: React.FC<ClassCardProps> = ({ classInfo, teacher, viewMode, enr
                     )}
                 </div>
             </div>
+            <ShareModal
+                isOpen={isShareModalOpen}
+                onClose={() => setIsShareModalOpen(false)}
+                url={`${window.location.origin}/classes/${slugify(classInfo.title)}`}
+                title={classInfo.title}
+                description={classInfo.description}
+                quote={`Enroll in ${classInfo.title} by ${teacher.name} on Clazz.lk`}
+            />
         </div>
     );
 };
